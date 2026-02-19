@@ -1,0 +1,50 @@
+name: master
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0  # Fixed: Removed extra spaces, now aligned with other dependencies
+  
+  # UI Icons - ONLY ONE ENTRY
+  cupertino_icons: ^1.0.8
+  
+  # Image Caching
+  cached_network_image: ^3.4.1
+
+  # HTTP Client
+  dio: ^5.4.0
+  
+  # Local Storage (non-sensitive data)
+  shared_preferences: ^2.2.2
+
+  # Secure Storage (tokens, sensitive auth data)
+  flutter_secure_storage: ^9.2.2
+
+# Animation
+  lottie: ^3.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # ========== ASSETS SECTION ==========
+  assets:
+    - assets/loader/Loading_40_Paperplane.json
+    - assets/Global.png
+    - assets/Ribbonleft.png
+    - assets/Ribbonright.png
+    - assets/collegeicon.png
+    - assets/school.png
+    - assets/top-wave.png
+    - assets/bottom-wave.png
