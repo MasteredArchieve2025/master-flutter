@@ -11,6 +11,11 @@ import '../../Api/baseurl.dart';
 import '../../services/auth_token_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
+import '../../Widgets/ImageGalleryPopup.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+
+
+
 
 // ==================== SCHOOL DETAILS SCREEN ====================
 class School3Screen extends StatefulWidget {
@@ -1149,6 +1154,13 @@ class _School3ScreenState extends State<School3Screen> {
                                         return Container(
                                           width: isMobile ? 180 : 250,
                                           margin: const EdgeInsets.only(right: 12),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            final galleryList = (school['gallery'] as List)
+                                                .map((e) => e.toString())
+                                                .toList();
+                                            showImageGallery(context, galleryList, index);
+                                          },
                                           child: ClipRRect(
                                             borderRadius: BorderRadius.circular(12),
                                             child: CachedNetworkImage(
@@ -1164,6 +1176,7 @@ class _School3ScreenState extends State<School3Screen> {
                                               ),
                                             ),
                                           ),
+                                        ),
                                         );
                                       },
                                     ),
@@ -1609,41 +1622,15 @@ class _School3ScreenState extends State<School3Screen> {
                               height: videoHeight,
                               decoration: BoxDecoration(
                                 color: Colors.black,
-                                image: _youtubeUrls.isNotEmpty
-                                    ? DecorationImage(
-                                        image: NetworkImage(_getVideoThumbnail(_youtubeUrls[_currentVideoIndex])),
-                                        fit: BoxFit.cover,
-                                        onError: (exception, stackTrace) {},
-                                      )
-                                    : const DecorationImage(
-                                        image: NetworkImage('https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg'),
-                                        fit: BoxFit.cover,
-                                      ),
                               ),
                               child: Stack(
                                 children: [
-                                  Center(
-                                    child: Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        borderRadius: BorderRadius.circular(30),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.3),
-                                            blurRadius: 10,
-                                            spreadRadius: 2,
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(
-                                        Icons.play_arrow,
-                                        size: 40,
-                                        color: Colors.white,
-                                      ),
+                                    CommonYoutubePlayer(
+                                      youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                                      height: videoHeight,
+                                      placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                      borderRadius: 0,
                                     ),
-                                  ),
                                   if (_youtubeUrls.length > 1)
                                     Positioned(
                                       bottom: 16,

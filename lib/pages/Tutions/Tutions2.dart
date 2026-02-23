@@ -36,6 +36,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
   // Advertisement Data
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
+  bool _adsLoaded = false;
+  bool _apiCallFailed = false;
   
   // Default ads (fallback if API fails)
   final List<String> defaultAds = [
@@ -55,7 +57,85 @@ class _Tution2ScreenState extends State<Tution2Screen> {
     super.initState();
     _loadAdvertisements();
     _loadTuitions();
-    // Auto scroll ads
+  }
+
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for tuitionspage2...');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=tuitionspage2'),
+      );
+
+      debugPrint('📡 API Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        debugPrint('📦 API Response: $data');
+
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          debugPrint('✅ API Data found');
+
+          setState(() {
+            // Parse images
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+              debugPrint('🖼️ Loaded ${_adImages.length} images from API');
+            }
+
+            // Parse youtube URLs
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+              debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
+            }
+            _adsLoaded = true;
+            _apiCallFailed = false;
+          });
+        } else {
+          debugPrint('⚠️ API returned success false or no data');
+          setState(() {
+            _adsLoaded = true;
+            _apiCallFailed = true;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        debugPrint('⚠️ Page "tuitionspage2" not found in backend (404)');
+        setState(() {
+          _adsLoaded = true;
+          _apiCallFailed = true;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Advertisement page not configured in backend'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } else {
+        debugPrint('⚠️ Unexpected status code: ${response.statusCode}');
+        setState(() {
+          _adsLoaded = true;
+          _apiCallFailed = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() {
+        _adsLoaded = true;
+        _apiCallFailed = true;
+      });
+    } finally {
+      debugPrint('✅ Using ${ads.length} images (${_adImages.isEmpty ? 'fallback' : 'API'})');
+      // Start auto-scroll after ads are loaded
+      _startAdAutoScroll();
+    }
+  }
+
+  void _startAdAutoScroll() {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
         int nextPage = _adIndex + 1;
@@ -67,37 +147,6 @@ class _Tution2ScreenState extends State<Tution2Screen> {
         );
       }
     });
-  }
-
-  Future<void> _loadAdvertisements() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=tuitionspage2'),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        
-        if (data['success'] == true && data['data'] != null) {
-          final apiData = data['data'];
-          
-          setState(() {
-            // Parse images
-            if (apiData['images'] != null && apiData['images'] is List) {
-              _adImages = List<String>.from(apiData['images']);
-            }
-            
-            // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
-              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
-            }
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint('Error loading advertisements: $e');
-      // Continue with default ads
-    }
   }
 
   Future<void> _loadTuitions() async {
@@ -197,11 +246,11 @@ class _Tution2ScreenState extends State<Tution2Screen> {
     final bool isDesktop = screenWidth >= 1024;
     
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double adHeight = isTablet ? 220 : 180;
+    final double adHeight = isTablet ? 200 : 180; // Updated to match Tutions3
     final double bannerPadding = isTablet ? 24 : 16;
     final double cardPadding = isTablet ? 20 : 14;
     final double cardMargin = isTablet ? 20 : 14;
-    final double videoHeight = isTablet ? 280 : 220;
+    final double videoHeight = isTablet ? 220 : 180; // Updated to match Tutions3
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
@@ -278,7 +327,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Ads from API
+                        // Ads from API - Updated to match Tutions3 styling
                         SizedBox(
                           height: adHeight,
                           child: PageView.builder(
@@ -366,6 +415,35 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             );
                           }),
                         ),
+
+                        // Info message when using fallback (optional) - Added to match Tutions3
+                        if (_apiCallFailed && _adImages.isEmpty)
+                          Container(
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding, vertical: 8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    color: Colors.orange[700], size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Using default advertisements',
+                                    style: TextStyle(
+                                      color: Colors.orange[700],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
 
                         // Banner
                         Container(
@@ -456,7 +534,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                           ),
 
                           // Institute Cards
-                          ...visibleInstitutes.map((item) {
+                          ..._filteredTuitions.take(_showAll ? _filteredTuitions.length : 3).map((item) {
                             return MouseRegion(
                               cursor: SystemMouseCursors.click,
                               child: GestureDetector(
@@ -712,22 +790,19 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             ),
                         ],
 
-                        // Video Section with API videos
-                        if (_youtubeUrls.isNotEmpty)
+                        // Video Section with API videos - Updated to match Tutions3
+                        if (_youtubeUrls.isNotEmpty) ...[
+                          const SizedBox(height: 16),
                           Container(
-                            margin: EdgeInsets.only(
-                              left: horizontalPadding,
-                              right: horizontalPadding,
-                              top: isTablet ? 40 : 32,
-                              bottom: isTablet ? 16 : 12,
-                            ),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   _youtubeUrls.length > 1 ? 'Videos' : 'Video',
                                   style: TextStyle(
-                                    fontSize: isTablet ? 22 : 18,
+                                    fontSize: isTablet ? 20 : 18,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
@@ -737,7 +812,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                     children: [
                                       IconButton(
                                         onPressed: _previousVideo,
-                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_left,
+                                            color: Color(0xFF0B5ED7)),
                                         constraints: const BoxConstraints(),
                                         padding: EdgeInsets.zero,
                                       ),
@@ -750,7 +826,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                       ),
                                       IconButton(
                                         onPressed: _nextVideo,
-                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_right,
+                                            color: Color(0xFF0B5ED7)),
                                         constraints: const BoxConstraints(),
                                         padding: EdgeInsets.zero,
                                       ),
@@ -760,84 +837,88 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             ),
                           ),
 
-                        Container(
-                          width: double.infinity,
-                          height: videoHeight,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                _youtubeUrls.isNotEmpty
-                                    ? _getVideoThumbnail(_youtubeUrls[_currentVideoIndex])
-                                    : 'https://img.youtube.com/vi/PHJVAQ6kFHM/maxresdefault.jpg',
-                              ),
-                              fit: BoxFit.cover,
-                              onError: (exception, stackTrace) {},
-                            ),
-                          ),
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.play_arrow,
-                                    size: 40,
-                                    color: Colors.white,
-                                  ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 20),
+                            width: double.infinity,
+                            height: videoHeight,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              image: DecorationImage(
+                                image: NetworkImage(
+                                  _youtubeUrls.isNotEmpty
+                                      ? _getVideoThumbnail(_youtubeUrls[_currentVideoIndex])
+                                      : 'https://img.youtube.com/vi/PHJVAQ6kFHM/maxresdefault.jpg',
                                 ),
+                                fit: BoxFit.cover,
+                                onError: (exception, stackTrace) {},
                               ),
-                              if (_youtubeUrls.length > 1)
-                                Positioned(
-                                  bottom: 16,
-                                  right: 16,
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    width: 60,
+                                    height: 60,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          onPressed: _previousVideo,
-                                          icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-                                          constraints: const BoxConstraints(),
-                                          padding: EdgeInsets.zero,
-                                        ),
-                                        Text(
-                                          '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: _nextVideo,
-                                          icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                                          constraints: const BoxConstraints(),
-                                          padding: EdgeInsets.zero,
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(30),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          spreadRadius: 2,
                                         ),
                                       ],
                                     ),
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                            ],
+                                if (_youtubeUrls.length > 1)
+                                  Positioned(
+                                    bottom: 16,
+                                    right: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: _previousVideo,
+                                            icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                                            constraints: const BoxConstraints(),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                          Text(
+                                            '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: _nextVideo,
+                                            icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                                            constraints: const BoxConstraints(),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
+                        
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),

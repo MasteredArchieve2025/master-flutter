@@ -2,7 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../Widgets/Footer.dart'; // Add Footer import
+import '../../Widgets/CommonYoutubePlayer.dart';
+import '../../components/glass_loader.dart';
+import '../../Api/baseurl.dart';
 
 // ============ BLOG MODEL DEFINITION ============
 // Define Blog class here ONLY
@@ -44,6 +49,53 @@ class Blog {
     required this.authorImage,
     required this.blogImage,
   });
+
+  factory Blog.fromJson(Map<String, dynamic> json) {
+    // Helper to format date
+    String formattedDate = "";
+    String formattedTime = "";
+    if (json['publishedAt'] != null) {
+      DateTime dt = DateTime.parse(json['publishedAt']);
+      formattedDate = "${_getMonth(dt.month)} ${dt.day}";
+      formattedTime = _getTimeAgo(dt);
+    }
+
+    return Blog(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      type: json['type'] ?? 'BLOG',
+      time: formattedTime,
+      date: formattedDate,
+      category: json['category'] ?? '',
+      image: json['image'] ?? '',
+      readTime: json['readTime'] ?? '',
+      author: json['author'] ?? '',
+      authorRole: json['authorRole'] ?? '',
+      publishStatus: json['publishStatus'] ?? '',
+      publishDate: json['publishedAt'] ?? '',
+      authorBio: json['authorBio'] ?? '',
+      content: json['content'] ?? '',
+      authorImage: json['authorImage'] ?? '',
+      blogImage: json['mainImage'] ?? json['image'] ?? '',
+    );
+  }
+
+  static String _getMonth(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return months[month - 1];
+  }
+
+  static String _getTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays > 0) return '${difference.inDays} days ago';
+    if (difference.inHours > 0) return '${difference.inHours} hrs ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes} mins ago';
+    return 'Just now';
+  }
 }
 
 // ============ AD MODEL ============
@@ -141,6 +193,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
   Timer? _adTimer;
   late bool isTablet;
   late bool isWeb;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   bool get isIOS {
     if (kIsWeb) return false;
@@ -206,6 +260,46 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
     return isIOS ? '.SF Pro Text' : 'Roboto';
   }
 
+  Future<void> _fetchBlogDetails(String id) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/blogs/$id'),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final newBlog = Blog.fromJson(data);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BlogDetailScreen(blog: newBlog),
+          ),
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load blog details';
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errorMessage!)),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage!)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -216,40 +310,48 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
-      body: Column(
+      body: Stack(
         children: [
-          // Header with SafeArea (like School1Screen)
-          SafeArea(
-            bottom: false,
-            child: _buildHeader(context, blog),
-          ),
+          Column(
+            children: [
+              // Header with SafeArea (like School1Screen)
+              SafeArea(
+                bottom: false,
+                child: _buildHeader(context, blog),
+              ),
 
-          // Main Content
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                // Advertisement Banner
-                SliverToBoxAdapter(
-                  child: _buildAdBanner(context, adHeight),
+              // Main Content
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    // Advertisement Banner
+                    SliverToBoxAdapter(
+                      child: _buildAdBanner(context, adHeight),
+                    ),
+                    
+                    // Blog Content
+                    SliverToBoxAdapter(
+                      child: _buildBlogContent(context, blog),
+                    ),
+                    
+                    // YouTube Video Section
+                    SliverToBoxAdapter(
+                      child: _buildVideoSection(isTablet),
+                    ),
+                    
+                    // No extra SizedBox - video directly above footer
+                  ],
                 ),
-                
-                // Blog Content
-                SliverToBoxAdapter(
-                  child: _buildBlogContent(context, blog),
-                ),
-                
-                // YouTube Video Section
-                SliverToBoxAdapter(
-                  child: _buildVideoSection(isTablet),
-                ),
-                
-                // No extra SizedBox - video directly above footer
-              ],
+              ),
+
+              // Footer - Using imported Footer widget
+              const Footer(),
+            ],
+          ),
+          if (_isLoading)
+            const GlassLoader(
+              message: 'Loading details...',
             ),
-          ),
-
-          // Footer - Using imported Footer widget
-          const Footer(),
         ],
       ),
     );
@@ -671,62 +773,66 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           const SizedBox(height: 16),
           
           // Related updates list
-          ...relatedUpdates.map((update) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          ...relatedUpdates.map((update) => GestureDetector(
+                onTap: () => _fetchBlogDetails(update.id),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: getTypeColor(update.type),
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
                   ),
-                  child: Text(
-                    update.type,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: getTypeTextColor(update.type),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        update.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF003366),
-                          fontFamily: _getFontFamily(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: getTypeColor(update.type),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        child: Text(
+                          update.type,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: getTypeTextColor(update.type),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        update.date,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                          fontFamily: _getFontFamily(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              update.title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF003366),
+                                fontFamily: _getFontFamily(),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              update.date,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade500,
+                                fontFamily: _getFontFamily(),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          )).toList(),
+              )).toList(),
         ],
       ),
     );
@@ -775,41 +881,11 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           ),
 
           // Video Container - Full width, edge to edge
-          Container(
+          CommonYoutubePlayer(
+            youtubeUrl: 'https://www.youtube.com/watch?v=qYapc_bkfxw',
             height: isTablet ? 280 : 220,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.play_circle_filled,
-                    color: Colors.white,
-                    size: 60,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'YouTube Video',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: _getFontFamily(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+            borderRadius: 0,
           ),
         ],
       ),

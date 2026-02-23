@@ -8,6 +8,11 @@ import '../../Widgets/Footer.dart';
 import '../../Api/School/review_service.dart';
 import '../../Api/baseurl.dart';
 import '../../services/auth_token_manager.dart';
+import '../../Widgets/ImageGalleryPopup.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+
+
+
 
 class Tution3Screen extends StatefulWidget {
   final String instituteName;
@@ -695,17 +700,58 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                widget.instituteName,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isTablet ? 26 : 20,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
+                              Row(
+                                children: [
+                                  if (widget.instituteData?['tuitionImage'] != null)
+                                    Container(
+                                      width: isTablet ? 70 : 60,
+                                      height: isTablet ? 70 : 60,
+                                      margin: const EdgeInsets.only(right: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.1),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          widget.instituteData!['tuitionImage'],
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return const Center(
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (context, error, stackTrace) =>
+                                              const Icon(Icons.school, size: 30, color: Colors.grey),
+                                        ),
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: Text(
+                                      widget.instituteName,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isTablet ? 26 : 20,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 12),
                               Text(
                                 widget.instituteData?['shortDescription'] ??
                                     'Empowering Excellence since 2012',
@@ -918,17 +964,25 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, e, s) =>
-                                            Container(
-                                          color: Colors.grey[200],
-                                          child: const Icon(
-                                              Icons.image_not_supported,
-                                              color: Colors.grey),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final galleryList = (widget.instituteData?['gallery'] as List)
+                                            .map((e) => e.toString())
+                                            .toList();
+                                        showImageGallery(context, galleryList, index);
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, e, s) =>
+                                              Container(
+                                            color: Colors.grey[200],
+                                            child: const Icon(
+                                                Icons.image_not_supported,
+                                                color: Colors.grey),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1332,40 +1386,14 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                           height: videoHeight,
                           decoration: BoxDecoration(
                             color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                _youtubeUrls.isNotEmpty
-                                    ? _getVideoThumbnail(
-                                        _youtubeUrls[_currentVideoIndex])
-                                    : 'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
-                              ),
-                              fit: BoxFit.cover,
-                              onError: (exception, stackTrace) {},
-                            ),
                           ),
                           child: Stack(
                             children: [
-                              Center(
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.play_arrow,
-                                    size: 40,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                              CommonYoutubePlayer(
+                                youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                                height: videoHeight,
+                                placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                borderRadius: 0,
                               ),
                               if (_youtubeUrls.length > 1)
                                 Positioned(

@@ -2,8 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'BlogDetailsScreen.dart'; // This imports the Blog class
 import '../../Widgets/Footer.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+import '../../Api/baseurl.dart';
+import '../../components/glass_loader.dart';
+
 
 // Advertisement data
 class Ad {
@@ -46,123 +52,8 @@ final List<Ad> ads = [
   ),
 ];
 
-// Blog data - using Blog class from BlogDetailsScreen.dart
-final List<Blog> blogsData = [
-  Blog(
-    id: "1",
-    title: "New Engineering Syllabus Announced",
-    description: "The University board has released the updated curriculum focusing on AI and sustainable energy.",
-    type: "NEWS",
-    time: "2 hrs ago",
-    date: "Oct 26",
-    category: "Curriculum",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop",
-    readTime: "3 min read",
-    author: "University Board",
-    authorRole: "Education Board",
-    publishStatus: "Published",
-    publishDate: "2 hrs ago",
-    authorBio: "The University board regulates curriculum standards and updates for engineering programs nationwide.",
-    content: "The University board has released the updated curriculum focusing on AI and sustainable energy.\n\nKey Changes in the 2025 Syllabus:\n- AI and Machine Learning integrated into all engineering streams\n- Sustainable Energy Systems as a core subject\n- Industry 4.0 technologies including IoT and Robotics\n- Enhanced practical training with 60% lab-based learning\n\nThe new syllabus aims to prepare students for emerging technologies and global challenges.",
-    authorImage: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop",
-  ),
-  Blog(
-    id: "2",
-    title: "5 Study Hacks to Boost Your IQ",
-    description: "Discover scientifically proven methods to enhance memory retention and focus during exams.",
-    type: "BLOG",
-    time: "Yesterday",
-    date: "Oct 25",
-    category: "Study Tips",
-    image: "https://images.unsplash.com/photo-1456513080510-34499c4359ce?w=400&h=250&fit=crop",
-    readTime: "5 min read",
-    author: "Sarah Jenkins",
-    authorRole: "Education Specialist",
-    publishStatus: "Published",
-    publishDate: "Yesterday, 4:30 PM",
-    authorBio: "Sarah has over 10 years of experience in cognitive psychology and student mentorship. She loves helping students unlock their full potential.",
-    content: "Discover scientifically proven methods to enhance your cognitive abilities and memory retention during exam preparation.\n\n1. Active Recall Practice\n   Instead of re-reading notes, test yourself regularly. This strengthens neural pathways and improves long-term memory retention.\n\n2. Spaced Repetition\n   Review material at increasing intervals. Studies show this can improve retention by up to 200%.\n\n3. Mindfulness Meditation\n   Just 10 minutes daily can improve focus, reduce stress, and enhance cognitive flexibility.\n\n4. Sleep Optimization\n   7-8 hours of quality sleep consolidates learning and improves problem-solving abilities.\n\n5. Nutrition for Brain Health\n   Omega-3 fatty acids, antioxidants, and proper hydration support optimal brain function.\n\nImplement these strategies consistently for 30 days, and you'll notice significant improvements in your learning efficiency and cognitive performance.",
-    authorImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1456513080510-34499c4359ce?w=800&h=400&fit=crop",
-  ),
-  Blog(
-    id: "3",
-    title: "Scholarship Applications Now Open",
-    description: "Arunachala College announces new merit-based scholarships for top performing students.",
-    type: "NEWS",
-    time: "Oct 24",
-    date: "Oct 24",
-    category: "Scholarship",
-    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=250&fit=crop",
-    readTime: "4 min read",
-    author: "Arunachala College",
-    authorRole: "Administration",
-    publishStatus: "Published",
-    publishDate: "Oct 24",
-    authorBio: "Arunachala College is committed to providing quality education and opportunities to deserving students across the country.",
-    content: "Arunachala College announces new merit-based scholarships for top performing students in the 2025 academic year.\n\nScholarship Details:\n- Merit Scholarships: Up to 100% tuition fee waiver for top 10 rank holders\n- Sports Scholarships: For national and state level athletes\n- Arts Scholarships: For students excelling in cultural activities\n- Need-based Scholarships: For economically disadvantaged students\n\nApplication Deadline: November 30, 2024\nResults Announcement: December 15, 2024",
-    authorImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop",
-  ),
-  Blog(
-    id: "4",
-    title: "Online Learning Platforms Comparison",
-    description: "A comprehensive review of top online education platforms for 2025.",
-    type: "BLOG",
-    time: "Oct 22",
-    date: "Oct 22",
-    category: "Technology",
-    image: "https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?w=400&h=250&fit=crop",
-    readTime: "6 min read",
-    author: "Tech Education Team",
-    authorRole: "Technology Analysts",
-    publishStatus: "Published",
-    publishDate: "Oct 22",
-    authorBio: "Our team of technology analysts specializes in reviewing and comparing educational platforms to help students make informed choices.",
-    content: "A comprehensive review of top online education platforms for 2025.\n\nPlatform Comparison:\n1. Coursera - Best for university-level courses\n2. Udemy - Best for skill-based courses\n3. edX - Best for academic rigor\n4. Khan Academy - Best for free foundational learning\n5. Skillshare - Best for creative skills\n\nEach platform offers unique advantages depending on your learning goals and budget.",
-    authorImage: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?w=800&h=400&fit=crop",
-  ),
-  Blog(
-    id: "5",
-    title: "Mental Health Awareness Week",
-    description: "College organizes workshops and sessions focusing on student mental wellbeing.",
-    type: "NEWS",
-    time: "Oct 20",
-    date: "Oct 20",
-    category: "Student Life",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=250&fit=crop",
-    readTime: "4 min read",
-    author: "College Wellness Center",
-    authorRole: "Student Support",
-    publishStatus: "Published",
-    publishDate: "Oct 20",
-    authorBio: "The College Wellness Center is dedicated to supporting student mental health and overall wellbeing.",
-    content: "College organizes workshops and sessions focusing on student mental wellbeing during Mental Health Awareness Week.\n\nWeek's Schedule:\n- Monday: Stress Management Workshop\n- Tuesday: Mindfulness Meditation Sessions\n- Wednesday: Counseling Services Open House\n- Thursday: Peer Support Group Meetings\n- Friday: Wellness Fair with Local Organizations\n\nAll events are free and open to all students.",
-    authorImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=400&fit=crop",
-  ),
-  Blog(
-    id: "6",
-    title: "Career Guidance for Freshmen",
-    description: "Essential tips for first-year students to plan their career path effectively.",
-    type: "BLOG",
-    time: "Oct 18",
-    date: "Oct 18",
-    category: "Career",
-    image: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=250&fit=crop",
-    readTime: "5 min read",
-    author: "Career Services Department",
-    authorRole: "Career Counselors",
-    publishStatus: "Published",
-    publishDate: "Oct 18",
-    authorBio: "Our career services team helps students navigate their career paths from freshman year to graduation and beyond.",
-    content: "Essential tips for first-year students to plan their career path effectively.\n\nKey Steps for Freshmen:\n1. Self-Assessment: Identify your interests, skills, and values\n2. Explore Options: Research different career paths and industries\n3. Build Network: Connect with professors, alumni, and professionals\n4. Gain Experience: Look for internships and volunteer opportunities\n5. Develop Skills: Focus on both technical and soft skills development\n\nStart early to make the most of your college experience.",
-    authorImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop",
-    blogImage: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&h=400&fit=crop",
-  ),
-];
+// Static blogsData removed to use dynamic API data
+List<Blog> blogsData = [];
 
 // Tab categories
 class TabItem {
@@ -193,6 +84,10 @@ class _BlogsScreenState extends State<BlogsScreen> {
   late bool isTablet;
   late bool isWeb;
 
+  // API State
+  bool _isLoading = true;
+  String? _errorMessage;
+
   // Platform detection function - works on all platforms including web
   bool get isIOS {
     if (kIsWeb) return false;
@@ -204,6 +99,38 @@ class _BlogsScreenState extends State<BlogsScreen> {
     super.initState();
     _pageController = PageController();
     _startAdAutoScroll();
+    _fetchBlogs();
+  }
+
+  Future<void> _fetchBlogs() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/blogs'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          blogsData = data.map((item) => Blog.fromJson(item)).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load blogs. Status: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -299,62 +226,94 @@ class _BlogsScreenState extends State<BlogsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
-      body: Column(
+      body: Stack(
         children: [
-          // Header with SafeArea (like School1Screen)
-          SafeArea(
-            bottom: false,
-            child: _buildHeader(context),
-          ),
+          Column(
+            children: [
+              // Header with SafeArea
+              SafeArea(
+                bottom: false,
+                child: _buildHeader(context),
+              ),
 
-          // Main Content
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                // Advertisement Banner
-                SliverToBoxAdapter(
-                  child: _buildAdBanner(context, adHeight),
-                ),
-
-                // Tab Navigation
-                SliverToBoxAdapter(
-                  child: _buildTabBar(),
-                ),
-
-                // Blog List
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final blogs = getFilteredBlogs();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildBlogCard(blogs[index]),
-                        );
-                      },
-                      childCount: getFilteredBlogs().length,
+              // Main Content
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    // Advertisement Banner
+                    SliverToBoxAdapter(
+                      child: _buildAdBanner(context, adHeight),
                     ),
-                  ),
-                ),
 
-                // Banner
-                SliverToBoxAdapter(
-                  child: _buildInfoBanner(),
-                ),
+                    // Tab Navigation
+                    SliverToBoxAdapter(
+                      child: _buildTabBar(),
+                    ),
 
-                // YouTube Video Section
-                SliverToBoxAdapter(
-                  child: _buildVideoSection(isTablet),
-                ),
+                    // Blog List
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: _isLoading && blogsData.isEmpty
+                          ? const SliverFillRemaining(
+                              child: SizedBox.shrink(),
+                            )
+                          : _errorMessage != null && blogsData.isEmpty
+                              ? SliverFillRemaining(
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                        const SizedBox(height: 16),
+                                        Text(_errorMessage!),
+                                        ElevatedButton(
+                                          onPressed: _fetchBlogs,
+                                          child: const Text('Retry'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : blogsData.isEmpty
+                                  ? const SliverFillRemaining(
+                                      child: Center(child: Text("No blogs found")),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) {
+                                          final blogs = getFilteredBlogs();
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 12),
+                                            child: _buildBlogCard(blogs[index]),
+                                          );
+                                        },
+                                        childCount: getFilteredBlogs().length,
+                                      ),
+                                    ),
+                    ),
 
-                // No spacing after video
-              ],
-            ),
+                    // Info Banner
+                    SliverToBoxAdapter(
+                      child: _buildInfoBanner(),
+                    ),
+
+                    // Video Section
+                    SliverToBoxAdapter(
+                      child: _buildVideoSection(isTablet),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Footer pinned at bottom
+              const Footer(),
+            ],
           ),
-
-          // Footer - Using imported Footer widget
-          const Footer(),
+          // GlassLoader overlay
+          if (_isLoading)
+            const GlassLoader(
+              message: 'Loading blogs...',
+            ),
         ],
       ),
     );
@@ -864,41 +823,11 @@ class _BlogsScreenState extends State<BlogsScreen> {
           const SizedBox(height: 12),
           
           // Video Container - Full width, no horizontal padding
-          Container(
+          CommonYoutubePlayer(
+            youtubeUrl: 'https://www.youtube.com/watch?v=qYapc_bkfxw',
             height: isTablet ? 280 : 220,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.play_circle_filled,
-                    color: Colors.white,
-                    size: 60,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'YouTube Video',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: _getFontFamily(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+            borderRadius: 0,
           ),
         ],
       ),

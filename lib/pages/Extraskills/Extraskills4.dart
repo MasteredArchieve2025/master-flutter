@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../widgets/footer.dart';
+import '../../Widgets/Footer.dart';
+
 import '../../Api/baseurl.dart';
 import '../../services/auth_token_manager.dart';
 import '../../Api/ExtraSkill/extra_skill_review_service.dart';
 import '../../components/glass_loader.dart';
+import '../../Widgets/ImageGalleryPopup.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+
+
+
 
 class Extraskills4Screen extends StatefulWidget {
   final Map<String, dynamic> institution;
@@ -37,6 +43,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
   // API Data
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
+  bool _apiCallFailed = false;
 
   // Reviews from API
   List<Map<String, dynamic>> _reviews = [];
@@ -122,21 +129,41 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
             _isLoadingAds = false;
+            _apiCallFailed = false;
           });
         } else {
           setState(() {
             _isLoadingAds = false;
+            _apiCallFailed = true;
           });
+        }
+      } else if (response.statusCode == 404) {
+        debugPrint('⚠️ Page "extraskillpage4" not found in backend (404)');
+        setState(() {
+          _isLoadingAds = false;
+          _apiCallFailed = true;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Advertisement page not configured in backend'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       } else {
         setState(() {
           _isLoadingAds = false;
+          _apiCallFailed = true;
         });
       }
     } catch (e) {
       debugPrint('Error loading advertisements: $e');
       setState(() {
         _isLoadingAds = false;
+        _apiCallFailed = true;
       });
     }
   }
@@ -500,6 +527,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     }
   }
 
+  // Responsive value function (copied from Extraskills3)
+  double _responsiveValue(double mobile, double tablet, double desktop) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return desktop;
+    if (screenWidth >= 768) return tablet;
+    return mobile;
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -507,21 +542,15 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
     final isDesktop = screenWidth >= 1024;
 
-    double responsiveValue(double mobile, double tablet, double desktop) {
-      if (isDesktop) return desktop;
-      if (isTablet) return tablet;
-      return mobile;
-    }
-
-    final double bannerHeight = responsiveValue(180, 240, 280);
-    final double videoHeight = responsiveValue(200, 280, 320);
-    final double heroCardHeight = responsiveValue(240, 260, 280);
-    final double galleryImageSize = responsiveValue(100, 130, 160);
-    final double horizontalPadding = responsiveValue(16, 20, 24);
-    final double cardPadding = responsiveValue(16, 20, 24);
-    final double cardRadius = responsiveValue(16, 18, 20);
-    final double bodyFontSize = responsiveValue(14, 15, 16);
-    final double smallFontSize = responsiveValue(12, 13, 14);
+    final double responsiveBannerHeight = _responsiveValue(200, 280, 300); // Updated to match Extraskills3
+    final double videoHeight = _responsiveValue(220, 280, 360); // Updated to match Extraskills3
+    final double heroCardHeight = _responsiveValue(240, 260, 280);
+    final double galleryImageSize = _responsiveValue(100, 130, 160);
+    final double horizontalPadding = _responsiveValue(16, 20, 24);
+    final double cardPadding = _responsiveValue(16, 20, 24);
+    final double cardRadius = _responsiveValue(16, 18, 20);
+    final double bodyFontSize = _responsiveValue(14, 15, 16);
+    final double smallFontSize = _responsiveValue(12, 13, 14);
 
     final String institutionName =
         widget.institution['name'] ?? 'Unknown Institution';
@@ -561,14 +590,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
               bottom: false,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                height: responsiveValue(52, 64, 72),
+                height: _responsiveValue(52, 72, 80), // Updated to match Extraskills3
                 child: Row(
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: Icon(
                         Icons.arrow_back,
-                        size: responsiveValue(24, 26, 28),
+                        size: _responsiveValue(24, 26, 28), // Updated to match Extraskills3
                         color: Colors.white,
                       ),
                     ),
@@ -577,14 +606,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                         child: Text(
                           'Institution Details',
                           style: TextStyle(
-                            fontSize: responsiveValue(18, 20, 22),
+                            fontSize: _responsiveValue(18, 22, 24), // Updated to match Extraskills3
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 40),
+                    SizedBox(width: _responsiveValue(40, 44, 48)), // Updated to match Extraskills3
                   ],
                 ),
               ),
@@ -598,9 +627,9 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                 SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Banner Carousel
+                      // Banner Carousel - Updated to match Extraskills3
                       SizedBox(
-                        height: bannerHeight,
+                        height: responsiveBannerHeight,
                         child: PageView.builder(
                           controller: _bannerController,
                           itemCount: bannerAds.length,
@@ -615,12 +644,12 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                               child: Image.network(
                                 bannerAds[index],
                                 width: double.infinity,
-                                height: bannerHeight,
+                                height: responsiveBannerHeight,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
                                     width: double.infinity,
-                                    height: bannerHeight,
+                                    height: responsiveBannerHeight,
                                     color: const Color(0xFF0052A2),
                                     child: Center(
                                       child: Column(
@@ -651,7 +680,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                   if (loadingProgress == null) return child;
                                   return Container(
                                     width: double.infinity,
-                                    height: bannerHeight,
+                                    height: responsiveBannerHeight,
                                     color: const Color(0xFF0052A2),
                                     child: Center(
                                       child: CircularProgressIndicator(
@@ -676,26 +705,64 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                         ),
                       ),
 
-                      // Dots Indicator
-                      SizedBox(height: responsiveValue(8, 10, 12)),
+                      // Dots Indicator - Updated to match Extraskills3
+                      SizedBox(height: _responsiveValue(12, 16, 20)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: bannerAds.asMap().entries.map((entry) {
-                          return Container(
-                            width: responsiveValue(6, 7, 8),
-                            height: responsiveValue(6, 7, 8),
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: _currentBannerIndex == entry.key 
+                              ? _responsiveValue(20, 22, 24) 
+                              : _responsiveValue(8, 9, 10),
+                            height: _responsiveValue(8, 9, 10),
                             margin: EdgeInsets.symmetric(
-                              horizontal: responsiveValue(3, 4, 5),
+                              horizontal: _responsiveValue(4, 5, 6),
                             ),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
                               color: _currentBannerIndex == entry.key
-                                  ? const Color(0xFF0B5ED7)
-                                  : Colors.grey[300],
+                                ? const Color(0xFF0B5ED7)
+                                : const Color(0xFFCCCCCC),
+                              borderRadius: BorderRadius.circular(_responsiveValue(4, 5, 6)),
                             ),
                           );
                         }).toList(),
                       ),
+
+                      // Fallback banner message - Added to match Extraskills3
+                      if (_adImages.isEmpty && !_isLoadingAds && _apiCallFailed)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.orange),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 14,
+                                  color: Colors.orange[700],
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Using default banners',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
 
                       // Main Content
                       Padding(
@@ -708,7 +775,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                               width: double.infinity,
                               height: heroCardHeight,
                               margin: EdgeInsets.only(
-                                top: responsiveValue(16, 20, 24),
+                                top: _responsiveValue(16, 20, 24),
                               ),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
@@ -726,8 +793,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    width: responsiveValue(90, 110, 130),
-                                    height: responsiveValue(90, 110, 130),
+                                    width: _responsiveValue(90, 110, 130),
+                                    height: _responsiveValue(90, 110, 130),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(20),
@@ -753,12 +820,12 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                         : null,
                                   ),
 
-                                  SizedBox(height: responsiveValue(12, 14, 16)),
+                                  SizedBox(height: _responsiveValue(12, 14, 16)),
 
                                   Text(
                                     institutionName,
                                     style: TextStyle(
-                                      fontSize: responsiveValue(20, 22, 24),
+                                      fontSize: _responsiveValue(20, 22, 24),
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white,
                                     ),
@@ -767,7 +834,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
 
-                                  SizedBox(height: responsiveValue(4, 6, 8)),
+                                  SizedBox(height: _responsiveValue(4, 6, 8)),
 
                                   // Rating with review count
                                   Row(
@@ -800,7 +867,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     ],
                                   ),
 
-                                  SizedBox(height: responsiveValue(8, 10, 12)),
+                                  SizedBox(height: _responsiveValue(8, 10, 12)),
 
                                   // Location
                                   Row(
@@ -808,17 +875,17 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     children: [
                                       Icon(
                                         Icons.location_on,
-                                        size: responsiveValue(16, 18, 20),
+                                        size: _responsiveValue(16, 18, 20),
                                         color: const Color(0xFFE8F0FF),
                                       ),
                                       SizedBox(
-                                          width: responsiveValue(6, 8, 10)),
+                                          width: _responsiveValue(6, 8, 10)),
                                       Flexible(
                                         child: Text(
                                           location,
                                           style: TextStyle(
                                             fontSize:
-                                                responsiveValue(12, 13, 14),
+                                                _responsiveValue(12, 13, 14),
                                             color: const Color(0xFFE8F0FF),
                                           ),
                                           maxLines: 1,
@@ -844,20 +911,20 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                               ),
                               padding: cardPadding,
                               radius: cardRadius,
-                              topMargin: responsiveValue(16, 20, 24),
+                              topMargin: _responsiveValue(16, 20, 24),
                             ),
 
                             // We Offer
                             _buildSectionCard(
                               title: 'We Offer',
                               content: Wrap(
-                                spacing: responsiveValue(8, 10, 12),
-                                runSpacing: responsiveValue(8, 10, 12),
+                                spacing: _responsiveValue(8, 10, 12),
+                                runSpacing: _responsiveValue(8, 10, 12),
                                 children: weOffer.map((offer) {
                                   return Container(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: responsiveValue(12, 14, 16),
-                                      vertical: responsiveValue(6, 8, 10),
+                                      horizontal: _responsiveValue(12, 14, 16),
+                                      vertical: _responsiveValue(6, 8, 10),
                                     ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFE8F0FF),
@@ -888,11 +955,11 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     children: [
                                       Icon(
                                         Icons.language,
-                                        size: responsiveValue(16, 18, 20),
+                                        size: _responsiveValue(16, 18, 20),
                                         color: const Color(0xFF0B5ED7),
                                       ),
                                       SizedBox(
-                                          width: responsiveValue(8, 10, 12)),
+                                          width: _responsiveValue(8, 10, 12)),
                                       Expanded(
                                         child: Text(
                                           websiteUrl,
@@ -931,37 +998,45 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                             '${BaseUrl.baseUrl}/$imageUrl';
                                       }
 
-                                      return Container(
-                                        width: galleryImageSize,
-                                        height: galleryImageSize,
-                                        margin: EdgeInsets.only(
-                                          right: responsiveValue(10, 14, 18),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          color: const Color(0xFFE8F0FF),
-                                          border: Border.all(
-                                            color: Colors.grey.shade200,
-                                            width: 1,
-                                          ),
-                                          image: DecorationImage(
-                                            image: NetworkImage(fullImageUrl),
-                                            fit: BoxFit.cover,
-                                            onError: (exception, stackTrace) {},
-                                          ),
-                                        ),
+                                      return GestureDetector(
+                                        onTap: () {
+                                          final galleryList = (widget.institution['gallery'] as List)
+                                              .map((e) => e.toString())
+                                              .toList();
+                                          showImageGallery(context, galleryList, index);
+                                        },
                                         child: Container(
+                                          width: galleryImageSize,
+                                          height: galleryImageSize,
+                                          margin: EdgeInsets.only(
+                                            right: _responsiveValue(10, 14, 18),
+                                          ),
                                           decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(12),
-                                            color:
-                                                Colors.black.withOpacity(0.1),
+                                            color: const Color(0xFFE8F0FF),
+                                            border: Border.all(
+                                              color: Colors.grey.shade200,
+                                              width: 1,
+                                            ),
+                                            image: DecorationImage(
+                                              image: NetworkImage(fullImageUrl),
+                                              fit: BoxFit.cover,
+                                              onError: (exception, stackTrace) {},
+                                            ),
                                           ),
-                                          child: const Icon(
-                                            Icons.photo,
-                                            size: 40,
-                                            color: Color(0xFF4C73AC),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
+                                            ),
+                                            child: const Icon(
+                                              Icons.photo,
+                                              size: 40,
+                                              color: Color(0xFF4C73AC),
+                                            ),
                                           ),
                                         ),
                                       );
@@ -1089,7 +1164,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     Text(
                                       'Rate your experience',
                                       style: TextStyle(
-                                        fontSize: responsiveValue(14, 15, 16),
+                                        fontSize: _responsiveValue(14, 15, 16),
                                         fontWeight: FontWeight.w500,
                                         color: Colors.grey[700],
                                       ),
@@ -1108,7 +1183,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                             index < _rating
                                                 ? Icons.star
                                                 : Icons.star_border,
-                                            size: responsiveValue(32, 34, 36),
+                                            size: _responsiveValue(32, 34, 36),
                                             color: const Color(0xFFFFD700),
                                           ),
                                           constraints: const BoxConstraints(),
@@ -1134,14 +1209,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                           hintStyle: TextStyle(
                                             color: Colors.grey[400],
                                             fontSize:
-                                                responsiveValue(14, 15, 16),
+                                                _responsiveValue(14, 15, 16),
                                           ),
                                           border: InputBorder.none,
                                           contentPadding: EdgeInsets.all(
-                                              responsiveValue(12, 14, 16)),
+                                              _responsiveValue(12, 14, 16)),
                                         ),
                                         style: TextStyle(
-                                          fontSize: responsiveValue(14, 15, 16),
+                                          fontSize: _responsiveValue(14, 15, 16),
                                         ),
                                       ),
                                     ),
@@ -1162,7 +1237,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                           ),
                                           padding: EdgeInsets.symmetric(
                                             vertical:
-                                                responsiveValue(14, 15, 16),
+                                                _responsiveValue(14, 15, 16),
                                           ),
                                           elevation: 2,
                                         ),
@@ -1178,14 +1253,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                 children: [
                                                   Icon(
                                                     Icons.send,
-                                                    size: responsiveValue(
+                                                    size: _responsiveValue(
                                                         18, 19, 20),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
                                                     'Submit Review',
                                                     style: TextStyle(
-                                                      fontSize: responsiveValue(
+                                                      fontSize: _responsiveValue(
                                                           14, 15, 16),
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -1252,10 +1327,10 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                           children: _reviews.map((review) {
                                             return Container(
                                               margin: EdgeInsets.only(
-                                                  bottom: responsiveValue(
+                                                  bottom: _responsiveValue(
                                                       10, 12, 14)),
                                               padding: EdgeInsets.all(
-                                                  responsiveValue(12, 14, 16)),
+                                                  _responsiveValue(12, 14, 16)),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFF8FAFF),
                                                 borderRadius:
@@ -1275,7 +1350,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                           review['name'],
                                                           style: TextStyle(
                                                             fontSize:
-                                                                responsiveValue(
+                                                                _responsiveValue(
                                                                     14, 15, 16),
                                                             fontWeight:
                                                                 FontWeight.w700,
@@ -1299,7 +1374,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                             color: const Color(
                                                                 0xFFFFD700),
                                                             size:
-                                                                responsiveValue(
+                                                                _responsiveValue(
                                                                     14, 15, 16),
                                                           );
                                                         }),
@@ -1310,7 +1385,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                   Text(
                                                     review['comment'],
                                                     style: TextStyle(
-                                                      fontSize: responsiveValue(
+                                                      fontSize: _responsiveValue(
                                                           13, 14, 15),
                                                       color: const Color(
                                                           0xFF5F6F81),
@@ -1345,7 +1420,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                             // Call & WhatsApp Buttons
                             Container(
                               margin: EdgeInsets.only(
-                                top: responsiveValue(16, 20, 24),
+                                top: _responsiveValue(16, 20, 24),
                               ),
                               child: Row(
                                 children: [
@@ -1361,7 +1436,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               BorderRadius.circular(14),
                                         ),
                                         padding: EdgeInsets.symmetric(
-                                          vertical: responsiveValue(14, 16, 18),
+                                          vertical: _responsiveValue(14, 16, 18),
                                         ),
                                       ),
                                       child: Row(
@@ -1370,7 +1445,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                         children: [
                                           Icon(
                                             Icons.call,
-                                            size: responsiveValue(18, 20, 22),
+                                            size: _responsiveValue(18, 20, 22),
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
@@ -1384,7 +1459,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(width: responsiveValue(8, 10, 12)),
+                                  SizedBox(width: _responsiveValue(8, 10, 12)),
                                   Expanded(
                                     child: ElevatedButton(
                                       onPressed: _handleWhatsApp,
@@ -1397,7 +1472,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               BorderRadius.circular(14),
                                         ),
                                         padding: EdgeInsets.symmetric(
-                                          vertical: responsiveValue(14, 16, 18),
+                                          vertical: _responsiveValue(14, 16, 18),
                                         ),
                                       ),
                                       child: Row(
@@ -1406,7 +1481,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                         children: [
                                           Icon(
                                             Icons.chat,
-                                            size: responsiveValue(18, 20, 22),
+                                            size: _responsiveValue(18, 20, 22),
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
@@ -1424,111 +1499,125 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                               ),
                             ),
 
-                            // Video Section
+                            // Video Section - Updated to match Extraskills3
                             if (_youtubeUrls.isNotEmpty) ...[
                               if (_youtubeUrls.length > 1)
                                 Padding(
                                   padding: EdgeInsets.only(
-                                      top: responsiveValue(20, 24, 28)),
+                                      top: _responsiveValue(20, 24, 28)),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      IconButton(
-                                        onPressed: _previousVideo,
-                                        icon: const Icon(Icons.chevron_left,
-                                            color: Color(0xFF0B5ED7)),
-                                      ),
                                       Text(
-                                        '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF0B5ED7),
-                                          fontWeight: FontWeight.w600,
+                                        'Videos',
+                                        style: TextStyle(
+                                          fontSize: _responsiveValue(18, 20, 22),
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
                                         ),
                                       ),
-                                      IconButton(
-                                        onPressed: _nextVideo,
-                                        icon: const Icon(Icons.chevron_right,
-                                            color: Color(0xFF0B5ED7)),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: _previousVideo,
+                                            icon: const Icon(Icons.chevron_left,
+                                                color: Color(0xFF0B5ED7)),
+                                            constraints: const BoxConstraints(),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                          Text(
+                                            '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                            style: const TextStyle(
+                                              color: Color(0xFF0B5ED7),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: _nextVideo,
+                                            icon: const Icon(Icons.chevron_right,
+                                                color: Color(0xFF0B5ED7)),
+                                            constraints: const BoxConstraints(),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ),
-                              Container(
-                                width: double.infinity,
-                                height: videoHeight,
-                                margin: EdgeInsets.only(
-                                  top: responsiveValue(12, 16, 20),
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.25),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
+                                Container(
+                                  width: double.infinity,
+                                  height: videoHeight,
+                                  margin: EdgeInsets.only(
+                                    top: _responsiveValue(12, 16, 20),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                  ),
                                   child: Stack(
                                     children: [
-                                      Container(
-                                        width: double.infinity,
+                                      CommonYoutubePlayer(
+                                        youtubeUrl: _youtubeUrls[_currentVideoIndex],
                                         height: videoHeight,
-                                        decoration: BoxDecoration(
-                                          color: Colors.black,
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                              _getVideoThumbnail(_youtubeUrls[
-                                                  _currentVideoIndex]),
-                                            ),
-                                            fit: BoxFit.cover,
-                                            onError: (exception, stackTrace) {},
+                                        placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                        borderRadius: 0,
+                                      ),
+                                    if (_youtubeUrls.length > 1)
+                                      Positioned(
+                                        bottom: 16,
+                                        right: 16,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.7),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              IconButton(
+                                                onPressed: _previousVideo,
+                                                icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                                                constraints: const BoxConstraints(),
+                                                padding: EdgeInsets.zero,
+                                              ),
+                                              Text(
+                                                '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: _nextVideo,
+                                                icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                                                constraints: const BoxConstraints(),
+                                                padding: EdgeInsets.zero,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                      Container(
-                                        width: double.infinity,
-                                        height: videoHeight,
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.3),
-                                        ),
-                                        child: Center(
-                                          child: GestureDetector(
-                                            onTap: () => _handleVideo(
-                                                _youtubeUrls[
-                                                    _currentVideoIndex]),
-                                            child: Container(
-                                              width: 60,
-                                              height: 60,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius:
-                                                    BorderRadius.circular(30),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black
-                                                        .withOpacity(0.3),
-                                                    blurRadius: 10,
-                                                    spreadRadius: 2,
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Icon(
-                                                Icons.play_arrow,
-                                                size: 40,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ] else
+                              // Fallback video
+                              Container(
+                                margin: EdgeInsets.only(
+                                  top: _responsiveValue(20, 30, 40),
+                                ),
+                                width: double.infinity,
+                                height: videoHeight,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                ),
+                                child: CommonYoutubePlayer(
+                                  youtubeUrl: 'https://www.youtube.com/embed/L2zqTYgcpfx',
+                                  height: videoHeight,
+                                  placeholderThumbnail: 'https://img.youtube.com/vi/L2zqTYgcpfx/maxresdefault.jpg',
+                                  borderRadius: 0,
+                                ),
+                              ),
                           ],
                         ),
                       ),

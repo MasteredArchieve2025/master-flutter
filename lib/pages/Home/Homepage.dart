@@ -7,6 +7,7 @@ import '../../Api/baseurl.dart';
 import '../Blogs/BlogsScreen.dart';
 import '../Blogs/BlogDetailsScreen.dart';
 import '../Jobs/Jobs1.dart';
+import '../../components/glass_loader.dart';
 
 // ==================== HEADER WIDGET ====================
 class CustomHeader extends StatelessWidget {
@@ -152,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _bannerController = PageController();
   int _currentBannerIndex = 0;
+  bool _isAutoScrollStarted = false;
   int _footerIndex = 0;
   late bool isLargeScreen;
   late bool isExtraLargeScreen;
@@ -194,85 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
     {"id": 6, "title": "Extra-Skills", "icon": Icons.music_note, "screen": "/extraskills1"},
   ];
 
-  // Blog Data - Using Blog objects instead of maps
-  final List<Blog> blogsData = [
-    Blog(
-      id: "1",
-      title: "New Engineering Syllabus Announced",
-      description: "The University board has released the updated curriculum focusing on AI and sustainable energy.",
-      type: "NEWS",
-      time: "2 hrs ago",
-      date: "Oct 26",
-      category: "Curriculum",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop",
-      readTime: "3 min read",
-      author: "University Board",
-      authorRole: "Education Board",
-      publishStatus: "Published",
-      publishDate: "2 hrs ago",
-      authorBio: "The University board regulates curriculum standards and updates for engineering programs nationwide.",
-      content: "The University board has released the updated curriculum focusing on AI and sustainable energy.\n\nKey Changes in the 2025 Syllabus:\n- AI and Machine Learning integrated into all engineering streams\n- Sustainable Energy Systems as a core subject\n- Industry 4.0 technologies including IoT and Robotics\n- Enhanced practical training with 60% lab-based learning\n\nThe new syllabus aims to prepare students for emerging technologies and global challenges.",
-      authorImage: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=400&fit=crop",
-      blogImage: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop",
-    ),
-    Blog(
-      id: "2",
-      title: "5 Study Hacks to Boost Your IQ",
-      description: "Discover scientifically proven methods to enhance memory retention and focus during exams.",
-      type: "BLOG",
-      time: "Yesterday",
-      date: "Oct 25",
-      category: "Study Tips",
-      image: "https://images.unsplash.com/photo-1456513080510-34499c4359ce?w=400&h=250&fit=crop",
-      readTime: "5 min read",
-      author: "Sarah Jenkins",
-      authorRole: "Education Specialist",
-      publishStatus: "Published",
-      publishDate: "Yesterday, 4:30 PM",
-      authorBio: "Sarah has over 10 years of experience in cognitive psychology and student mentorship. She loves helping students unlock their full potential.",
-      content: "Discover scientifically proven methods to enhance your cognitive abilities and memory retention during exam preparation.\n\n1. Active Recall Practice\n   Instead of re-reading notes, test yourself regularly. This strengthens neural pathways and improves long-term memory retention.\n\n2. Spaced Repetition\n   Review material at increasing intervals. Studies show this can improve retention by up to 200%.\n\n3. Mindfulness Meditation\n   Just 10 minutes daily can improve focus, reduce stress, and enhance cognitive flexibility.\n\n4. Sleep Optimization\n   7-8 hours of quality sleep consolidates learning and improves problem-solving abilities.\n\n5. Nutrition for Brain Health\n   Omega-3 fatty acids, antioxidants, and proper hydration support optimal brain function.\n\nImplement these strategies consistently for 30 days, and you'll notice significant improvements in your learning efficiency and cognitive performance.",
-      authorImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop",
-      blogImage: "https://images.unsplash.com/photo-1456513080510-34499c4359ce?w=800&h=400&fit=crop",
-    ),
-    Blog(
-      id: "3",
-      title: "Scholarship Applications Now Open",
-      description: "Arunachala College announces new merit-based scholarships for top performing students.",
-      type: "NEWS",
-      time: "Oct 24",
-      date: "Oct 24",
-      category: "Scholarship",
-      image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=250&fit=crop",
-      readTime: "4 min read",
-      author: "Arunachala College",
-      authorRole: "Administration",
-      publishStatus: "Published",
-      publishDate: "Oct 24",
-      authorBio: "Arunachala College is committed to providing quality education and opportunities to deserving students across the country.",
-      content: "Arunachala College announces new merit-based scholarships for top performing students in the 2025 academic year.\n\nScholarship Details:\n- Merit Scholarships: Up to 100% tuition fee waiver for top 10 rank holders\n- Sports Scholarships: For national and state level athletes\n- Arts Scholarships: For students excelling in cultural activities\n- Need-based Scholarships: For economically disadvantaged students\n\nApplication Deadline: November 30, 2024\nResults Announcement: December 15, 2024",
-      authorImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-      blogImage: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop",
-    ),
-    Blog(
-      id: "4",
-      title: "Online Learning Platforms Comparison",
-      description: "A comprehensive review of top online education platforms for 2025.",
-      type: "BLOG",
-      time: "Oct 22",
-      date: "Oct 22",
-      category: "Technology",
-      image: "https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?w=400&h=250&fit=crop",
-      readTime: "6 min read",
-      author: "Tech Education Team",
-      authorRole: "Technology Analysts",
-      publishStatus: "Published",
-      publishDate: "Oct 22",
-      authorBio: "Our team of technology analysts specializes in reviewing and comparing educational platforms to help students make informed choices.",
-      content: "A comprehensive review of top online education platforms for 2025.\n\nPlatform Comparison:\n1. Coursera - Best for university-level courses\n2. Udemy - Best for skill-based courses\n3. edX - Best for academic rigor\n4. Khan Academy - Best for free foundational learning\n5. Skillshare - Best for creative skills\n\nEach platform offers unique advantages depending on your learning goals and budget.",
-      authorImage: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=400&fit=crop",
-      blogImage: "https://images.unsplash.com/photo-1542744095-fcf48d80b0fd?w=800&h=400&fit=crop",
-    ),
-  ];
+  // Blog Data
+  List<Blog> blogsData = [];
+  bool _isBlogsLoading = true;
+  String? _blogsErrorMessage;
 
   // Colleges Data
   final List<Map<String, dynamic>> collegesData = [
@@ -305,9 +232,41 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadAdvertisements();
+    _loadHomeBlogs();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startAutoScroll();
     });
+  }
+
+  Future<void> _loadHomeBlogs() async {
+    setState(() {
+      _isBlogsLoading = true;
+      _blogsErrorMessage = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/blogs'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          blogsData = data.map((item) => Blog.fromJson(item)).toList();
+          _isBlogsLoading = false;
+        });
+      } else {
+        setState(() {
+          _blogsErrorMessage = 'Failed to load blogs';
+          _isBlogsLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _blogsErrorMessage = e.toString();
+        _isBlogsLoading = false;
+      });
+    }
   }
 
   Future<void> _loadAdvertisements() async {
@@ -370,16 +329,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startAutoScroll() {
+    if (_isAutoScrollStarted) return;
+    _isAutoScrollStarted = true;
+    _autoScrollNext();
+  }
+
+  void _autoScrollNext() {
     Future.delayed(const Duration(seconds: 3), () {
-      if (_bannerController.hasClients && mounted) {
+      if (!mounted) return;
+      if (_bannerController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
         if (nextPage >= displayBanners.length) nextPage = 0;
+        
         _bannerController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        );
-        _startAutoScroll();
+        ).then((_) {
+          if (mounted) _autoScrollNext();
+        }).catchError((e) {
+          _isAutoScrollStarted = false;
+        });
+      } else {
+        _isAutoScrollStarted = false;
       }
     });
   }
@@ -427,135 +399,136 @@ class _HomeScreenState extends State<HomeScreen> {
     isExtraLargeScreen = size.width >= 1024;
 
     return Scaffold(
-      body: Column(
-        children: [
-          const CustomHeader(
-            title: "Master Archive",
-          ),
-          
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Banner with API images
-                  _buildCollegeBanner(),
-                  
-                  // Info message when using fallback (optional)
-                  if (_apiCallFailed && _adImages.isEmpty)
-                    Container(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 40 : 20,
-                        vertical: 8,
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Using default banners',
-                              style: TextStyle(
-                                color: Colors.orange[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  
-                  // Choice Section
-                  _buildChoiceSection(),
-                  
-                  // Blogs Section
-                  _buildBlogsSection(),
-                  
-                  // View Jobs Button
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isLargeScreen ? 40 : 20,
-                      vertical: 16,
-                    ),
-                    child: Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => JobsScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0052A2),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isLargeScreen ? 48 : 32,
-                            vertical: isLargeScreen ? 16 : 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 2,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const CustomHeader(
+              title: "Master Archive",
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Banner with API images
+                    _buildCollegeBanner(),
+
+                    // Info message when using fallback
+                    if (_apiCallFailed && _adImages.isEmpty)
+                      Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? 40 : 20,
+                          vertical: 8,
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange),
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.work_outline,
-                              size: isLargeScreen ? 22 : 20,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "View Jobs",
-                              style: TextStyle(
-                                fontSize: isLargeScreen ? 18 : 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
                             const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward,
-                              size: isLargeScreen ? 20 : 18,
-                              color: Colors.white.withOpacity(0.9),
+                            Expanded(
+                              child: Text(
+                                'Using default banners',
+                                style: TextStyle(
+                                  color: Colors.orange[700],
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
+
+                    // Choice Section
+                    _buildChoiceSection(),
+
+                    // Blogs Section
+                    _buildBlogsSection(),
+
+                    // View Jobs Button
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLargeScreen ? 40 : 20,
+                        vertical: 16,
+                      ),
+                      child: Center(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => JobsScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0052A2),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isLargeScreen ? 48 : 32,
+                              vertical: isLargeScreen ? 16 : 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.work_outline,
+                                size: isLargeScreen ? 22 : 20,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "View Jobs",
+                                style: TextStyle(
+                                  fontSize: isLargeScreen ? 18 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: isLargeScreen ? 20 : 18,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  
-                  // Top Colleges Section
-                  _buildTopCollegesSection(),
-                  
-                  // No extra SizedBox at the bottom to remove white space
-                ],
+
+                    // Top Colleges Section
+                    _buildTopCollegesSection(),
+                  ],
+                ),
               ),
             ),
-          ),
-          
-          // Footer
-          Footer(
-            currentIndex: _footerIndex,
-            onItemTapped: (index) {
-              if (mounted) {
-                setState(() {
-                  _footerIndex = index;
-                });
-                _handleFooterNavigation(index, context);
-              }
-            },
-          ),
-        ],
+
+            // Footer pinned at bottom
+            Footer(
+              currentIndex: _footerIndex,
+              onItemTapped: (index) {
+                if (mounted) {
+                  setState(() {
+                    _footerIndex = index;
+                  });
+                  _handleFooterNavigation(index, context);
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -950,11 +923,38 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           
-          if (isLargeScreen)
+          if (_isBlogsLoading && blogsData.isEmpty)
+            Center(
+              child: Container(
+                height: 150,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF003366)),
+                  ),
+                ),
+              ),
+            )
+          else if (_blogsErrorMessage != null && blogsData.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                  const SizedBox(height: 8),
+                  Text(_blogsErrorMessage!),
+                  TextButton(
+                    onPressed: _loadHomeBlogs,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            )
+          else if (blogsData.isEmpty)
+            const Center(child: Text("No blogs available"))
+          else if (isLargeScreen)
             Wrap(
               spacing: 16,
               runSpacing: 16,
-              children: blogsData.map((blog) {
+              children: blogsData.take(4).map((blog) {
                 return SizedBox(
                   width: (MediaQuery.of(context).size.width - 96) / 2 - 8,
                   child: _buildBlogCard(blog),
@@ -966,12 +966,12 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 250,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: blogsData.length,
+                itemCount: blogsData.length > 5 ? 5 : blogsData.length,
                 itemBuilder: (context, index) {
                   return Container(
                     width: 200,
                     margin: EdgeInsets.only(
-                      right: index < blogsData.length - 1 ? 16 : 0,
+                      right: index < (blogsData.length > 5 ? 4 : blogsData.length - 1) ? 16 : 0,
                     ),
                     child: _buildBlogCard(blogsData[index]),
                   );

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+
 import '../../widgets/footer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
@@ -19,18 +22,21 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
   int _currentCarouselIndex = 0;
   int _currentVideoIndex = 0;
   final PageController _pageController = PageController();
+  bool _isAutoScrollStarted = false;
+
   
   // Loading states
   bool _isLoading = true;
   bool _isLoadingAds = true;
   String? _errorMessage;
+  bool _apiCallFailed = false;
 
   // API Data
   List<Map<String, dynamic>> _categories = [];
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
 
-  // Default banner ads (fallback if API fails) - Using same style as School3
+  // Default banner ads (fallback if API fails)
   final List<String> _defaultBannerAds = [
     "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=400&fit=crop",
     "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&h=400&fit=crop",
@@ -91,6 +97,9 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
     super.initState();
     _loadAdvertisements();
     _loadCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
   }
 
   Future<void> _loadAdvertisements() async {
@@ -110,31 +119,42 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
           final apiData = data['data'];
 
           setState(() {
-            // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
               debugPrint('🖼️ Loaded ${_adImages.length} images from API');
             }
 
-            // Parse youtube URLs
             if (apiData['youtube_urls'] != null &&
                 apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
               debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
             }
             _isLoadingAds = false;
+            _apiCallFailed = false;
+          });
+        } else {
+          setState(() {
+            _isLoadingAds = false;
+            _apiCallFailed = true;
           });
         }
-      } else {
-        debugPrint('⚠️ Ads API error: ${response.statusCode}');
+      } else if (response.statusCode == 404) {
+        debugPrint('⚠️ Page "extraskillpage1" not found in backend (404)');
         setState(() {
           _isLoadingAds = false;
+          _apiCallFailed = true;
+        });
+      } else {
+        setState(() {
+          _isLoadingAds = false;
+          _apiCallFailed = true;
         });
       }
     } catch (e) {
       debugPrint('❌ Error loading advertisements: $e');
       setState(() {
         _isLoadingAds = false;
+        _apiCallFailed = true;
       });
     }
   }
@@ -168,14 +188,13 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
               'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
               'title': item['name'] ?? 'Unknown',
               'description': item['shortDescription'] ?? 'Explore this skill category',
-              'image': imageUrl, // Store image URL for potential use
-              'icon': _getIconForCategory(item['name'] ?? ''), // Map to appropriate icon
+              'image': imageUrl,
+              'icon': _getIconForCategory(item['name'] ?? ''),
             };
           }).toList();
           _isLoading = false;
         });
       } else {
-        debugPrint('⚠️ Categories API error: ${response.statusCode}');
         setState(() {
           _errorMessage = 'Failed to load categories';
           _isLoading = false;
@@ -191,7 +210,6 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
   }
 
   IconData _getIconForCategory(String name) {
-    // Map category names to appropriate icons
     final lowerName = name.toLowerCase();
     if (lowerName.contains('fine arts') || lowerName.contains('art')) {
       return Icons.palette;
@@ -212,7 +230,42 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
     } else if (lowerName.contains('programming') || lowerName.contains('coding')) {
       return Icons.code;
     } else {
-      return Icons.star; // Default icon
+      return Icons.star;
+    }
+  }
+
+  Future<void> _launchVideo(String url) async {
+    try {
+      // Convert YouTube embed URL to watch URL if needed
+      String videoUrl = url;
+      if (url.contains('youtube.com/embed/')) {
+        final videoId = url.split('/').last;
+        videoUrl = 'https://www.youtube.com/watch?v=$videoId';
+      }
+      
+      final Uri uri = Uri.parse(videoUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not launch $videoUrl'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening video'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -245,18 +298,31 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
   }
 
   void _startAutoScroll() {
+    if (_isAutoScrollStarted) return;
+    _isAutoScrollStarted = true;
+    _autoScrollNext();
+  }
+
+  void _autoScrollNext() {
     Future.delayed(const Duration(seconds: 3), () {
-      if (_pageController.hasClients && mounted) {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
         int nextPage = _currentCarouselIndex + 1;
         if (nextPage >= bannerAds.length) {
           nextPage = 0;
         }
+        
         _pageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        );
-        _startAutoScroll();
+        ).then((_) {
+          if (mounted) _autoScrollNext();
+        }).catchError((e) {
+          _isAutoScrollStarted = false;
+        });
+      } else {
+        _isAutoScrollStarted = false;
       }
     });
   }
@@ -264,15 +330,14 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
   // Responsive value function
   double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return desktop; // Desktop
-    if (screenWidth >= 768) return tablet; // Tablet
-    return mobile; // Mobile
+    if (screenWidth >= 1024) return desktop;
+    if (screenWidth >= 768) return tablet;
+    return mobile;
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
@@ -282,16 +347,15 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
     final int numColumns = isDesktop ? 4 : (isTablet ? 3 : 2);
-    final double videoHeight = isMobile ? 220 : (isTablet ? 280 : 360);
+    
+    // Updated banner heights to match consistent pattern
+    final double bannerHeight = _responsiveValue(200, 280, 300);
+    final double videoHeight = _responsiveValue(220, 280, 360);
     
     // Card dimensions
     final double cardWidth = (screenWidth - (horizontalPadding * 2) - 
                             (_responsiveValue(12, 16, 20) * (numColumns - 1))) / numColumns;
 
-    // Start auto-scroll after ads are loaded
-    if (!_isLoadingAds && _pageController.hasClients) {
-      _startAutoScroll();
-    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -324,7 +388,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                           onPressed: () => Navigator.pop(context),
                           icon: Icon(
                             Icons.arrow_back,
-                            size: _responsiveValue(18, 26, 28),
+                            size: _responsiveValue(24, 26, 28),
                             color: Colors.white,
                           ),
                         ),
@@ -401,15 +465,12 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                               ),
                             )
                           : SingleChildScrollView(
-                              child: Center(
-                                child: Container(
-                                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // ===== BANNER CAROUSEL (Full width like School3) =====
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                      // ===== BANNER CAROUSEL (Full width - no padding) =====
                                       SizedBox(
-                                        height: _responsiveValue(160, 240, 280),
+                                        height: bannerHeight,
                                         child: PageView.builder(
                                           controller: _pageController,
                                           itemCount: bannerAds.length,
@@ -424,12 +485,12 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                               child: Image.network(
                                                 bannerAds[index],
                                                 width: double.infinity,
-                                                height: _responsiveValue(160, 240, 280),
+                                                height: bannerHeight,
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (context, error, stackTrace) {
                                                   return Container(
                                                     width: double.infinity,
-                                                    height: _responsiveValue(160, 240, 280),
+                                                    height: bannerHeight,
                                                     color: const Color(0xFF0052A2),
                                                     child: Center(
                                                       child: Column(
@@ -457,7 +518,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                                   if (loadingProgress == null) return child;
                                                   return Container(
                                                     width: double.infinity,
-                                                    height: _responsiveValue(160, 240, 280),
+                                                    height: bannerHeight,
                                                     color: const Color(0xFF0052A2),
                                                     child: Center(
                                                       child: CircularProgressIndicator(
@@ -500,6 +561,41 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                         }).toList(),
                                       ),
 
+                                      // Fallback banner message
+                                      if (_adImages.isEmpty && !_isLoadingAds && _apiCallFailed)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange[50],
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: Colors.orange),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.info_outline,
+                                                  size: 14,
+                                                  color: Colors.orange[700],
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Using default banners',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.orange[700],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
                                       // ===== ACTIVITIES GRID =====
                                       Container(
                                         width: double.infinity,
@@ -524,7 +620,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                             ),
                                             SizedBox(height: _responsiveValue(8, 10, 12)),
                                             
-                                            // Section Subtitle with count
+                                            // Section Subtitle with count - FIXED STRING
                                             Text(
                                               _categories.isNotEmpty
                                                   ? '${_categories.length} skill ${_categories.length == 1 ? 'category' : 'categories'} available'
@@ -560,7 +656,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                         ),
                                       ),
 
-                                      // ===== YOUTUBE VIDEO SECTION (Full width like School3) =====
+                                      // ===== YOUTUBE VIDEO SECTION (Full width - no padding, no border radius) =====
                                       if (_youtubeUrls.isNotEmpty) ...[
                                         if (_youtubeUrls.length > 1)
                                           Padding(
@@ -605,46 +701,23 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                               ],
                                             ),
                                           ),
+                                        
+                                        // Video Container
                                         Container(
                                           width: double.infinity,
                                           height: videoHeight,
-                                          decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            image: DecorationImage(
-                                              image: NetworkImage(
-                                                _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
-                                              ),
-                                              fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {},
-                                            ),
+                                          margin: EdgeInsets.only(
+                                            bottom: _responsiveValue(16, 20, 24),
                                           ),
                                           child: Stack(
                                             children: [
-                                              Center(
-                                                child: GestureDetector(
-                                                  onTap: () => _showUrlDialog(_youtubeUrls[_currentVideoIndex]),
-                                                  child: Container(
-                                                    width: 60,
-                                                    height: 60,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red,
-                                                      borderRadius: BorderRadius.circular(30),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.black.withOpacity(0.3),
-                                                          blurRadius: 10,
-                                                          spreadRadius: 2,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.play_arrow,
-                                                      size: 40,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
+                                              CommonYoutubePlayer(
+                                                youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                                                height: videoHeight,
+                                                placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                                borderRadius: 0,
                                               ),
+                                              // Navigation Controls
                                               if (_youtubeUrls.length > 1)
                                                 Positioned(
                                                   bottom: 16,
@@ -656,12 +729,14 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                                       borderRadius: BorderRadius.circular(20),
                                                     ),
                                                     child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
                                                       children: [
                                                         IconButton(
                                                           onPressed: _previousVideo,
                                                           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
                                                           constraints: const BoxConstraints(),
                                                           padding: EdgeInsets.zero,
+                                                          iconSize: 20,
                                                         ),
                                                         Text(
                                                           '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
@@ -676,6 +751,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                                           icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
                                                           constraints: const BoxConstraints(),
                                                           padding: EdgeInsets.zero,
+                                                          iconSize: 20,
                                                         ),
                                                       ],
                                                     ),
@@ -687,55 +763,26 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                       ] else
                                         // Fallback video
                                         Container(
-                                          margin: EdgeInsets.only(
-                                            top: _responsiveValue(20, 30, 40),
-                                          ),
                                           width: double.infinity,
                                           height: videoHeight,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.black,
-                                            image: DecorationImage(
-                                              image: NetworkImage(
-                                                'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                              ),
-                                              fit: BoxFit.cover,
-                                            ),
+                                          margin: EdgeInsets.only(
+                                            top: _responsiveValue(20, 30, 40),
+                                            bottom: _responsiveValue(16, 20, 24),
                                           ),
-                                          child: Center(
-                                            child: GestureDetector(
-                                              onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
-                                              child: Container(
-                                                width: 60,
-                                                height: 60,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius: BorderRadius.circular(30),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black.withOpacity(0.3),
-                                                      blurRadius: 10,
-                                                      spreadRadius: 2,
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: const Icon(
-                                                  Icons.play_arrow,
-                                                  size: 40,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                            ),
+                                          child: CommonYoutubePlayer(
+                                            youtubeUrl: 'https://www.youtube.com/embed/L2zqTYgcpfx',
+                                            height: videoHeight,
+                                            placeholderThumbnail: 'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
+                                            borderRadius: 0,
                                           ),
                                         ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                ),
-              ],
-            ),
-          ),
+                          ),
           
           // Full screen loader for initial loading
           if (_isLoading && _categories.isEmpty)
@@ -859,32 +906,6 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // Show URL dialog for YouTube
-  void _showUrlDialog(String url) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('External Link'),
-        content: Text('Would you like to open the video?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Opening video: $url')),
-              );
-            },
-            child: const Text('Open'),
-          ),
-        ],
       ),
     );
   }

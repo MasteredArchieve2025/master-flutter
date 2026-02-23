@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../../Widgets/Footer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+
 
 // ==================== SCHOOL SCREEN ====================
 class School1Screen extends StatefulWidget {
@@ -18,7 +20,9 @@ class _School1ScreenState extends State<School1Screen> {
   final PageController _bannerController = PageController();
   int _currentBannerIndex = 0;
   int _footerIndex = 0;
+  bool _isAutoScrollStarted = false;
   late bool isTablet;
+
   late bool isWeb;
 
   // API Data
@@ -107,17 +111,30 @@ class _School1ScreenState extends State<School1Screen> {
   }
 
   void _startAutoScroll() {
+    if (_isAutoScrollStarted) return;
+    _isAutoScrollStarted = true;
+    _autoScrollNext();
+  }
+
+  void _autoScrollNext() {
     Future.delayed(const Duration(seconds: 3), () {
-      if (_bannerController.hasClients && mounted) {
+      if (!mounted) return;
+      if (_bannerController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
         int itemCount = _adImages.isNotEmpty ? _adImages.length : bannerData.length;
         if (nextPage >= itemCount) nextPage = 0;
+        
         _bannerController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        );
-        _startAutoScroll();
+        ).then((_) {
+          if (mounted) _autoScrollNext();
+        }).catchError((e) {
+          _isAutoScrollStarted = false;
+        });
+      } else {
+        _isAutoScrollStarted = false;
       }
     });
   }
@@ -535,7 +552,7 @@ class _School1ScreenState extends State<School1Screen> {
                 child: _buildGridCard(
                   icon: Icons.business,
                   title: "View School",
-                  subtitle: "Explore Schools for you",
+                  subtitle: "Explore Schools",
                 ),
               ),
             ),
@@ -555,7 +572,7 @@ class _School1ScreenState extends State<School1Screen> {
                 child: _buildGridCard(
                   icon: Icons.book,
                   title: "View Tuitions",
-                  subtitle: "Explore Tuitions for all Standards",
+                  subtitle: "Explore Tuitions",
                 ),
               ),
             ),
@@ -720,61 +737,18 @@ class _School1ScreenState extends State<School1Screen> {
       thumbnailUrl = 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
     }
 
-    return GestureDetector(
-      onTap: () {
-        if (_youtubeUrls.isNotEmpty) {
-          // Open YouTube video in browser or show in WebView
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Opening video: $_youtubeUrls'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          // In a real app, you would launch the URL:
-          // launchUrl(Uri.parse(_youtubeUrls.first));
-        }
-      },
-      child: Container(
-        margin: EdgeInsets.only(
-          top: isTablet ? 70 : 55,
-        ),
-        width: double.infinity,
-        child: Container(
-          width: double.infinity,
-          height: isWeb ? 400 : (isTablet ? 320 : 250),
-          decoration: BoxDecoration(
-            color: Colors.black,
-            image: DecorationImage(
-              image: NetworkImage(thumbnailUrl),
-              fit: BoxFit.cover,
-              onError: (exception, stackTrace) {
-                // Fallback to default image
-              },
-            ),
-          ),
-          child: Center(
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.play_arrow,
-                size: 40,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+    final String currentVideoUrl = _youtubeUrls.isNotEmpty ? _youtubeUrls.first : 'https://www.youtube.com/embed/qYapc_bkfxw';
+    
+    return Container(
+      margin: EdgeInsets.only(
+        top: isTablet ? 70 : 55,
+      ),
+      width: double.infinity,
+      child: CommonYoutubePlayer(
+        youtubeUrl: currentVideoUrl,
+        height: isWeb ? 400 : (isTablet ? 320 : 250),
+        placeholderThumbnail: thumbnailUrl,
+        borderRadius: 0,
       ),
     );
   }
