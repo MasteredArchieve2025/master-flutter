@@ -1,8 +1,12 @@
 // lib/pages/Exam/Exam1.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart'; // Add this import for kIsWeb
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'Exam2.dart';
+import '../../Api/baseurl.dart';
+import '../../components/glass_loader.dart';
 
 class Exam1Screen extends StatefulWidget {
   const Exam1Screen({super.key});
@@ -16,7 +20,14 @@ class _Exam1ScreenState extends State<Exam1Screen> {
   final PageController _adController = PageController();
   Timer? _adTimer;
 
-  // Advertisement banners data
+  // Loading states
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  // API Data
+  List<Map<String, dynamic>> examCategories = [];
+
+  // Advertisement banners data (static)
   final List<Map<String, dynamic>> ads = [
     {
       'id': '1',
@@ -41,61 +52,10 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     },
   ];
 
-  // Exam categories data
-  final List<Map<String, dynamic>> examCategories = [
-    {
-      'id': '1',
-      'title': 'School Board Exams',
-      'description': 'Class 10 & 12 Board Exams (CBSE, ICSE, State Boards)',
-      'icon': '🏫',
-      'count': '2 Types',
-      'color': Color(0xFF4A90E2),
-    },
-    {
-      'id': '2',
-      'title': 'Government Recruitment Exams',
-      'description': 'UPSC, SSC, Banking, Railway, Defense Exams',
-      'icon': '👮',
-      'count': '15+ Exams',
-      'color': Color(0xFF50C878),
-    },
-    {
-      'id': '3',
-      'title': 'Higher Education Exams',
-      'description': 'JEE, NEET, CLAT, NDA, Design Entrance Exams',
-      'icon': '🎓',
-      'count': '10+ Exams',
-      'color': Color(0xFFFF6B6B),
-    },
-    {
-      'id': '4',
-      'title': 'Professional Entrance Exams',
-      'description': 'CAT, GATE, GMAT, CA, CS, Medical PG Exams',
-      'icon': '💼',
-      'count': '20+ Exams',
-      'color': Color(0xFFFFA500),
-    },
-    {
-      'id': '5',
-      'title': 'International Exams',
-      'description': 'SAT, GRE, GMAT, TOEFL, IELTS, PTE',
-      'icon': '🌍',
-      'count': '8+ Exams',
-      'color': Color(0xFF9B59B6),
-    },
-    {
-      'id': '6',
-      'title': 'Skill Development Exams',
-      'description': 'ITI, Polytechnic, Vocational Training Exams',
-      'icon': '🔧',
-      'count': '12+ Exams',
-      'color': Color(0xFF1ABC9C),
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
+    _fetchExamCategories();
     // Auto scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
@@ -108,6 +68,66 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         );
       }
     });
+  }
+
+  Future<void> _fetchExamCategories() async {
+    debugPrint('🔄 Loading exam categories...');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/exam-categories'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('📡 Exam Categories API Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        debugPrint('📦 Loaded ${data.length} exam categories');
+
+        setState(() {
+          examCategories = data.map((item) {
+            // Fix image URL if needed
+            String? imageUrl = item['image'];
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              // Check if URL is valid
+              if (!imageUrl.startsWith('http')) {
+                imageUrl = '${BaseUrl.baseUrl}$imageUrl';
+              }
+            }
+
+            return {
+              'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
+              'title': item['name'] ?? 'Unknown Exam',
+              'description': item['shortDescription'] ?? 'No description available',
+              'image': imageUrl,
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load exam categories. Status: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading exam categories: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _retryLoading() {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    _fetchExamCategories();
   }
 
   @override
@@ -183,288 +203,354 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     final double cardWidth = (screenWidth - (horizontalPadding * 2) - (_responsiveValue(12, 16, 20) * (gridColumns - 1))) / gridColumns;
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
-    // Calculate header height - simplified without Platform
+    // Calculate header height
     final double headerHeight = _responsiveValue(52, 72, 80);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== HEADER =====
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0052A2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // ===== HEADER =====
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0052A2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Container(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                height: headerHeight,
-                child: Row(
-                  children: [
-                    // Back Button
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back,
-                        size: _scale(24),
-                        color: Colors.white,
-                      ),
-                    ),
-                    // Title
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Exams',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: _responsiveValue(20, 22, 24),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Spacer for symmetry
-                    SizedBox(width: _scale(40)),
-                  ],
-                ),
-              ),
-            ),
-
-            // ===== MAIN CONTENT =====
-            Expanded(
-              child: SingleChildScrollView(
-                child: Center(
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    height: headerHeight,
+                    child: Row(
                       children: [
-                        // ===== ADVERTISEMENT BANNER =====
-                        Container(
-                          width: screenWidth,
-                          height: adHeight,
-                          child: PageView.builder(
-                            controller: _adController,
-                            itemCount: ads.length,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _activeAdIndex = index;
-                              });
-                            },
-                            itemBuilder: (context, index) {
-                              final ad = ads[index];
-                              return GestureDetector(
-                                onTap: () => _showUrlDialog(ad['url']),
+                        // Back Button
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.arrow_back,
+                            size: _scale(24),
+                            color: Colors.white,
+                          ),
+                        ),
+                        // Title
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Exams',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: _responsiveValue(20, 22, 24),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Spacer for symmetry
+                        SizedBox(width: _scale(40)),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ===== MAIN CONTENT =====
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: GlassLoader(
+                            message: 'Loading exams...',
+                          ),
+                        )
+                      : _errorMessage != null && examCategories.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: Colors.red,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Error loading exam categories',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _retryLoading,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0B5ED7),
+                                    ),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              child: Center(
                                 child: Container(
-                                  width: screenWidth,
-                                  color: Colors.black,
+                                  constraints: BoxConstraints(maxWidth: maxContentWidth),
                                   child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
-                                        Icons.campaign_outlined,
-                                        size: 80,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Ad ${index + 1}',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                                      // ===== ADVERTISEMENT BANNER =====
+                                      Container(
+                                        width: screenWidth,
+                                        height: adHeight,
+                                        child: PageView.builder(
+                                          controller: _adController,
+                                          itemCount: ads.length,
+                                          onPageChanged: (index) {
+                                            setState(() {
+                                              _activeAdIndex = index;
+                                            });
+                                          },
+                                          itemBuilder: (context, index) {
+                                            final ad = ads[index];
+                                            return GestureDetector(
+                                              onTap: () => _showUrlDialog(ad['url']),
+                                              child: Container(
+                                                width: screenWidth,
+                                                color: Colors.black,
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.campaign_outlined,
+                                                      size: 80,
+                                                      color: Colors.white,
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'Ad ${index + 1}',
+                                                      style: const TextStyle(
+                                                        fontSize: 18,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      ad['title'] as String,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        ad['title'] as String,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white70,
+
+                                      // ===== PAGINATION DOTS =====
+                                      Container(
+                                        color: Colors.white,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(ads.length, (index) {
+                                            return AnimatedContainer(
+                                              duration: const Duration(milliseconds: 300),
+                                              width: _activeAdIndex == index ? _scale(20) : _scale(8),
+                                              height: _scale(8),
+                                              margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                              decoration: BoxDecoration(
+                                                color: _activeAdIndex == index 
+                                                  ? const Color(0xFF0B5ED7) 
+                                                  : const Color(0xFFCCCCCC),
+                                                borderRadius: BorderRadius.circular(_scale(4)),
+                                              ),
+                                            );
+                                          }),
+                                        ),
+                                      ),
+
+                                      // ===== EXAM CATEGORIES SECTION =====
+                                      Container(
+                                        width: double.infinity,
+                                        color: Colors.white,
+                                        padding: EdgeInsets.fromLTRB(
+                                          horizontalPadding,
+                                          _responsiveValue(24, 28, 32),
+                                          horizontalPadding,
+                                          _responsiveValue(20, 24, 28),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Section Title
+                                            Text(
+                                              'Exam Categories',
+                                              style: TextStyle(
+                                                fontSize: _responsiveValue(20, 22, 24),
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF003366),
+                                              ),
+                                            ),
+                                            SizedBox(height: _scale(8)),
+                                            
+                                            // Section Subtitle with count
+                                            Text(
+                                              examCategories.isNotEmpty
+                                                  ? '${examCategories.length} exam ${examCategories.length == 1 ? 'category' : 'categories'} available'
+                                                  : 'Browse exams by category and find the right preparation resources',
+                                              style: TextStyle(
+                                                fontSize: _responsiveValue(14, 15, 16),
+                                                color: const Color(0xFF666666),
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                            SizedBox(height: _responsiveValue(20, 24, 28)),
+
+                                            // Grid View
+                                            if (examCategories.isEmpty)
+                                              const Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(20),
+                                                  child: Text('No exam categories available'),
+                                                ),
+                                              )
+                                            else
+                                              Wrap(
+                                                spacing: _responsiveValue(12, 16, 20),
+                                                runSpacing: _responsiveValue(12, 16, 20),
+                                                children: examCategories.map((exam) {
+                                                  return _buildExamCard(
+                                                    exam: exam,
+                                                    width: cardWidth,
+                                                  );
+                                                }).toList(),
+                                          ),
+                                           ],
+                                        ),
+                                    
+                                      ),    
+
+                                      // ===== BANNER SECTION =====
+                                      Container(
+                                        width: screenWidth,
+                                        margin: EdgeInsets.symmetric(
+                                          horizontal: horizontalPadding,
+                                          vertical: _responsiveValue(20, 24, 28),
+                                        ),
+                                        padding: EdgeInsets.all(_responsiveValue(20, 24, 28)),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4C73AC),
+                                          borderRadius: BorderRadius.circular(_scale(12)),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.1),
+                                              blurRadius: _scale(6),
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Comprehensive Exam Resources',
+                                              style: TextStyle(
+                                                fontSize: _responsiveValue(18, 20, 22),
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            SizedBox(height: _scale(10)),
+                                            Text(
+                                              'Get syllabus, previous papers, mock tests, and preparation tips',
+                                              style: TextStyle(
+                                                fontSize: _responsiveValue(14, 15, 16),
+                                                color: const Color(0xFFDCE8FF),
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // ===== YOUTUBE VIDEO SECTION =====
+                                      Container(
+                                        margin: EdgeInsets.only(
+                                          top: _responsiveValue(20, 30, 40),
+                                          bottom: 0,
+                                        ),
+                                        width: double.infinity,
+                                        height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black,
+                                          image: DecorationImage(
+                                            image: NetworkImage(
+                                              'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: GestureDetector(
+                                            onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
+                                            child: Container(
+                                              width: 60,
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                borderRadius: BorderRadius.circular(30),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.3),
+                                                    blurRadius: 10,
+                                                    spreadRadius: 2,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Icon(
+                                                Icons.play_arrow,
+                                                size: 40,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // ===== PAGINATION DOTS =====
-                        Container(
-                          color: Colors.white,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(ads.length, (index) {
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                width: _activeAdIndex == index ? _scale(20) : _scale(8),
-                                height: _scale(8),
-                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                decoration: BoxDecoration(
-                                  color: _activeAdIndex == index 
-                                    ? const Color(0xFF0B5ED7) 
-                                    : const Color(0xFFCCCCCC),
-                                  borderRadius: BorderRadius.circular(_scale(4)),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-
-                        // ===== EXAM CATEGORIES SECTION =====
-                        Container(
-                          width: double.infinity,
-                          color: Colors.white,
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            _responsiveValue(24, 28, 32),
-                            horizontalPadding,
-                            _responsiveValue(20, 24, 28),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Section Title
-                              Text(
-                                'Exam Categories',
-                                style: TextStyle(
-                                  fontSize: _responsiveValue(20, 22, 24),
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF003366),
-                                ),
-                              ),
-                              SizedBox(height: _scale(8)),
-                              // Section Subtitle
-                              Text(
-                                'Browse exams by category and find the right preparation resources',
-                                style: TextStyle(
-                                  fontSize: _responsiveValue(14, 15, 16),
-                                  color: const Color(0xFF666666),
-                                  height: 1.5,
-                                ),
-                              ),
-                              SizedBox(height: _responsiveValue(20, 24, 28)),
-
-                              // Grid View
-                              Wrap(
-                                spacing: _responsiveValue(12, 16, 20),
-                                runSpacing: _responsiveValue(12, 16, 20),
-                                children: examCategories.map((exam) {
-                                  return _buildExamCard(
-                                    exam: exam,
-                                    width: cardWidth,
-                                  );
-                                }).toList(),
-                          ),
-                            ],
-                          ),
-                        ),
-
-                        // ===== BANNER SECTION =====
-                        Container(
-                          width: screenWidth,
-                          margin: EdgeInsets.symmetric(
-                            horizontal: horizontalPadding,
-                            vertical: _responsiveValue(20, 24, 28),
-                          ),
-                          padding: EdgeInsets.all(_responsiveValue(20, 24, 28)),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4C73AC),
-                            borderRadius: BorderRadius.circular(_scale(12)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: _scale(6),
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Comprehensive Exam Resources',
-                                style: TextStyle(
-                                  fontSize: _responsiveValue(18, 20, 22),
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: _scale(10)),
-                              Text(
-                                'Get syllabus, previous papers, mock tests, and preparation tips',
-                                style: TextStyle(
-                                  fontSize: _responsiveValue(14, 15, 16),
-                                  color: const Color(0xFFDCE8FF),
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // ===== YOUTUBE VIDEO SECTION - LIKE COLLEGE1 PAGE =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: _responsiveValue(20, 30, 40),
-                            bottom: 0, // Reduced bottom margin
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 10,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.play_arrow,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          
+          // Full screen loader for initial loading
+          if (_isLoading && examCategories.isEmpty)
+            const GlassLoader(
+              message: 'Loading exam categories...',
+            ),
+        ],
       ),
     );
   }
@@ -473,19 +559,21 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     required Map<String, dynamic> exam,
     required double width,
   }) {
+    // Check if we have an image from API and it's valid
+    bool hasValidImage = exam['image'] != null && 
+                         exam['image'].toString().isNotEmpty;
+
     return GestureDetector(
       onTap: () {
-        // Navigate to Exam2 screen when card is tapped
- Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Exam2Screen(
-            examData: exam,
+        // Navigate to Exam2 screen when card is tapped with the exam data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Exam2Screen(
+              examData: exam,
+            ),
           ),
-        ),
-      );
-
-      
+        );
       },
       child: Container(
         width: width,
@@ -508,22 +596,32 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon Container
+            // Image Container
             Container(
               width: _responsiveValue(56, 64, 72),
               height: _responsiveValue(56, 64, 72),
               decoration: BoxDecoration(
-                color: (exam['color'] as Color).withOpacity(0.12),
                 borderRadius: BorderRadius.circular(_scale(12)),
+                image: hasValidImage
+                    ? DecorationImage(
+                        image: NetworkImage(exam['image']),
+                        fit: BoxFit.cover,
+                        onError: (exception, stackTrace) {
+                          // Fallback to placeholder on error
+                        },
+                      )
+                    : null,
+                color: hasValidImage ? null : const Color(0xFFE6F0FF),
               ),
-              child: Center(
-                child: Text(
-                  exam['icon'] as String,
-                  style: TextStyle(
-                    fontSize: _responsiveValue(28, 32, 36),
-                  ),
-                ),
-              ),
+              child: !hasValidImage
+                  ? Center(
+                      child: Icon(
+                        Icons.image,
+                        size: _responsiveValue(28, 32, 36),
+                        color: const Color(0xFF0052A2).withOpacity(0.5),
+                      ),
+                    )
+                  : null,
             ),
             SizedBox(height: _scale(12)),
 
@@ -554,30 +652,10 @@ class _Exam1ScreenState extends State<Exam1Screen> {
             ),
             SizedBox(height: _scale(12)),
 
-            // Footer
+            // Footer with Arrow Icon only
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Count Badge
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: _scale(10),
-                    vertical: _scale(4),
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F7FF),
-                    borderRadius: BorderRadius.circular(_scale(12)),
-                  ),
-                  child: Text(
-                    exam['count'] as String,
-                    style: TextStyle(
-                      fontSize: _responsiveValue(11, 12, 13),
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0072BC),
-                    ),
-                  ),
-                ),
-
                 // Arrow Icon
                 Container(
                   width: _scale(24),
@@ -589,7 +667,7 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                   child: Icon(
                     Icons.chevron_right,
                     size: _scale(18),
-                    color: exam['color'] as Color,
+                    color: const Color(0xFF0052A2),
                   ),
                 ),
               ],
