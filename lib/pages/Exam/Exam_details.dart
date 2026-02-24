@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../widgets/footer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
 
 class ExamDetailsFullScreen extends StatefulWidget {
   final Map<String, dynamic>? examData;
@@ -22,10 +23,19 @@ class ExamDetailsFullScreen extends StatefulWidget {
 class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
   // Loading states
   bool _isLoading = true;
+  bool _isLoadingAds = true;
   String? _errorMessage;
+  String? _adErrorMessage;
 
   // API Data
   Map<String, dynamic>? examDetails;
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
+
+  // Banner Control
+  int _activeAdIndex = 0;
+  final PageController _adController = PageController();
+  Timer? _adTimer;
 
   // Fallback data in case API fails
   final Map<String, dynamic> _fallbackData = {
@@ -51,6 +61,84 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
   void initState() {
     super.initState();
     _fetchExamDetails();
+    _fetchAdvertisements();
+
+    // Auto scroll ads
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
+        int nextPage = _activeAdIndex + 1;
+        if (nextPage >= adImages.length) nextPage = 0;
+        _adController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _fetchAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for examdetails...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=examdetails'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (mounted) {
+            setState(() {
+              adImages = List<String>.from(data['data']['images'] ?? []);
+              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              _isLoadingAds = false;
+            });
+            debugPrint('✅ Loaded ${adImages.length} ad images for examdetails');
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingAds = false;
+            _adErrorMessage = 'Failed to load ads';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAds = false;
+          _adErrorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
+      }
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _adController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchExamDetails() async {
@@ -217,9 +305,12 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
   void _retryLoading() {
     setState(() {
       _isLoading = true;
+      _isLoadingAds = true;
       _errorMessage = null;
+      _adErrorMessage = null;
     });
     _fetchExamDetails();
+    _fetchAdvertisements();
   }
 
   // Scale function for responsive sizing
@@ -364,6 +455,70 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      // ===== ADVERTISEMENT BANNER =====
+                                      if (adImages.isNotEmpty)
+                                        Container(
+                                          width: screenWidth,
+                                          height: _responsiveValue(180, 220, 260),
+                                          child: PageView.builder(
+                                            controller: _adController,
+                                            itemCount: adImages.length,
+                                            onPageChanged: (index) {
+                                              setState(() {
+                                                _activeAdIndex = index;
+                                              });
+                                            },
+                                            itemBuilder: (context, index) {
+                                              return Image.network(
+                                                adImages[index],
+                                                width: screenWidth,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: screenWidth,
+                                                    color: Colors.black12,
+                                                    child: const Center(
+                                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      else if (_isLoadingAds)
+                                        Container(
+                                          width: screenWidth,
+                                          height: _responsiveValue(180, 220, 260),
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        ),
+
+                                      // ===== PAGINATION DOTS =====
+                                      if (adImages.length > 1)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: List.generate(adImages.length, (index) {
+                                              return AnimatedContainer(
+                                                duration: const Duration(milliseconds: 300),
+                                                width: _activeAdIndex == index ? _scale(16) : _scale(8),
+                                                height: _scale(8),
+                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                                decoration: BoxDecoration(
+                                                  color: _activeAdIndex == index 
+                                                    ? const Color(0xFF0B5ED7) 
+                                                    : const Color(0xFFCCCCCC),
+                                                  borderRadius: BorderRadius.circular(_scale(4)),
+                                                ),
+                                              );
+                                            }),
+                                          ),
+                                        ),
+
                                       SizedBox(height: _responsiveValue(16, 20, 24)),
 
                                       // ===== EXAM OVERVIEW CARD =====
@@ -638,63 +793,40 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                       ),
 
                                       // ===== YOUTUBE VIDEO SECTION =====
-                                      Container(
-                                        margin: EdgeInsets.only(
-                                          top: _responsiveValue(40, 50, 60),
-                                          bottom: 0,
-                                        ),
-                                        width: double.infinity,
-                                        height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black,
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                              'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                            ),
-                                            fit: BoxFit.cover,
+                                      if (youtubeUrls.isNotEmpty) ...[
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: horizontalPadding,
+                                            vertical: _responsiveValue(16, 20, 24),
                                           ),
-                                        ),
-                                        child: Center(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              // Show dialog for video play
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: Text('Exam Preparation Video'),
-                                                  content: Text('Watch detailed guide for ${displayData['title']} preparation'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context),
-                                                      child: const Text('OK'),
-                                                    ),
-                                                  ],
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.play_circle_fill, color: Colors.red),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Preparation Guides',
+                                                style: TextStyle(
+                                                  fontSize: _responsiveValue(18, 20, 22),
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF003366),
                                                 ),
-                                              );
-                                            },
-                                            child: Container(
-                                              width: 60,
-                                              height: 60,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius: BorderRadius.circular(30),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.3),
-                                                    blurRadius: 10,
-                                                    spreadRadius: 2,
-                                                  ),
-                                                ],
                                               ),
-                                              child: const Icon(
-                                                Icons.play_arrow,
-                                                size: 40,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                            ],
                                           ),
                                         ),
-                                      ),
+                                        ...youtubeUrls.map((url) => Container(
+                                          width: screenWidth,
+                                          margin: EdgeInsets.only(
+                                            bottom: _responsiveValue(16, 20, 24),
+                                          ),
+                                          child: CommonYoutubePlayer(
+                                            youtubeUrl: url,
+                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                                            placeholderThumbnail: _getYoutubeThumbnail(url),
+                                            borderRadius: 0,
+                                          ),
+                                        )).toList(),
+                                      ],
                                     ],
                                   ),
                                 ),

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../widgets/footer.dart';
 import '../../Api/baseurl.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../components/glass_loader.dart';
 import 'Exam3.dart';
 
@@ -28,32 +29,13 @@ class _Exam2ScreenState extends State<Exam2Screen> {
 
   // Loading states
   bool _isLoading = true;
+  bool _isAdsLoading = true;
   String? _errorMessage;
 
   // API Data
   List<Map<String, dynamic>> examTypes = [];
-
-  // Advertisement banners data (static)
-  final List<Map<String, dynamic>> ads = [
-    {
-      'id': '1',
-      'image': 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1200&h=400&fit=crop',
-      'url': 'https://example.com/board-exams',
-      'title': 'Board Exams',
-    },
-    {
-      'id': '2',
-      'image': 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1200&h=400&fit=crop',
-      'url': 'https://example.com/previous-papers',
-      'title': 'Previous Papers',
-    },
-    {
-      'id': '3',
-      'image': 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=400&fit=crop',
-      'url': 'https://example.com/study-package',
-      'title': 'Study Package',
-    },
-  ];
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   // Tab categories - will be dynamically created from API data
   final List<Map<String, dynamic>> tabs = [
@@ -80,18 +62,46 @@ class _Exam2ScreenState extends State<Exam2Screen> {
   void initState() {
     super.initState();
     _fetchExamTypes();
+    _fetchAdvertisements();
+    
     // Auto scroll ads
-    _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_adController.hasClients && mounted) {
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
         int nextPage = _activeAdIndex + 1;
-        if (nextPage >= ads.length) nextPage = 0;
+        if (nextPage >= adImages.length) nextPage = 0;
         _adController.animateToPage(
           nextPage,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
         );
       }
     });
+  }
+
+  Future<void> _fetchAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for exampage2...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=exampage2'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          setState(() {
+            adImages = List<String>.from(data['data']['images'] ?? []);
+            youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+            _isAdsLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() {
+        _isAdsLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchExamTypes() async {
@@ -205,9 +215,29 @@ class _Exam2ScreenState extends State<Exam2Screen> {
   void _retryLoading() {
     setState(() {
       _isLoading = true;
+      _isAdsLoading = true;
       _errorMessage = null;
     });
     _fetchExamTypes();
+    _fetchAdvertisements();
+  }
+
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
+      }
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -409,90 +439,85 @@ class _Exam2ScreenState extends State<Exam2Screen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       // ===== ADVERTISEMENT BANNER =====
-                                      Container(
-                                        width: screenWidth,
-                                        height: adHeight,
-                                        margin: EdgeInsets.only(bottom: _responsiveValue(16, 20, 24)),
-                                        decoration: BoxDecoration(
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: PageView.builder(
-                                          controller: _adController,
-                                          itemCount: ads.length,
-                                          onPageChanged: (index) {
-                                            setState(() {
-                                              _activeAdIndex = index;
-                                            });
-                                          },
-                                          itemBuilder: (context, index) {
-                                            final ad = ads[index];
-                                            return GestureDetector(
-                                              onTap: () => _showUrlDialog(ad['url']),
-                                              child: Container(
-                                                width: screenWidth,
-                                                color: Colors.black,
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    const Icon(
-                                                      Icons.campaign_outlined,
-                                                      size: 80,
-                                                      color: Colors.white,
-                                                    ),
-                                                    const SizedBox(height: 8),
-                                                    Text(
-                                                      'Ad ${index + 1}',
-                                                      style: const TextStyle(
-                                                        fontSize: 18,
-                                                        color: Colors.white,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      ad['title'] as String,
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.white70,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
+                                      if (adImages.isNotEmpty)
+                                        Container(
+                                          width: screenWidth,
+                                          height: adHeight,
+                                          margin: EdgeInsets.only(bottom: _responsiveValue(16, 20, 24)),
+                                          decoration: BoxDecoration(
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.1),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
                                               ),
-                                            );
-                                          },
-                                        ),
-                                      ),
+                                            ],
+                                          ),
+                                          child: PageView.builder(
+                                            controller: _adController,
+                                            itemCount: adImages.length,
+                                            onPageChanged: (index) {
+                                              setState(() {
+                                                _activeAdIndex = index;
+                                              });
+                                            },
+                                            itemBuilder: (context, index) {
+                                              return Image.network(
+                                                adImages[index],
+                                                width: screenWidth,
+                                                height: adHeight,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: screenWidth,
+                                                    height: adHeight,
+                                                    color: Colors.black12,
+                                                    child: const Center(
+                                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      else if (_isAdsLoading)
+                                        Container(
+                                          width: screenWidth,
+                                          height: adHeight,
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        )
+                                      else
+                                        const SizedBox.shrink(),
 
                                       // ===== PAGINATION DOTS =====
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
+                                      if (adImages.length > 1)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: List.generate(adImages.length, (index) {
+                                              return AnimatedContainer(
+                                                duration: const Duration(milliseconds: 300),
+                                                width: _activeAdIndex == index ? _scale(10) : _scale(6),
+                                                height: _scale(6),
+                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                                decoration: BoxDecoration(
+                                                  color: _activeAdIndex == index 
+                                                    ? const Color(0xFF0B5ED7) 
+                                                    : const Color(0xFFCCCCCC),
+                                                  borderRadius: BorderRadius.circular(_scale(4)),
+                                                ),
+                                              );
+                                            }),
+                                          ),
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: List.generate(ads.length, (index) {
-                                            return AnimatedContainer(
-                                              duration: const Duration(milliseconds: 300),
-                                              width: _activeAdIndex == index ? _scale(10) : _scale(6),
-                                              height: _scale(6),
-                                              margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                              decoration: BoxDecoration(
-                                                color: _activeAdIndex == index 
-                                                  ? const Color(0xFF0B5ED7) 
-                                                  : const Color(0xFFCCCCCC),
-                                                borderRadius: BorderRadius.circular(_scale(4)),
-                                              ),
-                                            );
-                                          }),
-                                        ),
-                                      ),
 
                                       // ===== EXAM CATEGORY HEADER =====
                                       Container(
@@ -683,48 +708,40 @@ class _Exam2ScreenState extends State<Exam2Screen> {
                                       ),
 
                                       // ===== YOUTUBE VIDEO SECTION =====
-                                      Container(
-                                        margin: EdgeInsets.only(
-                                          top: _responsiveValue(20, 25, 30),
-                                          bottom: 0,
-                                        ),
-                                        width: double.infinity,
-                                        height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black,
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                              'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                            ),
-                                            fit: BoxFit.cover,
+                                      if (youtubeUrls.isNotEmpty) ...[
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: horizontalPadding,
+                                            vertical: _responsiveValue(16, 20, 24),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.play_circle_fill, color: Colors.red),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Video tutorials',
+                                                style: TextStyle(
+                                                  fontSize: _responsiveValue(16, 18, 20),
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF003366),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        child: Center(
-                                          child: GestureDetector(
-                                            onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
-                                            child: Container(
-                                              width: 60,
-                                              height: 60,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius: BorderRadius.circular(30),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.3),
-                                                    blurRadius: 10,
-                                                    spreadRadius: 2,
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Icon(
-                                                Icons.play_arrow,
-                                                size: 40,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                        ...youtubeUrls.map((url) => Container(
+                                          width: screenWidth,
+                                          margin: EdgeInsets.only(
+                                            bottom: _responsiveValue(16, 20, 24),
                                           ),
-                                        ),
-                                      ),
+                                          child: CommonYoutubePlayer(
+                                            youtubeUrl: url,
+                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                                            placeholderThumbnail: _getYoutubeThumbnail(url),
+                                            borderRadius: 0,
+                                          ),
+                                        )).toList(),
+                                      ],
                                     ],
                                   ),
                                 ),

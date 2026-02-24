@@ -7,6 +7,7 @@ import '../../widgets/footer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
 import 'InstituteDetails.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
 
 class InstitutionsListScreen extends StatefulWidget {
   final int? typeId; // TypeId passed from Exam3
@@ -30,28 +31,14 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
 
   // Loading states
   bool _isLoading = true;
+  bool _isLoadingAds = true;
   String? _errorMessage;
+  String? _adErrorMessage;
 
   // API Data
   List<Map<String, dynamic>> institutionsData = [];
-
-  // Advertisement banners data (static)
-  final List<Map<String, dynamic>> ads = [
-    {
-      'id': '1',
-      'title': 'TOP TUITION CENTER PROGRAMS',
-      'subtitle': 'Build Your Career With',
-      'cta': 'Apply Now',
-      'color': Color(0xFF4A90E2),
-    },
-    {
-      'id': '2',
-      'title': 'Quality Education',
-      'subtitle': 'Join the Best Institutions',
-      'cta': 'Enroll Now',
-      'color': Color(0xFF50C878),
-    },
-  ];
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   // Available areas (will be populated from API data)
   final List<String> areas = ['all'];
@@ -60,15 +47,16 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
   void initState() {
     super.initState();
     _fetchInstitutions();
+    _fetchAdvertisements();
     
     // Auto scroll ads
-    _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_adController.hasClients && mounted) {
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
         int nextPage = _activeAdIndex + 1;
-        if (nextPage >= ads.length) nextPage = 0;
+        if (nextPage >= adImages.length) nextPage = 0;
         _adController.animateToPage(
           nextPage,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
         );
       }
@@ -162,6 +150,63 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
     }
   }
 
+  Future<void> _fetchAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for examinstitutions...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=examinstitutions'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (mounted) {
+            setState(() {
+              adImages = List<String>.from(data['data']['images'] ?? []);
+              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              _isLoadingAds = false;
+            });
+            debugPrint('✅ Loaded ${adImages.length} ad images for examinstitutions');
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingAds = false;
+            _adErrorMessage = 'Failed to load ads';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAds = false;
+          _adErrorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
+      }
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
+    }
+  }
+
   String _getInstitutionType(dynamic category) {
     if (category == null) return 'Institute';
     if (category is List) {
@@ -177,9 +222,12 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
   void _retryLoading() {
     setState(() {
       _isLoading = true;
+      _isLoadingAds = true;
       _errorMessage = null;
+      _adErrorMessage = null;
     });
     _fetchInstitutions();
+    _fetchAdvertisements();
   }
 
   // Filter institutions
@@ -343,159 +391,82 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       // ===== ADVERTISEMENT BANNER =====
-                                      Container(
-                                        margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                        padding: EdgeInsets.only(top: _responsiveValue(16, 20, 24)),
-                                        child: SizedBox(
-                                          height: adHeight,
-                                          child: PageView.builder(
-                                            controller: _adController,
-                                            itemCount: ads.length,
-                                            onPageChanged: (index) {
-                                              setState(() {
-                                                _activeAdIndex = index;
-                                              });
-                                            },
-                                            itemBuilder: (context, index) {
-                                              final ad = ads[index];
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (context) => AlertDialog(
-                                                      title: Text(ad['title'] as String),
-                                                      content: Text('This ad would open: ${ad['cta']}'),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () => Navigator.pop(context),
-                                                          child: const Text('OK'),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    color: ad['color'] as Color,
-                                                    borderRadius: BorderRadius.circular(_scale(12)),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black.withOpacity(0.1),
-                                                        blurRadius: _scale(8),
-                                                        offset: Offset(0, _scale(4)),
+                                      if (adImages.isNotEmpty)
+                                        Container(
+                                          margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                                          padding: EdgeInsets.only(top: _responsiveValue(16, 20, 24)),
+                                          child: SizedBox(
+                                            height: adHeight,
+                                            child: PageView.builder(
+                                              controller: _adController,
+                                              itemCount: adImages.length,
+                                              onPageChanged: (index) {
+                                                setState(() {
+                                                  _activeAdIndex = index;
+                                                });
+                                              },
+                                              itemBuilder: (context, index) {
+                                                return Image.network(
+                                                  adImages[index],
+                                                  width: screenWidth,
+                                                  height: adHeight,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      color: Colors.black12,
+                                                      child: const Center(
+                                                        child: Icon(Icons.broken_image, color: Colors.grey),
                                                       ),
-                                                    ],
-                                                  ),
-                                                  child: Stack(
-                                                    children: [
-                                                      // Content
-                                                      Padding(
-                                                        padding: EdgeInsets.all(_responsiveValue(16, 20, 24)),
-                                                        child: Column(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                                          children: [
-                                                            Text(
-                                                              ad['subtitle'] as String,
-                                                              style: TextStyle(
-                                                                color: Colors.white.withOpacity(0.9),
-                                                                fontSize: _responsiveValue(14, 15, 16),
-                                                                fontWeight: FontWeight.w500,
-                                                              ),
-                                                            ),
-                                                            SizedBox(height: _scale(8)),
-                                                            Text(
-                                                              ad['title'] as String,
-                                                              textAlign: TextAlign.center,
-                                                              style: TextStyle(
-                                                                color: Colors.white,
-                                                                fontSize: _responsiveValue(18, 20, 22),
-                                                                fontWeight: FontWeight.w700,
-                                                                height: 1.2,
-                                                              ),
-                                                            ),
-                                                            SizedBox(height: _scale(16)),
-                                                            Container(
-                                                              padding: EdgeInsets.symmetric(
-                                                                horizontal: _scale(20),
-                                                                vertical: _scale(8),
-                                                              ),
-                                                              decoration: BoxDecoration(
-                                                                color: Colors.white.withOpacity(0.2),
-                                                                borderRadius: BorderRadius.circular(_scale(6)),
-                                                                border: Border.all(
-                                                                  color: Colors.white.withOpacity(0.3),
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              child: Text(
-                                                                ad['cta'] as String,
-                                                                style: TextStyle(
-                                                                  color: Colors.white,
-                                                                  fontSize: _responsiveValue(14, 16, 18),
-                                                                  fontWeight: FontWeight.w700,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      // Ad Badge
-                                                      Positioned(
-                                                        top: _scale(12),
-                                                        right: _scale(12),
-                                                        child: Container(
-                                                          padding: EdgeInsets.symmetric(
-                                                            horizontal: _scale(8),
-                                                            vertical: _scale(4),
-                                                          ),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.black.withOpacity(0.8),
-                                                            borderRadius: BorderRadius.circular(_scale(4)),
-                                                          ),
-                                                          child: Text(
-                                                            'AD',
-                                                            style: TextStyle(
-                                                              color: Colors.white,
-                                                              fontSize: _responsiveValue(10, 12, 12),
-                                                              fontWeight: FontWeight.w700,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        )
+                                      else if (_isLoadingAds)
+                                        Container(
+                                          margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                                          padding: EdgeInsets.only(top: _responsiveValue(16, 20, 24)),
+                                          child: Container(
+                                            height: adHeight,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(_scale(12)),
+                                            ),
+                                            child: const Center(
+                                              child: CircularProgressIndicator(),
+                                            ),
                                           ),
                                         ),
-                                      ),
 
                                       // ===== PAGINATION DOTS =====
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF6F9FF),
+                                      if (adImages.length > 1)
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF6F9FF),
+                                          ),
+                                          padding: EdgeInsets.symmetric(vertical: _scale(12)),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: List.generate(adImages.length, (index) {
+                                              return AnimatedContainer(
+                                                duration: const Duration(milliseconds: 300),
+                                                width: _activeAdIndex == index ? _scale(16) : _scale(8),
+                                                height: _scale(8),
+                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                                decoration: BoxDecoration(
+                                                  color: _activeAdIndex == index 
+                                                    ? const Color(0xFF0B5ED7) 
+                                                    : const Color(0xFFCCCCCC),
+                                                  borderRadius: BorderRadius.circular(_scale(4)),
+                                                ),
+                                              );
+                                            }),
+                                          ),
                                         ),
-                                        padding: EdgeInsets.symmetric(vertical: _scale(12)),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: List.generate(ads.length, (index) {
-                                            return AnimatedContainer(
-                                              duration: const Duration(milliseconds: 300),
-                                              width: _activeAdIndex == index ? _scale(10) : _scale(6),
-                                              height: _scale(6),
-                                              margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                              decoration: BoxDecoration(
-                                                color: _activeAdIndex == index 
-                                                  ? const Color(0xFF4A90E2) 
-                                                  : const Color(0xFFCCCCCC),
-                                                borderRadius: BorderRadius.circular(_scale(4)),
-                                              ),
-                                            );
-                                          }),
-                                        ),
-                                      ),
 
                                       // ===== SEARCH BAR =====
                                       Container(
@@ -736,62 +707,40 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                       ],
 
                                       // ===== YOUTUBE VIDEO SECTION =====
-                                      Container(
-                                        margin: EdgeInsets.only(
-                                          top: _responsiveValue(40, 50, 60),
-                                          bottom: 0,
-                                        ),
-                                        width: double.infinity,
-                                        height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black,
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                              'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                            ),
-                                            fit: BoxFit.cover,
+                                      if (youtubeUrls.isNotEmpty) ...[
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: horizontalPadding,
+                                            vertical: _responsiveValue(16, 20, 24),
                                           ),
-                                        ),
-                                        child: Center(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: Text('Institution Video'),
-                                                  content: Text('This would play a video about institutions'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context),
-                                                      child: const Text('OK'),
-                                                    ),
-                                                  ],
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.play_circle_fill, color: Colors.red),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Institution Tutorials',
+                                                style: TextStyle(
+                                                  fontSize: _responsiveValue(18, 20, 22),
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF003366),
                                                 ),
-                                              );
-                                            },
-                                            child: Container(
-                                              width: 60,
-                                              height: 60,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius: BorderRadius.circular(30),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.3),
-                                                    blurRadius: 10,
-                                                    spreadRadius: 2,
-                                                  ),
-                                                ],
                                               ),
-                                              child: const Icon(
-                                                Icons.play_arrow,
-                                                size: 40,
-                                                color: Colors.white,
-                                              ),
-                                            ),
+                                            ],
                                           ),
                                         ),
-                                      ),
+                                        ...youtubeUrls.map((url) => Container(
+                                          width: screenWidth,
+                                          margin: EdgeInsets.only(
+                                            bottom: _responsiveValue(16, 20, 24),
+                                          ),
+                                          child: CommonYoutubePlayer(
+                                            youtubeUrl: url,
+                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                                            placeholderThumbnail: _getYoutubeThumbnail(url),
+                                            borderRadius: 0,
+                                          ),
+                                        )).toList(),
+                                      ],
                                     ],
                                   ),
                                 ),

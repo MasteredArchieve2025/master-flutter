@@ -6,7 +6,7 @@ import '../../Widgets/Footer.dart';
 import '../../Api/baseurl.dart';
 import '../Blogs/BlogsScreen.dart';
 import '../Blogs/BlogDetailsScreen.dart';
-import '../Jobs/Jobs1.dart';
+import '../Jobs/Jobs2.dart';
 import '../../components/glass_loader.dart';
 
 // ==================== HEADER WIDGET ====================
@@ -464,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => JobsScreen(),
+                                builder: (context) => const JobCategoriesScreen(),
                               ),
                             );
                           },

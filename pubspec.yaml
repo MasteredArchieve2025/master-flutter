@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.1.0  # Fixed: Removed extra spaces, now aligned with other dependencies
-  url_launcher: ^6.2.5  # Add this line
+  url_launcher: ^6.3.2  # Add this line
   webview_flutter: ^4.4.4
   webview_windows: ^0.2.0
   webview_flutter_web: ^0.2.0

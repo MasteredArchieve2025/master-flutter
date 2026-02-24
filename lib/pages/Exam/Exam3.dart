@@ -1,9 +1,14 @@
 // lib/pages/Exam/Exam3.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../widgets/footer.dart';
 import 'Exam_details.dart';
 import 'Exam_institution_list.dart';
+import '../../Api/baseurl.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
+import '../../components/glass_loader.dart';
 
 class Exam3Screen extends StatefulWidget {
   final Map<String, dynamic>? examData;
@@ -18,34 +23,13 @@ class Exam3Screen extends StatefulWidget {
 }
 
 class _Exam3ScreenState extends State<Exam3Screen> {
-  int _activeBannerIndex = 0;
-  final PageController _bannerController = PageController();
-  Timer? _bannerTimer;
+  // Loading states
+  bool _isLoadingAds = true;
+  String? _adErrorMessage;
 
-  // Banner data
-  final List<Map<String, dynamic>> banners = [
-    {
-      'title': 'Build Your Career With',
-      'line1': 'TOP TUITION CENTRE',
-      'line2': 'PROGRAMS',
-      'info': 'Apply Now',
-      'color': Color(0xFF4A90E2),
-    },
-    {
-      'title': 'Exam Preparation Made Easy',
-      'line1': 'EXPERT GUIDANCE',
-      'line2': '& SUPPORT',
-      'info': 'Enroll Today',
-      'color': Color(0xFF50C878),
-    },
-    {
-      'title': 'Learn. Innovate. Succeed.',
-      'line1': 'QUALITY',
-      'line2': 'EDUCATION',
-      'info': 'Join Now',
-      'color': Color(0xFFFF6B6B),
-    },
-  ];
+  // API Data
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   // Grid items
   final List<Map<String, dynamic>> gridItems = [
@@ -65,21 +49,84 @@ class _Exam3ScreenState extends State<Exam3Screen> {
     },
   ];
 
+  int _activeBannerIndex = 0;
+  final PageController _bannerController = PageController();
+  Timer? _bannerTimer;
+
   @override
   void initState() {
     super.initState();
+    _fetchAdvertisements();
+    
     // Auto scroll banners
-    _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_bannerController.hasClients && mounted) {
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_bannerController.hasClients && mounted && adImages.isNotEmpty) {
         int nextPage = _activeBannerIndex + 1;
-        if (nextPage >= banners.length) nextPage = 0;
+        if (nextPage >= adImages.length) nextPage = 0;
         _bannerController.animateToPage(
           nextPage,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
         );
       }
     });
+  }
+
+  Future<void> _fetchAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for exampage3...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=exampage3'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (mounted) {
+            setState(() {
+              adImages = List<String>.from(data['data']['images'] ?? []);
+              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              _isLoadingAds = false;
+            });
+            debugPrint('✅ Loaded ${adImages.length} images from API');
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingAds = false;
+            _adErrorMessage = 'Failed to load ads';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAds = false;
+          _adErrorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
+      }
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -208,139 +255,75 @@ class _Exam3ScreenState extends State<Exam3Screen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // ===== BANNER SLIDER =====
-                        SizedBox(
-                          width: screenWidth,
-                          height: bannerHeight,
-                          child: PageView.builder(
-                            controller: _bannerController,
-                            itemCount: banners.length,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _activeBannerIndex = index;
-                              });
-                            },
-                            itemBuilder: (context, index) {
-                              final banner = banners[index];
-                              return Container(
-                                width: screenWidth,
-                                height: bannerHeight,
-                                decoration: BoxDecoration(
-                                  color: banner['color'] as Color,
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      (banner['color'] as Color).withOpacity(0.9),
-                                      (banner['color'] as Color).withOpacity(0.7),
-                                    ],
-                                  ),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    // Decorative pattern
-                                    Positioned(
-                                      top: 20,
-                                      right: 20,
-                                      child: Opacity(
-                                        opacity: 0.1,
-                                        child: Icon(
-                                          Icons.school,
-                                          size: _scale(120),
-                                          color: Colors.white,
-                                        ),
+                        if (adImages.isNotEmpty)
+                          SizedBox(
+                            width: screenWidth,
+                            height: bannerHeight,
+                            child: PageView.builder(
+                              controller: _bannerController,
+                              itemCount: adImages.length,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _activeBannerIndex = index;
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                return Image.network(
+                                  adImages[index],
+                                  width: screenWidth,
+                                  height: bannerHeight,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: screenWidth,
+                                      height: bannerHeight,
+                                      color: Colors.black12,
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, color: Colors.grey),
                                       ),
-                                    ),
-                                    // Content
-                                    Padding(
-                                      padding: EdgeInsets.all(horizontalPadding),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            banner['title'] as String,
-                                            style: TextStyle(
-                                              color: const Color(0xFFE8F0FF),
-                                              fontSize: _responsiveValue(12, 14, 16),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          SizedBox(height: _scale(8)),
-                                          Text(
-                                            banner['line1'] as String,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: _responsiveValue(20, 22, 24),
-                                              fontWeight: FontWeight.w800,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                          Text(
-                                            banner['line2'] as String,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: _responsiveValue(20, 22, 24),
-                                              fontWeight: FontWeight.w800,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                          SizedBox(height: _scale(12)),
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: _scale(16),
-                                              vertical: _scale(8),
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(_scale(20)),
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(0.3),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              banner['info'] as String,
-                                              style: TextStyle(
-                                                color: const Color(0xFFFFD966),
-                                                fontSize: _responsiveValue(12, 14, 15),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          )
+                        else if (_isLoadingAds)
+                          Container(
+                            width: screenWidth,
+                            height: bannerHeight,
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else
+                          const SizedBox.shrink(),
 
                         // ===== PAGINATION DOTS =====
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F8FF),
+                        if (adImages.length > 1)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F8FF),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: _scale(12)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(adImages.length, (index) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: _activeBannerIndex == index ? _scale(16) : _scale(8),
+                                  height: _scale(8),
+                                  margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                  decoration: BoxDecoration(
+                                    color: _activeBannerIndex == index 
+                                      ? const Color(0xFF0B5ED7) 
+                                      : const Color(0xFFCCCCCC),
+                                    borderRadius: BorderRadius.circular(_scale(4)),
+                                  ),
+                                );
+                              }),
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: _scale(12)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(banners.length, (index) {
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                width: _activeBannerIndex == index ? _scale(16) : _scale(8),
-                                height: _scale(8),
-                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                decoration: BoxDecoration(
-                                  color: _activeBannerIndex == index 
-                                    ? const Color(0xFF0B5ED7) 
-                                    : const Color(0xFFCCCCCC),
-                                  borderRadius: BorderRadius.circular(_scale(4)),
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
 
                         // ===== 2 COLUMN GRID =====
                         Padding(
@@ -438,49 +421,41 @@ class _Exam3ScreenState extends State<Exam3Screen> {
                           ),
                         ),
 
-                        // ===== YOUTUBE VIDEO SECTION - LIKE EXAM1 & EXAM2 =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: _responsiveValue(40, 50, 60),
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                              ),
-                              fit: BoxFit.cover,
+                        // ===== YOUTUBE VIDEO SECTION =====
+                        if (youtubeUrls.isNotEmpty) ...[
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                              vertical: _responsiveValue(16, 20, 24),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.play_circle_fill, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Video Tutorials',
+                                  style: TextStyle(
+                                    fontSize: _responsiveValue(18, 20, 22),
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF003366),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 10,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.play_arrow,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
-                              ),
+                          ...youtubeUrls.map((url) => Container(
+                            width: screenWidth,
+                            margin: EdgeInsets.only(
+                              bottom: _responsiveValue(16, 20, 24),
                             ),
-                          ),
-                        ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: url,
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: _getYoutubeThumbnail(url),
+                              borderRadius: 0,
+                            ),
+                          )).toList(),
+                        ],
                       ],
                     ),
                   ),
