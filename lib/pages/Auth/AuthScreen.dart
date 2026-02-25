@@ -52,8 +52,8 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> handleAuth() async {
     try {
       if (mode == "login") {
-        if (usernameController.text.trim().isEmpty || passwordController.text.isEmpty) {
-          _showAlert("Error", "User name and password are required");
+        if (phoneController.text.trim().isEmpty || passwordController.text.isEmpty) {
+          _showAlert("Error", "Phone number and password are required");
           return;
         }
       } else {
@@ -74,7 +74,7 @@ class _AuthScreenState extends State<AuthScreen>
 
       if (mode == "login") {
         final res = await AuthApi.loginApi({
-          "username": usernameController.text.trim(),
+          "phone": phoneController.text.trim(),
           "password": passwordController.text,
         });
 
@@ -249,19 +249,21 @@ class _AuthScreenState extends State<AuthScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                 child: Column(
                   children: [
+                    if (mode == "register")
+                      InputField(
+                        icon: Icons.person,
+                        placeholder: "User Name",
+                        controller: usernameController,
+                      ),
+
                     InputField(
-                      icon: Icons.person,
-                      placeholder: "User Name",
-                      controller: usernameController,
+                      icon: Icons.phone,
+                      placeholder: "Phone Number",
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
                     ),
 
                     if (mode == "register") ...[
-                      InputField(
-                        icon: Icons.phone,
-                        placeholder: "Phone Number",
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                      ),
                       InputField(
                         icon: Icons.email,
                         placeholder: "Email",
