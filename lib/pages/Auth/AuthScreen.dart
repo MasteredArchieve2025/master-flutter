@@ -13,11 +13,8 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
   String mode = "login";
-  late AnimationController _slideController;
-  late Animation<double> _slideAnimation;
-  
-  // Initialize these later in didChangeDependencies
-  double _screenWidth = 0;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
 
   // Form controllers
   final TextEditingController usernameController = TextEditingController();
@@ -31,45 +28,38 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void initState() {
     super.initState();
-    _slideController = AnimationController(
+    _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
     );
-    _slideAnimation = Tween<double>(begin: 0, end: -350)
-        .animate(CurvedAnimation(parent: _slideController, curve: Curves.ease));
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _screenWidth = MediaQuery.of(context).size.width;
-    _slideAnimation = Tween<double>(begin: 0, end: -_screenWidth * 0.35)
-        .animate(CurvedAnimation(parent: _slideController, curve: Curves.ease));
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
   }
 
   void switchTo(String type) {
+    if (mode == type) return;
     setState(() {
       mode = type;
     });
     if (type == "login") {
-      _slideController.reverse();
+      _animationController.reverse();
     } else {
-      _slideController.forward();
+      _animationController.forward();
     }
   }
 
   Future<void> handleAuth() async {
     try {
-      // Validation
       if (mode == "login") {
-        if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
-          _showAlert("Error", "Phone and password are required");
+        if (usernameController.text.trim().isEmpty || passwordController.text.isEmpty) {
+          _showAlert("Error", "User name and password are required");
           return;
         }
       } else {
-        if (usernameController.text.isEmpty ||
-            phoneController.text.isEmpty ||
-            emailController.text.isEmpty ||
+        if (usernameController.text.trim().isEmpty ||
+            phoneController.text.trim().isEmpty ||
+            emailController.text.trim().isEmpty ||
             passwordController.text.isEmpty) {
           _showAlert("Error", "All fields are required");
           return;
@@ -84,17 +74,14 @@ class _AuthScreenState extends State<AuthScreen>
 
       if (mode == "login") {
         final res = await AuthApi.loginApi({
-          "phone": phoneController.text.trim(),
+          "username": usernameController.text.trim(),
           "password": passwordController.text,
         });
 
-        // ── Securely save access token ──────────────────────────────────────
         final token = res['token']?.toString() ?? '';
         await AuthTokenManager.instance.saveToken(token);
 
-        // ── Extract and securely save user data ─────────────────────────────
         Map<String, dynamic> userData = {};
-
         if (res['user'] != null) {
           if (res['user'] is Map) {
             userData = Map<String, dynamic>.from(res['user']);
@@ -107,17 +94,10 @@ class _AuthScreenState extends State<AuthScreen>
           }
         }
 
-        // If user data is directly in response root
         if (userData.isEmpty) {
           userData = Map<String, dynamic>.from(res);
         }
 
-        // Ensure phone is present
-        if (userData['phone'] == null) {
-          userData['phone'] = phoneController.text.trim();
-        }
-
-        // Save user data securely (no plain-text storage, no logging)
         await AuthTokenManager.instance.saveUserData(userData);
 
         if (mounted) {
@@ -135,13 +115,8 @@ class _AuthScreenState extends State<AuthScreen>
             onOk: () => switchTo("login"));
       }
     } catch (err) {
-      // Error is shown to user via dialog — not logged to avoid leaking data.
-      
       String message = "Something went wrong";
-      if (err is String) {
-        message = err;
-      }
-
+      if (err is String) message = err;
       _showAlert("Error", message);
     } finally {
       setState(() => loading = false);
@@ -173,7 +148,7 @@ class _AuthScreenState extends State<AuthScreen>
     phoneController.dispose();
     emailController.dispose();
     passwordController.dispose();
-    _slideController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -183,211 +158,226 @@ class _AuthScreenState extends State<AuthScreen>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: size.height - MediaQuery.of(context).padding.top,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    // Top Wave with Animation
-                    AnimatedBuilder(
-                      animation: _slideAnimation,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(_slideAnimation.value, 0),
-                          child: SizedBox(
-                            width: size.width * 1.5,
-                            height: 160,
-                            child: CustomPaint(
-                              painter: TopWavePainter(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            children: [
+              // Header with Tabs
+              Stack(
+                children: [
+                  AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      return ClipPath(
+                        clipper: TopWaveClipper(_animation.value),
+                        child: Container(
+                          height: 220,
+                          width: size.width,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
                             ),
                           ),
-                        );
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: 60,
+                    left: 0,
+                    right: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () => switchTo("login"),
+                            child: AnimatedBuilder(
+                              animation: _animation,
+                              builder: (context, child) {
+                                return Text(
+                                  "LOGIN",
+                                  style: TextStyle(
+                                    color: Color.lerp(
+                                      const Color(0xFF1E1E1E),
+                                      Colors.white,
+                                      _animation.value,
+                                    ),
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => switchTo("register"),
+                            child: AnimatedBuilder(
+                              animation: _animation,
+                              builder: (context, child) {
+                                return Text(
+                                  "REGISTER",
+                                  style: TextStyle(
+                                    color: Color.lerp(
+                                      Colors.white,
+                                      const Color(0xFF1E1E1E),
+                                      _animation.value,
+                                    ),
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Form content
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                child: Column(
+                  children: [
+                    InputField(
+                      icon: Icons.person,
+                      placeholder: "User Name",
+                      controller: usernameController,
+                    ),
+
+                    if (mode == "register") ...[
+                      InputField(
+                        icon: Icons.phone,
+                        placeholder: "Phone Number",
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      InputField(
+                        icon: Icons.email,
+                        placeholder: "Email",
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                    ],
+
+                    InputField(
+                      icon: Icons.lock,
+                      placeholder: "Password",
+                      controller: passwordController,
+                      isPassword: true,
+                      obscureText: obscurePassword,
+                      onToggleObscure: () {
+                        setState(() {
+                          obscurePassword = !obscurePassword;
+                        });
                       },
                     ),
 
-                    // Content
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Tabs
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 50),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => switchTo("login"),
-                                    child: Text(
-                                      "LOGIN",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: mode == "login"
-                                            ? const Color(0xFF0B66C3)
-                                            : Colors.grey,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => switchTo("register"),
-                                    child: Text(
-                                      "REGISTER",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: mode == "register"
-                                            ? const Color(0xFF0B66C3)
-                                            : Colors.grey,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 30),
+                    const SizedBox(height: 25),
 
-                            // Form
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: Column(
-                                children: [
-                                  // Username - Register only
-                                  if (mode == "register")
-                                    InputField(
-                                      icon: Icons.person_outline,
-                                      placeholder: "User Name",
-                                      controller: usernameController,
-                                    ),
-                                  
-                                  // Phone
-                                  InputField(
-                                    icon: Icons.call_outlined,
-                                    placeholder: "Phone Number",
-                                    controller: phoneController,
-                                    keyboardType: TextInputType.phone,
+                    GestureDetector(
+                      onTap: loading ? null : handleAuth,
+                      child: Container(
+                        height: 52,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0066BE),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: loading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
-                                  
-                                  // Email - Register only
-                                  if (mode == "register")
-                                    InputField(
-                                      icon: Icons.mail_outline,
-                                      placeholder: "Email",
-                                      controller: emailController,
-                                      keyboardType: TextInputType.emailAddress,
-                                    ),
-                                  
-                                  // Password
-                                  InputField(
-                                    icon: Icons.lock_outline,
-                                    placeholder: "Password",
-                                    controller: passwordController,
-                                    isPassword: true,
-                                    obscureText: obscurePassword,
-                                    onToggleObscure: () {
-                                      setState(() {
-                                        obscurePassword = !obscurePassword;
-                                      });
-                                    },
+                                )
+                              : Text(
+                                  mode == "login" ? "Login" : "Register",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  
-                                  const SizedBox(height: 12),
-                                  
-                                  // Button
-                                  GestureDetector(
-                                    onTap: loading ? null : handleAuth,
-                                    child: Container(
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF0B66C3),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Center(
-                                        child: loading
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 2,
-                                                ),
-                                              )
-                                            : Text(
-                                                mode == "login" ? "Login" : "Register",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                  
-                                  if (mode == "login") ...[
-                                    const SizedBox(height: 16),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.pushNamed(context, '/forgot-password');
-                                      },
-                                      child: const Text(
-                                        "Forgot Password?",
-                                        style: TextStyle(
-                                          color: Color(0xFF0B66C3),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Text(
-                                          "Don't you have an account? ",
-                                          style: TextStyle(fontSize: 13),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () => switchTo("register"),
-                                          child: const Text(
-                                            "Sign Up",
-                                            style: TextStyle(
-                                              color: Color(0xFF0B66C3),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
+                                ),
                         ),
                       ),
                     ),
-                    
-                    // Bottom Wave
-                    SizedBox(
-                      width: size.width,
-                      height: 140,
-                      child: const CustomPaint(
-                        painter: BottomWavePainter(),
+
+                    const SizedBox(height: 20),
+
+                    if (mode == "login") ...[
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/forgot-password');
+                        },
+                        child: const Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Color(0xFF0066BE),
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Don't you have an account yet? ",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          GestureDetector(
+                            onTap: () => switchTo("register"),
+                            child: const Text(
+                              "Sign Up",
+                              style: TextStyle(
+                                color: Color(0xFF0066BE),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
+
+              // Bottom Wave
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  return ClipPath(
+                    clipper: BottomWaveClipper(_animation.value),
+                    child: Container(
+                      height: 140,
+                      width: size.width,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -395,7 +385,6 @@ class _AuthScreenState extends State<AuthScreen>
   }
 }
 
-// Custom Input Field Widget
 class InputField extends StatelessWidget {
   final IconData icon;
   final String placeholder;
@@ -419,101 +408,104 @@ class InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1E000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          const SizedBox(width: 15),
-          Icon(icon, size: 20, color: Colors.black),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextFormField(
-              controller: controller,
-              obscureText: isPassword ? obscureText : false,
-              keyboardType: keyboardType,
-              decoration: InputDecoration(
-                hintText: placeholder,
-                hintStyle: const TextStyle(color: Color(0xFFAAAAAA)),
-                border: InputBorder.none,
-              ),
-              style: const TextStyle(fontSize: 14),
-            ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword ? obscureText : false,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          hintText: placeholder,
+          hintStyle: TextStyle(color: Colors.black.withOpacity(0.3)),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 15, right: 10),
+            child: Icon(icon, color: Colors.black, size: 28),
           ),
-          if (isPassword)
-            IconButton(
-              icon: Icon(
-                obscureText ? Icons.visibility_off : Icons.visibility,
-                size: 20,
-                color: Colors.grey,
-              ),
-              onPressed: onToggleObscure,
-            ),
-          const SizedBox(width: 5),
-        ],
+          suffixIcon: isPassword
+              ? GestureDetector(
+                  onTap: onToggleObscure,
+                  child: Icon(
+                    obscureText ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.black.withOpacity(0.2),
+                  ),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+        ),
       ),
     );
   }
 }
 
-// Top Wave Painter
-class TopWavePainter extends CustomPainter {
+class TopWaveClipper extends CustomClipper<Path> {
+  final double value;
+  TopWaveClipper(this.value);
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF0B66C3)
-      ..style = PaintingStyle.fill;
+  Path getClip(Size size) {
+    Path path = Path();
+    double w = size.width;
+    double h = size.height;
 
-    final path = Path();
-    path.moveTo(0, 96);
-    path.lineTo(120, 128);
-    path.cubicTo(240, 160, 480, 224, 720, 218.7);
-    path.cubicTo(960, 213, 1200, 139, 1320, 112);
-    path.lineTo(1440, 96);
-    path.lineTo(1440, 0);
-    path.lineTo(0, 0);
+    // Semicircle with flat top, curving below
+    if (value < 0.5) {
+      // Login mode: Semicircle on the right (covers REGISTER)
+      path.addArc(
+        Rect.fromLTWH(w * 0.4, -h, w * 1.2, h * 2), 
+        3.14, 
+        -3.14
+      );
+    } else {
+      // Register mode: Semicircle on the left (covers LOGIN)
+      path.addArc(
+        Rect.fromLTWH(-w * 0.6, -h, w * 1.2, h * 2), 
+        0, 
+        3.14
+      );
+    }
+    
     path.close();
-
-    canvas.drawPath(path, paint);
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldReclip(TopWaveClipper oldClipper) => oldClipper.value != value;
 }
 
-// Bottom Wave Painter
-class BottomWavePainter extends CustomPainter {
-  const BottomWavePainter();
+class BottomWaveClipper extends CustomClipper<Path> {
+  final double value;
+  BottomWaveClipper(this.value);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF0B66C3)
-      ..style = PaintingStyle.fill;
+  Path getClip(Size size) {
+    Path path = Path();
+    double w = size.width;
+    double h = size.height;
 
-    final path = Path();
-    path.moveTo(0, 256);
-    path.lineTo(120, 224);
-    path.cubicTo(240, 192, 480, 128, 720, 117.3);
-    path.cubicTo(960, 107, 1200, 149, 1320, 170.7);
-    path.lineTo(1440, 192);
-    path.lineTo(1440, 320);
-    path.lineTo(0, 320);
+    // Semicircle with flat bottom, curving above
+    path.addArc(
+      Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 
+      3.14, 
+      3.14
+    );
     path.close();
 
-    canvas.drawPath(path, paint);
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldReclip(BottomWaveClipper oldClipper) => oldClipper.value != value;
 }
+
