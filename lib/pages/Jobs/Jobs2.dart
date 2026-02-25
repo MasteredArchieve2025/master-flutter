@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import '../../Widgets/Footer.dart';
 import '../../Api/baseurl.dart';
 import 'Jobs3.dart';
+import '../../components/glass_loader.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
 
 // ─── Model ───────────────────────────────────────────────────────────────────
 
@@ -54,8 +56,20 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
   Timer? _adTimer;
   late bool isTablet;
   late bool isWeb;
+  bool _isAutoScrollStarted = false;
 
-  final List<Map<String, String>> ads = [
+  // ── API state ──
+  List<JobCategory> _categories = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  // Advertisement API Data
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  String? _pageName;
+
+  // Banner Data (fallback if API fails)
+  final List<Map<String, String>> fallbackAds = [
     {
       "id": "1",
       "title": "Study Abroad Scholarships",
@@ -79,11 +93,6 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
     },
   ];
 
-  // ── API state ──
-  List<JobCategory> _categories = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   bool get isIOS {
     if (kIsWeb) return false;
     return Theme.of(context).platform == TargetPlatform.iOS;
@@ -98,8 +107,11 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    _startAdAutoScroll();
     _fetchCategories();
+    _fetchAdvertisements();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
   }
 
   @override
@@ -164,19 +176,68 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
     }
   }
 
+  // ── Fetch advertisements from API ─────────────────────────────────────────
+
+  Future<void> _fetchAdvertisements() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=jobpage2'),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          
+          setState(() {
+            _pageName = apiData['page_name'];
+            
+            // Parse images
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            
+            // Parse youtube URLs
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Silently fail - will use fallback ads
+      debugPrint('Failed to fetch advertisements: $e');
+    }
+  }
+
   // ── Ad auto-scroll ────────────────────────────────────────────────────────
 
-  void _startAdAutoScroll() {
-    _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        setState(() {
-          currentAdIndex = (currentAdIndex + 1) % ads.length;
-        });
+  void _startAutoScroll() {
+    if (_isAutoScrollStarted) return;
+    _isAutoScrollStarted = true;
+    _autoScrollNext();
+  }
+
+  void _autoScrollNext() {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
+        int nextPage = currentAdIndex + 1;
+        int itemCount = _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
+        if (nextPage >= itemCount) nextPage = 0;
+        
         _pageController.animateToPage(
-          currentAdIndex,
-          duration: const Duration(milliseconds: 300),
+          nextPage,
+          duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          if (mounted) _autoScrollNext();
+        }).catchError((e) {
+          _isAutoScrollStarted = false;
+        });
+      } else {
+        _isAutoScrollStarted = false;
       }
     });
   }
@@ -248,98 +309,109 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Column(
+      body: Stack(
         children: [
-          SafeArea(
-            bottom: false,
-            child: _buildHeader(context),
-          ),
-          Expanded(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // ── Ad Banner ──
-                SliverToBoxAdapter(
-                  child: _buildAdBanner(context, adHeight),
-                ),
+          // Main Content
+          Column(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: _buildHeader(context),
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    // ── Ad Banner ──
+                    SliverToBoxAdapter(
+                      child: _buildAdBanner(context, adHeight),
+                    ),
 
-                // ── Category content ──
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title
-                        const Text(
-                          "Job Categories",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Search Bar
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: "Search categories...",
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 16,
-                                fontFamily: _getFontFamily(),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search,
-                                color: Colors.grey.shade400,
-                                size: 22,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
+                    // ── Category content ──
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title
+                            const Text(
+                              "Job Categories",
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E293B),
                               ),
                             ),
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                            },
-                          ),
+                            const SizedBox(height: 20),
+
+                            // Search Bar
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                  hintText: "Search categories...",
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 16,
+                                    fontFamily: _getFontFamily(),
+                                  ),
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: Colors.grey.shade400,
+                                    size: 22,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _searchQuery = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── Dynamic categories ──
+                            _buildCategoryList(),
+                          ],
                         ),
-                        const SizedBox(height: 24),
-
-                        // ── Dynamic categories ──
-                        _buildCategoryList(),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
 
-                // ── Video placeholder ──
-                SliverToBoxAdapter(
-                  child: _buildVideoPlaceholder(),
+                    // ── Video player ──
+                    SliverToBoxAdapter(
+                      child: _buildVideoPlayer(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              // Footer
+              const Footer(),
+            ],
           ),
-
-          // Footer
-          const Footer(),
+          
+          // Glass Loader
+          if (_isLoading)
+            const GlassLoader(
+              message: 'Loading job categories...',
+            ),
         ],
       ),
     );
@@ -349,15 +421,8 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
 
   Widget _buildCategoryList() {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: CircularProgressIndicator(
-            valueColor:
-                AlwaysStoppedAnimation<Color>(Color(0xFF0052A2)),
-          ),
-        ),
-      );
+      // Return empty container because GlassLoader is showing
+      return Container();
     }
 
     if (_errorMessage != null) {
@@ -522,6 +587,8 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
 
   Widget _buildAdBanner(BuildContext context, double adHeight) {
     final screenWidth = MediaQuery.of(context).size.width;
+    bool useApiImages = _adImages.isNotEmpty;
+    int itemCount = useApiImages ? _adImages.length : fallbackAds.length;
 
     return Container(
       color: Colors.white,
@@ -529,101 +596,189 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
         children: [
           SizedBox(
             height: adHeight,
-            child: PageView(
+            child: PageView.builder(
               controller: _pageController,
+              itemCount: itemCount,
               onPageChanged: (index) {
                 setState(() {
                   currentAdIndex = index;
                 });
               },
-              children: ads.map((ad) {
-                return GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Opening: ${ad['title']}')),
-                    );
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        ad['image']!,
-                        width: screenWidth,
-                        height: adHeight,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: screenWidth,
-                            height: adHeight,
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Icon(Icons.image_not_supported, size: 50),
+              itemBuilder: (context, index) {
+                if (useApiImages) {
+                  // Show API image
+                  return GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Opening advertisement ${index + 1}')),
+                      );
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          _adImages[index],
+                          width: screenWidth,
+                          height: adHeight,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: screenWidth,
+                              height: adHeight,
+                              color: const Color(0xFF0052A2),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      size: 50,
+                                      color: Colors.white.withOpacity(0.5),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Advertisement ${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: screenWidth,
+                              height: adHeight,
+                              color: const Color(0xFF0052A2),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                          );
-                        },
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.7),
+                            child: const Text(
+                              "Ad",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  // Show fallback ad with text overlay
+                  final ad = fallbackAds[index];
+                  return GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Opening: ${ad['title']}')),
+                      );
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          ad['image']!,
+                          width: screenWidth,
+                          height: adHeight,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: screenWidth,
+                              height: adHeight,
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: Icon(Icons.image_not_supported, size: 50),
+                              ),
+                            );
+                          },
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.7),
+                              ],
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          alignment: Alignment.bottomLeft,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ad['title']!,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isIOS ? 18 : 20,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: _getFontFamily(),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                ad['description']!,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: isIOS ? 14 : 15,
+                                  fontFamily: _getFontFamily(),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        padding: const EdgeInsets.all(16),
-                        alignment: Alignment.bottomLeft,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ad['title']!,
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              "Ad",
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: isIOS ? 18 : 20,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                fontFamily: _getFontFamily(),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              ad['description']!,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: isIOS ? 14 : 15,
-                                fontFamily: _getFontFamily(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            "Ad",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                      ],
+                    ),
+                  );
+                }
+              },
             ),
           ),
 
@@ -633,7 +788,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(ads.length, (index) {
+              children: List.generate(itemCount, (index) {
                 return Container(
                   width: currentAdIndex == index ? 20.0 : 8.0,
                   height: 8.0,
@@ -707,42 +862,31 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
     );
   }
 
-  // ── Video placeholder ─────────────────────────────────────────────────────
+  // ── Video player ─────────────────────────────────────────────────────
 
-  Widget _buildVideoPlaceholder() {
+  Widget _buildVideoPlayer() {
+    // Use first YouTube URL from API if available, otherwise use default
+    String videoUrl = _youtubeUrls.isNotEmpty 
+        ? _youtubeUrls.first 
+        : 'https://www.youtube.com/embed/qYapc_bkfxw';
+    
+    // Extract video ID for thumbnail
+    String thumbnailUrl = '';
+    if (videoUrl.contains('youtube.com/embed/')) {
+      final videoId = videoUrl.split('/').last;
+      thumbnailUrl = 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } else {
+      thumbnailUrl = 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg';
+    }
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       width: double.infinity,
-      child: Container(
-        width: double.infinity,
+      child: CommonYoutubePlayer(
+        youtubeUrl: videoUrl,
         height: isWeb ? 400 : (isTablet ? 320 : 250),
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          image: DecorationImage(
-            image: NetworkImage(
-              'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Center(
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: const Icon(Icons.play_arrow, size: 40, color: Colors.white),
-          ),
-        ),
+        placeholderThumbnail: thumbnailUrl,
+        borderRadius: 0,
       ),
     );
   }
