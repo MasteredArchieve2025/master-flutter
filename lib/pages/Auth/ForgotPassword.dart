@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'Authapi.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -9,6 +10,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  String selectedCountryCode = "+91";
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
@@ -22,6 +24,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         newPasswordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       _showAlert("Error", "All fields are required");
+      return;
+    }
+
+    if (phoneController.text.trim().length != 10) {
+      _showAlert("Error", "Phone number must be 10 digits");
       return;
     }
 
@@ -39,7 +46,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => loading = true);
 
       final res = await AuthApi.forgotPasswordApi({
-        "phone": phoneController.text.trim(),
+        "phone": selectedCountryCode + phoneController.text.trim(),
         "newPassword": newPasswordController.text,
         "confirmPassword": confirmPasswordController.text,
       });
@@ -160,6 +167,53 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       placeholder: "Phone Number",
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
+                      prefixWidget: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F7FF),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFF0066BE).withOpacity(0.2)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedCountryCode,
+                                isDense: true,
+                                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0066BE)),
+                                items: ["+91", "+1", "+44", "+971"].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      "IND $value",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0066BE),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      selectedCountryCode = newValue;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            height: 20,
+                            width: 1,
+                            color: Colors.black.withOpacity(0.1),
+                          ),
+                        ],
+                      ),
+                      maxLength: 10,
                     ),
 
                     InputField(
@@ -273,6 +327,8 @@ class InputField extends StatelessWidget {
   final bool isPassword;
   final bool obscureText;
   final VoidCallback? onToggleObscure;
+  final Widget? prefixWidget;
+  final int? maxLength;
 
   const InputField({
     super.key,
@@ -283,6 +339,8 @@ class InputField extends StatelessWidget {
     this.isPassword = false,
     this.obscureText = false,
     this.onToggleObscure,
+    this.prefixWidget,
+    this.maxLength,
   });
 
   @override
@@ -304,13 +362,30 @@ class InputField extends StatelessWidget {
         controller: controller,
         obscureText: isPassword ? obscureText : false,
         keyboardType: keyboardType,
+        maxLength: maxLength,
+        inputFormatters: maxLength != null
+            ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(maxLength)
+              ]
+            : null,
         style: const TextStyle(fontSize: 16),
         decoration: InputDecoration(
+          counterText: "",
           hintText: placeholder,
           hintStyle: TextStyle(color: Colors.black.withOpacity(0.3)),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 15, right: 10),
-            child: Icon(icon, color: Colors.black, size: 28),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.black, size: 28),
+                if (prefixWidget != null) ...[
+                  const SizedBox(width: 10),
+                  prefixWidget!,
+                ],
+              ],
+            ),
           ),
           suffixIcon: isPassword
               ? GestureDetector(

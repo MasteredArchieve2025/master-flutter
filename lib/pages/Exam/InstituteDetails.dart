@@ -4,10 +4,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import '../../widgets/footer.dart';
-import '../../Api/baseurl.dart';
-import '../../components/glass_loader.dart';
-import '../../Widgets/CommonYoutubePlayer.dart';
+import 'package:master/Widgets/Footer.dart';
+import 'package:master/Api/baseurl.dart';
+import 'package:master/components/glass_loader.dart';
+import 'package:master/services/auth_token_manager.dart';
+import 'package:master/Api/School/review_service.dart';
+import 'package:master/Widgets/CommonYoutubePlayer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class InstituteDetailsScreen extends StatefulWidget {
   final int? institutionId;
@@ -39,11 +42,26 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
   List<String> adImages = [];
   List<String> youtubeUrls = [];
 
+  // Review System Variables
+  List<Map<String, dynamic>> _reviews = [];
+  double _averageRating = 0.0;
+  int _totalReviews = 0;
+  int _userRating = 0;
+  final TextEditingController _reviewController = TextEditingController();
+  
+  bool _isSubmittingReview = false;
+  bool _isLoggedIn = false;
+  int? _currentUserId;
+  bool _hasUserReviewed = false;
+  bool _isAuthChecking = true;
+  final AuthTokenManager _authManager = AuthTokenManager.instance;
+
 
 
   @override
   void initState() {
     super.initState();
+    _checkAuthStatus();
     _fetchInstitutionDetails();
     _fetchAdvertisements();
     
@@ -280,6 +298,217 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
     }
   }
 
+  Future<void> _checkAuthStatus() async {
+    setState(() {
+      _isAuthChecking = true;
+    });
+
+    try {
+      final hasToken = await _authManager.hasToken();
+      final userData = await _authManager.getUserData();
+      
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = hasToken;
+          _currentUserId = userData != null ? userData['id'] as int? : null;
+          _isAuthChecking = false;
+        });
+      }
+      
+      // Load reviews after auth check
+      _loadReviews();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _currentUserId = null;
+          _isAuthChecking = false;
+        });
+        _loadReviews();
+      }
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    final entityId = widget.institutionId ?? (institution != null ? institution!['id'] : null);
+    if (entityId == null) return;
+
+    try {
+      // Fetch reviews
+      final reviews = await ReviewService().getEntityReviews(
+        entityType: 'institution',
+        entityId: entityId is String ? int.parse(entityId) : entityId,
+      );
+
+      // Fetch average rating
+      final avgData = await ReviewService().getAverageRating(
+        entityType: 'institution',
+        entityId: entityId is String ? int.parse(entityId) : entityId,
+      );
+
+      // Format reviews
+      final formattedReviews = reviews.map((r) => ReviewService().formatReview(r)).toList();
+
+      // Get average rating and total from response
+      double avgRating = 0.0;
+      int totalReviews = reviews.length;
+      
+      if (avgData['averageRating'] != null) {
+        avgRating = (avgData['averageRating'] as num).toDouble();
+      }
+      if (avgData['totalReviews'] != null) {
+        totalReviews = avgData['totalReviews'] as int;
+      }
+
+      // Check if current user has reviewed
+      bool userReviewed = false;
+      if (_currentUserId != null) {
+        userReviewed = formattedReviews.any((r) => r['userId'] == _currentUserId);
+      }
+
+      if (mounted) {
+        setState(() {
+          _reviews = formattedReviews;
+          _averageRating = avgRating;
+          _totalReviews = totalReviews;
+          _hasUserReviewed = userReviewed;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        debugPrint('Error loading reviews: $e');
+      }
+    }
+  }
+
+  Future<void> _submitReview() async {
+    if (_userRating == 0 || _reviewController.text.trim().isEmpty) {
+      _showErrorDialog('Incomplete', 'Please give rating and write review');
+      return;
+    }
+
+    if (!_isLoggedIn) {
+      _showErrorDialog('Login Required', 'Please login to submit a review');
+      return;
+    }
+
+    if (_hasUserReviewed) {
+      _showErrorDialog('Already Reviewed', 'You have already reviewed this institute');
+      return;
+    }
+
+    final entityId = widget.institutionId ?? (institution != null ? institution!['id'] : null);
+    if (entityId == null) {
+      _showErrorDialog('Error', 'Institution information is missing');
+      return;
+    }
+
+    setState(() {
+      _isSubmittingReview = true;
+    });
+
+    try {
+      await ReviewService().addReview(
+        entityType: 'institution',
+        entityId: entityId is String ? int.parse(entityId) : entityId,
+        rating: _userRating,
+        review: _reviewController.text.trim(),
+      );
+
+      // Clear form
+      setState(() {
+        _userRating = 0;
+        _reviewController.clear();
+      });
+
+      // Reload reviews
+      await _loadReviews();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review submitted successfully!'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on ReviewException catch (e) {
+      if (e.statusCode == 409 || e.statusCode == 400) {
+        // User has already reviewed - update local state
+        setState(() {
+          _hasUserReviewed = true;
+        });
+        
+        if (mounted) {
+          _showErrorDialog('Already Reviewed', 
+            'You have already submitted a review for this institute. Each user can only post one review.'
+          );
+        }
+      } else {
+        if (mounted) {
+          _showErrorDialog('Error', e.message);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Error', e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingReview = false;
+        });
+      }
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushNamed(context, '/login').then((_) {
+      _checkAuthStatus();
+    });
+  }
+
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 365) {
+        return '${(difference.inDays / 365).floor()} year(s) ago';
+      } else if (difference.inDays > 30) {
+        return '${(difference.inDays / 30).floor()} month(s) ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays} day(s) ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hour(s) ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} minute(s) ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
   Future<void> _launchURL(String url) async {
     if (url.isEmpty || url == 'Not available') return;
     
@@ -338,6 +567,7 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
   void dispose() {
     _adTimer?.cancel();
     _adController.dispose();
+    _reviewController.dispose();
     super.dispose();
   }
 
@@ -677,16 +907,26 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
                                                         SizedBox(height: _scale(8)),
                                                         Row(
                                                           children: [
-                                                            _buildStars(institution!['rating']),
+                                                            _buildStars(_averageRating > 0 ? _averageRating : institution!['rating'].toDouble()),
                                                             SizedBox(width: _scale(8)),
                                                             Text(
-                                                              '${institution!['rating']}/5',
+                                                              '${(_averageRating > 0 ? _averageRating : institution!['rating']).toStringAsFixed(1)}/5',
                                                               style: TextStyle(
                                                                 fontSize: _responsiveValue(14, 16, 18),
                                                                 fontWeight: FontWeight.w600,
                                                                 color: const Color(0xFF666666),
                                                               ),
                                                             ),
+                                                            if (_totalReviews > 0) ...[
+                                                              SizedBox(width: _scale(4)),
+                                                              Text(
+                                                                '($_totalReviews)',
+                                                                style: TextStyle(
+                                                                  fontSize: _responsiveValue(12, 13, 14),
+                                                                  color: Colors.grey,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ],
                                                         ),
                                                       ],
@@ -717,16 +957,26 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
                                                         // Rating
                                                         Row(
                                                           children: [
-                                                            _buildStars(institution!['rating']),
+                                                            _buildStars(_averageRating > 0 ? _averageRating : institution!['rating'].toDouble()),
                                                             SizedBox(width: _scale(8)),
                                                             Text(
-                                                              '${institution!['rating']}/5',
+                                                              '${(_averageRating > 0 ? _averageRating : institution!['rating']).toStringAsFixed(1)}/5',
                                                               style: TextStyle(
                                                                 fontSize: _responsiveValue(14, 16, 18),
                                                                 fontWeight: FontWeight.w600,
                                                                 color: const Color(0xFF666666),
                                                               ),
                                                             ),
+                                                            if (_totalReviews > 0) ...[
+                                                              SizedBox(width: _scale(4)),
+                                                              Text(
+                                                                '($_totalReviews)',
+                                                                style: TextStyle(
+                                                                  fontSize: _responsiveValue(12, 13, 14),
+                                                                  color: Colors.grey,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ],
                                                         ),
                                                       ],
@@ -925,6 +1175,257 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
                                                   onTap: () => _launchURL(institution!['mapLink']),
                                                 ),
                                               ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // ===== RATE & REVIEW SECTION =====
+                                      _buildSectionCard(
+                                        icon: Icons.rate_review,
+                                        title: 'Rate & Review',
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            if (_isAuthChecking)
+                                              const Center(child: Padding(
+                                                padding: EdgeInsets.all(20),
+                                                child: GlassLoader(),
+                                              ))
+                                            else if (!_isLoggedIn)
+                                              Center(
+                                                child: Column(
+                                                  children: [
+                                                    const Text(
+                                                      'Login to share your experience',
+                                                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    ElevatedButton(
+                                                      onPressed: _navigateToLogin,
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: const Color(0xFF0B5ED7),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                      ),
+                                                      child: const Text('Login to review', style: TextStyle(color: Colors.white),),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            else if (_hasUserReviewed)
+                                              Container(
+                                                padding: const EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange[50],
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.orange),
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Icon(Icons.info_outline, color: Colors.orange[700]),
+                                                        const SizedBox(width: 8),
+                                                        Expanded(
+                                                          child: Text(
+                                                            'You have already reviewed this institute',
+                                                            style: TextStyle(
+                                                              color: Colors.orange[700],
+                                                              fontWeight: FontWeight.w600,
+                                                              fontSize: 14,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'Each user can only post one review per institute. Thank you for your feedback!',
+                                                      style: TextStyle(
+                                                        color: Colors.orange[700],
+                                                        fontSize: 12,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            else ...[
+                                              const Text(
+                                                'Rate your experience',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF666666),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: List.generate(5, (index) {
+                                                  return IconButton(
+                                                    onPressed: _isSubmittingReview ? null : () => setState(() => _userRating = index + 1),
+                                                    icon: Icon(
+                                                      index < _userRating ? Icons.star : Icons.star_border,
+                                                      size: 32,
+                                                      color: const Color(0xFFFFD700),
+                                                    ),
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(),
+                                                  );
+                                                }),
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF8FAFF),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: const Color(0xFFE0E7FF)),
+                                                ),
+                                                child: TextField(
+                                                  controller: _reviewController,
+                                                  maxLines: 4,
+                                                  minLines: 3,
+                                                  enabled: !_isSubmittingReview,
+                                                  decoration: const InputDecoration(
+                                                    hintText: 'Share your experience...',
+                                                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                                                    border: InputBorder.none,
+                                                    contentPadding: EdgeInsets.all(12),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 16),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton(
+                                                  onPressed: _isSubmittingReview ? null : _submitReview,
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF0B5ED7),
+                                                    foregroundColor: Colors.white,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(30),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                                  ),
+                                                  child: _isSubmittingReview
+                                                      ? const SizedBox(
+                                                          height: 20,
+                                                          width: 20,
+                                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                                        )
+                                                      : const Row(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            Icon(Icons.send, size: 18),
+                                                            SizedBox(width: 8),
+                                                            Text(
+                                                              'Submit Review',
+                                                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+
+                                      // ===== USER REVIEWS LIST =====
+                                      _buildSectionCard(
+                                        icon: Icons.reviews,
+                                        title: 'User Reviews (${_reviews.length})',
+                                        child: Column(
+                                          children: [
+                                            if (_reviews.isEmpty)
+                                              Container(
+                                                padding: const EdgeInsets.all(20),
+                                                child: Center(
+                                                  child: Column(
+                                                    children: [
+                                                      Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey[400]),
+                                                      const SizedBox(height: 12),
+                                                      Text(
+                                                        'No reviews yet',
+                                                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                                                      ),
+                                                      if (_isLoggedIn && !_hasUserReviewed)
+                                                        const Padding(
+                                                          padding: EdgeInsets.only(top: 8),
+                                                          child: Text(
+                                                            'Be the first to review!',
+                                                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              ..._reviews.map((review) {
+                                                return Container(
+                                                  margin: const EdgeInsets.only(bottom: 12),
+                                                  padding: const EdgeInsets.all(12),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF8FAFF),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(color: const Color(0xFFE0E7FF).withOpacity(0.5)),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              review['name'],
+                                                              style: const TextStyle(
+                                                                fontSize: 14,
+                                                                fontWeight: FontWeight.w700,
+                                                                color: Color(0xFF003366),
+                                                              ),
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                          ),
+                                                          Row(
+                                                            children: List.generate(5, (index) {
+                                                              return Icon(
+                                                                index < review['rating'] ? Icons.star : Icons.star_outline,
+                                                                color: const Color(0xFFFFD700),
+                                                                size: 14,
+                                                              );
+                                                            }),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      Text(
+                                                        review['comment'],
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Color(0xFF666666),
+                                                          height: 1.4,
+                                                        ),
+                                                      ),
+                                                      if (review['createdAt'] != null)
+                                                        Padding(
+                                                          padding: const EdgeInsets.only(top: 8),
+                                                          child: Text(
+                                                            _formatDate(review['createdAt']),
+                                                            style: const TextStyle(
+                                                              fontSize: 11,
+                                                              color: Colors.grey,
+                                                              fontStyle: FontStyle.italic,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList(),
                                           ],
                                         ),
                                       ),
@@ -1172,6 +1673,7 @@ class _InstituteDetailsScreenState extends State<InstituteDetailsScreen> {
                                           ),
                                         )).toList(),
                                       ],
+
 
                                       // ===== BOTTOM SPACER =====
                                       SizedBox(height: _responsiveValue(80, 100, 120)),

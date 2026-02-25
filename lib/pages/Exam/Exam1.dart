@@ -592,38 +592,32 @@ class _Exam1ScreenState extends State<Exam1Screen> {
       },
       child: Container(
         width: width,
-        padding: EdgeInsets.all(_responsiveValue(16, 18, 20)),
+        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(_scale(12)),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
-              blurRadius: _scale(8),
-              offset: Offset(0, _scale(2)),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
-          border: Border.all(
-            color: const Color(0xFFF0F0F0),
-            width: 1,
-          ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Image Container
+            // Logo Container - Centered
             Container(
-              width: _responsiveValue(56, 64, 72),
-              height: _responsiveValue(56, 64, 72),
+              width: _responsiveValue(40, 50, 60),
+              height: _responsiveValue(40, 50, 60),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(_scale(12)),
                 image: hasValidImage
                     ? DecorationImage(
                         image: NetworkImage(exam['image']),
                         fit: BoxFit.cover,
-                        onError: (exception, stackTrace) {
-                          // Fallback to placeholder on error
-                        },
+                        onError: (exception, stackTrace) {},
                       )
                     : null,
                 color: hasValidImage ? null : const Color(0xFFE6F0FF),
@@ -632,60 +626,40 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                   ? Center(
                       child: Icon(
                         Icons.image,
-                        size: _responsiveValue(28, 32, 36),
+                        size: _responsiveValue(22, 26, 30),
                         color: const Color(0xFF0052A2).withOpacity(0.5),
                       ),
                     )
                   : null,
             ),
-            SizedBox(height: _scale(12)),
+            SizedBox(height: _scale(10)),
 
-            // Title
+            // Title - Centered
             Text(
               exam['title'] as String,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: _responsiveValue(16, 17, 18),
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF003366),
+                fontSize: _responsiveValue(14, 16, 18),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
                 height: 1.2,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: _scale(8)),
+            SizedBox(height: _scale(4)),
 
-            // Description
+            // Description - Centered
             Text(
               exam['description'] as String,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: _responsiveValue(12, 13, 14),
+                fontSize: _responsiveValue(11, 12, 13),
                 color: const Color(0xFF666666),
-                height: 1.4,
+                height: 1.3,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: _scale(12)),
-
-            // Footer with Arrow Icon only
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Arrow Icon
-                Container(
-                  width: _scale(24),
-                  height: _scale(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F7FF),
-                    borderRadius: BorderRadius.circular(_scale(12)),
-                  ),
-                  child: Icon(
-                    Icons.chevron_right,
-                    size: _scale(18),
-                    color: const Color(0xFF0052A2),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

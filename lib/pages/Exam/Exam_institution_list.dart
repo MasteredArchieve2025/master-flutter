@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../widgets/footer.dart';
-import '../../Api/baseurl.dart';
-import '../../components/glass_loader.dart';
+import 'package:master/Widgets/Footer.dart';
+import 'package:master/Api/baseurl.dart';
+import 'package:master/components/glass_loader.dart';
 import 'InstituteDetails.dart';
-import '../../Widgets/CommonYoutubePlayer.dart';
+import 'package:master/Widgets/CommonYoutubePlayer.dart';
 
 class InstitutionsListScreen extends StatefulWidget {
   final int? typeId; // TypeId passed from Exam3
@@ -640,12 +640,10 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                               if (isDesktop) {
                                                 crossAxisCount = 3;
                                                 cardWidth = (constraints.maxWidth - _scale(16) * (crossAxisCount - 1)) / crossAxisCount;
-                                              } else if (isTablet) {
+                                              } else {
+                                                // Tablet & Mobile
                                                 crossAxisCount = 2;
                                                 cardWidth = (constraints.maxWidth - _scale(12) * (crossAxisCount - 1)) / crossAxisCount;
-                                              } else {
-                                                // Mobile - full width with horizontal padding
-                                                cardWidth = constraints.maxWidth;
                                               }
                                               
                                               return Wrap(
@@ -654,7 +652,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                                 runSpacing: _responsiveValue(12, 16, 20),
                                                 children: _filteredInstitutions.map((institution) {
                                                   return Container(
-                                                    width: isMobile ? constraints.maxWidth : cardWidth,
+                                                    width: cardWidth,
                                                     margin: isMobile 
                                                       ? EdgeInsets.only(bottom: _scale(12))
                                                       : EdgeInsets.zero,
@@ -788,9 +786,10 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
           );
         },
         child: Container(
+          padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(_scale(12)),
+            borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -799,130 +798,71 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
               ),
             ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(_responsiveValue(12, 14, 16)),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo/Image Placeholder
-                Container(
-                  width: _scale(45),
-                  height: _scale(45),
-                  decoration: BoxDecoration(
-                    color: hasImage ? null : const Color(0xFF4A90E2).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(_scale(8)),
-                    border: Border.all(
-                      color: const Color(0xFF4A90E2).withOpacity(0.2),
-                      width: 1,
-                    ),
-                    image: hasImage
-                        ? DecorationImage(
-                            image: NetworkImage(institution['image']),
-                            fit: BoxFit.cover,
-                            onError: (exception, stackTrace) {},
-                          )
-                        : null,
-                  ),
-                  child: !hasImage
-                      ? Icon(
-                          Icons.school,
-                          size: _scale(22),
-                          color: const Color(0xFF4A90E2),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Logo/Image Placeholder - Centered
+              Container(
+                width: _scale(50),
+                height: _scale(50),
+                decoration: BoxDecoration(
+                  color: hasImage ? null : const Color(0xFF4A90E2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(_scale(12)),
+                  image: hasImage
+                      ? DecorationImage(
+                          image: NetworkImage(institution['image']),
+                          fit: BoxFit.cover,
+                          onError: (exception, stackTrace) {},
                         )
                       : null,
                 ),
-                SizedBox(width: _scale(10)),
+                child: !hasImage
+                    ? Icon(
+                        Icons.school,
+                        size: _scale(26),
+                        color: const Color(0xFF4A90E2),
+                      )
+                    : null,
+              ),
+              SizedBox(height: _scale(10)),
 
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              // Content - Centered
+              Text(
+                institution['name'],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: _responsiveValue(14, 16, 18),
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: _scale(6)),
+
+              // Location Container - Centered
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Area
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Institution Name
-                      Text(
-                        institution['name'],
-                        style: TextStyle(
-                          fontSize: _responsiveValue(14, 15, 16),
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF003366),
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Icon(
+                        Icons.location_pin,
+                        size: _scale(12),
+                        color: const Color(0xFF4A90E2),
                       ),
-                      SizedBox(height: _scale(6)),
-
-                      // Location Container
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Area
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_pin,
-                                size: _scale(11),
-                                color: const Color(0xFF4A90E2),
-                              ),
-                              SizedBox(width: _scale(4)),
-                              Expanded(
-                                child: Text(
-                                  institution['area'],
-                                  style: TextStyle(
-                                    fontSize: _responsiveValue(11, 12, 13),
-                                    color: const Color(0xFF666666),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: _scale(3)),
-                          
-                          // Rating if available
-                          if (institution['rating'] > 0)
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.star,
-                                  size: _scale(11),
-                                  color: const Color(0xFFFFD700),
-                                ),
-                                SizedBox(width: _scale(4)),
-                                Text(
-                                  '${institution['rating']}',
-                                  style: TextStyle(
-                                    fontSize: _responsiveValue(11, 12, 13),
-                                    color: const Color(0xFF666666),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: _scale(6)),
-
-                      // Type Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: _scale(8),
-                          vertical: _scale(3),
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F7FF),
-                          borderRadius: BorderRadius.circular(_scale(6)),
-                        ),
+                      SizedBox(width: _scale(4)),
+                      Flexible(
                         child: Text(
-                          institution['type'].length > 20 
-                              ? '${institution['type'].substring(0, 20)}...'
-                              : institution['type'],
+                          institution['area'],
                           style: TextStyle(
-                            fontSize: _responsiveValue(10, 11, 12),
-                            color: const Color(0xFF4A90E2),
-                            fontWeight: FontWeight.w600,
+                            fontSize: _responsiveValue(11, 12, 13),
+                            color: const Color(0xFF666666),
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -930,16 +870,66 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                       ),
                     ],
                   ),
-                ),
+                  SizedBox(height: _scale(3)),
+                  
+                  // Rating if available
+                  if (institution['rating'] > 0)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.star,
+                          size: _scale(12),
+                          color: const Color(0xFFFFD700),
+                        ),
+                        SizedBox(width: _scale(4)),
+                        Text(
+                          '${institution['rating']}',
+                          style: TextStyle(
+                            fontSize: _responsiveValue(11, 12, 13),
+                            color: const Color(0xFF666666),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              SizedBox(height: _scale(8)),
 
-                // Chevron Icon
-                Icon(
-                  Icons.chevron_right,
-                  size: _scale(18),
-                  color: const Color(0xFF999999),
+              // Type Badge - Centered
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _scale(8),
+                  vertical: _scale(3),
                 ),
-              ],
-            ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F7FF),
+                  borderRadius: BorderRadius.circular(_scale(6)),
+                ),
+                child: Text(
+                  institution['type'].length > 25 
+                      ? '${institution['type'].substring(0, 25)}...'
+                      : institution['type'],
+                  style: TextStyle(
+                    fontSize: _responsiveValue(10, 11, 12),
+                    color: const Color(0xFF4A90E2),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              SizedBox(height: _scale(10)),
+              
+              // Bottom Arrow for feedback - Centered
+              Icon(
+                Icons.chevron_right,
+                size: _scale(18),
+                color: const Color(0xFF4A90E2),
+              ),
+            ],
           ),
         ),
       ),

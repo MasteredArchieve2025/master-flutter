@@ -792,11 +792,10 @@ class _Exam2ScreenState extends State<Exam2Screen> {
       },
       child: Container(
         width: width,
-        height: height,
-        padding: EdgeInsets.all(_responsiveValue(12, 14, 16)),
+        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(_scale(12)),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -804,15 +803,12 @@ class _Exam2ScreenState extends State<Exam2Screen> {
               offset: Offset(0, _scale(2)),
             ),
           ],
-          border: Border.all(
-            color: const Color(0xFFF0F0F0),
-            width: 1,
-          ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Image/Icon Container
+            // Image/Icon Container - Centered
             Container(
               width: _responsiveValue(40, 48, 56),
               height: _responsiveValue(40, 48, 56),
@@ -833,33 +829,33 @@ class _Exam2ScreenState extends State<Exam2Screen> {
                   ? Center(
                       child: Icon(
                         Icons.image,
-                        size: _responsiveValue(20, 24, 28),
+                        size: _responsiveValue(22, 26, 30),
                         color: (exam['color'] as Color).withOpacity(0.7),
                       ),
                     )
                   : null,
             ),
-            SizedBox(height: _scale(8)),
+            SizedBox(height: _scale(10)),
 
-            // Title
-            Expanded(
-              child: Text(
-                exam['title'] as String,
-                style: TextStyle(
-                  fontSize: _responsiveValue(13, 15, 16),
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF003366),
-                  height: 1.3,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            // Title - Centered
+            Text(
+              exam['title'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _responsiveValue(14, 16, 18),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: 1.3,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: _scale(6)),
 
-            // Description
+            // Description - Centered
             Text(
               exam['description'] as String,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: _responsiveValue(11, 12, 13),
                 color: const Color(0xFF666666),
@@ -870,9 +866,9 @@ class _Exam2ScreenState extends State<Exam2Screen> {
             ),
             SizedBox(height: _scale(10)),
 
-            // Footer
+            // Footer - Centered
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Type Badge (if not 'other')
                 if (exam['type'] != 'other')
@@ -896,6 +892,9 @@ class _Exam2ScreenState extends State<Exam2Screen> {
                   )
                 else
                   const SizedBox.shrink(),
+
+                if (exam['type'] != 'other')
+                  SizedBox(width: _scale(8)),
 
                 // Arrow Icon
                 Container(
