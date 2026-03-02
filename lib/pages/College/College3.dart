@@ -1,16 +1,23 @@
 // lib/pages/College/College3.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
 import 'College4.dart';
 import '../Collegecourse/Collegecourse1.dart';
 
 class College3Screen extends StatefulWidget {
   final String? degree;
+  final int? categoryId;
+  final int? degreeId;
   
   const College3Screen({
     super.key,
     this.degree,
+    this.categoryId,
+    this.degreeId,
   });
 
   @override
@@ -23,36 +30,29 @@ class _College3ScreenState extends State<College3Screen> {
   final PageController _bannerController = PageController();
   Timer? _bannerTimer;
 
-  // Banner Data
-  final List<Map<String, dynamic>> bannerData = [
-    {
-      'title': 'Unlock Your Future at',
-      'line1': 'ARUNACHALA MATRICULATION',
-      'line2': 'SCHOOL',
-      'info': 'Admissions Open for 2025-2026',
-    },
-    {
-      'title': 'Build Your Career With',
-      'line1': 'TOP TUTION CENTRE',
-      'line2': 'PROGRAMS',
-      'info': 'Apply Now',
-    },
-    {
-      'title': 'Learn. Innovate. Lead.',
-      'line1': 'QUALITY',
-      'line2': 'EDUCATION',
-      'info': 'Join Today',
-    },
+  // Banner Ads Data
+  final List<String> _defaultBannerAds = [
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
+
+  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  int _currentVideoIndex = 0;
+  bool _isLoadingAds = true;
 
   @override
   void initState() {
     super.initState();
+    _loadAdvertisements();
     // Auto scroll banners
     _bannerTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
       if (_bannerController.hasClients && mounted) {
         int nextPage = _activeIndex + 1;
-        if (nextPage >= bannerData.length) nextPage = 0;
+        if (nextPage >= bannerAds.length) nextPage = 0;
         _bannerController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
@@ -60,6 +60,59 @@ class _College3ScreenState extends State<College3Screen> {
         );
       }
     });
+  }
+
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for collegepage3...');
+    try {
+      final response = await http.get(
+        Uri.parse('https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage3'),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          setState(() {
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+            _isLoadingAds = false;
+          });
+        } else {
+          setState(() { _isLoadingAds = false; });
+        }
+      } else {
+        setState(() { _isLoadingAds = false; });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() { _isLoadingAds = false; });
+    }
+  }
+
+  void _nextVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
+    });
+  }
+
+  void _previousVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+    });
+  }
+
+  String _getVideoThumbnail(String url) {
+    if (url.contains('youtube.com/embed/')) {
+      final videoId = url.split('/').last;
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    }
+    return url;
   }
 
   @override
@@ -204,102 +257,49 @@ class _College3ScreenState extends State<College3Screen> {
                               height: bannerHeight,
                               child: PageView.builder(
                                 controller: _bannerController,
-                                itemCount: bannerData.length,
+                                itemCount: bannerAds.length,
                                 onPageChanged: (index) {
                                   setState(() {
                                     _activeIndex = index;
                                   });
                                 },
                                 itemBuilder: (context, index) {
-                                  final item = bannerData[index];
-                                  return Stack(
-                                    children: [
-                                      // Background Image/Color
-                                      Container(
-                                        width: screenWidth,
-                                        color: const Color(0xFF4C73AC),
-                                        child: Center(
+                                  return Container(
+                                    width: screenWidth,
+                                    color: const Color(0xFFF0F0F0),
+                                    child: Image.network(
+                                      bannerAds[index],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Center(
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               Icon(
-                                                Icons.school,
-                                                size: 80,
-                                                color: Colors.white.withOpacity(0.8),
+                                                Icons.image,
+                                                size: 60,
+                                                color: const Color(0xFF0B5ED7),
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
-                                                'Banner ${index + 1}',
-                                                style: TextStyle(
+                                                'Advertisement ${index + 1}',
+                                                style: const TextStyle(
                                                   fontSize: 18,
-                                                  color: Colors.white.withOpacity(0.9),
+                                                  color: Color(0xFF0B5ED7),
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ),
-                                      
-                                      // Overlay with text
-                                      Container(
-                                        width: screenWidth,
-                                        color: Colors.black.withOpacity(0.45),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: isTablet ? 40 : 20,
-                                        ),
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              // Title
-                                              Text(
-                                                item['title'],
-                                                style: TextStyle(
-                                                  color: const Color(0xFFE8F0FF),
-                                                  fontSize: isTablet ? 16 : 14,
-                                                ),
-                                              ),
-                                              
-                                              const SizedBox(height: 6),
-                                              
-                                              // Line 1
-                                              Text(
-                                                item['line1'],
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: isTablet ? 28 : 22,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                              
-                                              // Line 2
-                                              Text(
-                                                item['line2'],
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: isTablet ? 28 : 22,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                              
-                                              const SizedBox(height: 10),
-                                              
-                                              // Info
-                                              Text(
-                                                item['info'],
-                                                style: TextStyle(
-                                                  color: const Color(0xFFFFD966),
-                                                  fontSize: isTablet ? 16 : 14,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                        );
+                                      },
+                                    ),
                                   );
                                 },
                               ),
@@ -311,7 +311,7 @@ class _College3ScreenState extends State<College3Screen> {
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(bannerData.length, (index) {
+                          children: List.generate(bannerAds.length, (index) {
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               width: _activeIndex == index ? 24 : 8,
@@ -354,7 +354,9 @@ class _College3ScreenState extends State<College3Screen> {
     context,
     MaterialPageRoute(
       builder: (context) => College4Screen(
-        degree: 'All Colleges',
+        degree: widget.degree ?? 'All Colleges',
+        categoryId: widget.categoryId,
+        degreeId: widget.degreeId,
       ),
     ),
   );
@@ -405,46 +407,71 @@ class _College3ScreenState extends State<College3Screen> {
                           ),
                         ),
 
-                        // ===== YOUTUBE VIDEO - EDGE TO EDGE =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: isTablet ? 70 : 55,
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 400 : (isTablet ? 320 : 250),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+                        // ===== YOUTUBE VIDEO SECTION =====
+                        if (_youtubeUrls.isNotEmpty) ...[
+                          if (_youtubeUrls.length > 1)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: isTablet ? 16 : 12,
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Videos',
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 22 : 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: _previousVideo,
+                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                      ),
+                                      Text(
+                                        '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0B5ED7),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _nextVideo,
+                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                size: 40,
-                                color: Colors.white,
-                              ),
+                            ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: _youtubeUrls.length > 1 ? 0 : (isTablet ? 40 : 30),
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                              height: isDesktop ? 400 : (isTablet ? 320 : 250),
+                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              borderRadius: 0,
                             ),
                           ),
-                        ),
+                        ] else
+                          // VIDEO AD - EDGE TO EDGE
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: isTablet ? 40 : 30,
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: 'https://www.youtube.com/embed/qYapc_bkfxw',
+                              height: isDesktop ? 400 : (isTablet ? 320 : 250),
+                              placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+                              borderRadius: 0,
+                            ),
+                          ),
 
                         // Spacer for Footer
                        // SizedBox(height: isDesktop ? 60 : 80),

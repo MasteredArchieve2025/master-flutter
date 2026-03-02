@@ -1,8 +1,13 @@
-// lib/pages/College/College1.dart
 import 'package:flutter/material.dart';
-import 'dart:async'; // Add this import for Timer
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
+import '../../components/glass_loader.dart';
 import 'College2.dart';
+import '../../Api/School/Colleges/College_service.dart';
+import '../../Api/baseurl.dart';
 
 class College1Screen extends StatefulWidget {
   const College1Screen({super.key});
@@ -16,58 +21,108 @@ class _College1ScreenState extends State<College1Screen> {
   int _activeAd = 0;
   final PageController _adController = PageController();
   Timer? _adTimer;
+  
+  // Add these state variables
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = true;
+  bool _isLoadingAds = true;
+  String? _errorMessage;
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  int _currentVideoIndex = 0;
 
-  // Banner Ads Data
-  final List<String> bannerAds = [
+  // Banner Ads Data (keep as is)
+  final List<String> _defaultBannerAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  // Categories Data
-  final List<Map<String, dynamic>> categories = [
-    {
-      'name': 'Engineering',
-      'icon': Icons.engineering,
-      'color': Color(0xFF0B5ED7),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-    {
-      'name': 'Arts & Science',
-      'icon': Icons.palette,
-      'color': Color(0xFFDC2626),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-    {
-      'name': 'Medical',
-      'icon': Icons.medical_services,
-      'color': Color(0xFF059669),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-    {
-      'name': 'Polytechnic',
-      'icon': Icons.computer,
-      'color': Color(0xFF7C3AED),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-    {
-      'name': 'Law',
-      'icon': Icons.gavel,
-      'color': Color(0xFFEA580C),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-    {
-      'name': 'Veterinary',
-      'icon': Icons.pets,
-      'color': Color(0xFF0891B2),
-      'description': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    },
-  ];
+  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
   @override
   void initState() {
     super.initState();
-    // Auto scroll ads
+    
+    _fetchCategories();
+    _loadAdvertisements();
+    _startAdTimer();
+  }
+
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for collegepage1...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=collegepage1'),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          setState(() {
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+            _isLoadingAds = false;
+          });
+        } else {
+          setState(() { _isLoadingAds = false; });
+        }
+      } else {
+        setState(() { _isLoadingAds = false; });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() { _isLoadingAds = false; });
+    }
+  }
+
+  void _nextVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
+    });
+  }
+
+  void _previousVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+    });
+  }
+
+  String _getVideoThumbnail(String url) {
+    if (url.contains('youtube.com/embed/')) {
+      final videoId = url.split('/').last;
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    }
+    return url;
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final categories = await CollegeService.getCollegeCategories();
+      setState(() {
+        _categories = categories.map((cat) => cat.toCategoryMap()).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _startAdTimer() {
     _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
         int nextPage = _activeAd + 1;
@@ -88,15 +143,14 @@ class _College1ScreenState extends State<College1Screen> {
     super.dispose();
   }
 
-  // Responsive header height like IQ1
+  // Responsive methods (keep as is)
   double _getHeaderHeight(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 64; // Desktop
-    if (screenWidth >= 768) return 58; // Tablet
-    return 52; // Mobile
+    if (screenWidth >= 1024) return 64;
+    if (screenWidth >= 768) return 58;
+    return 52;
   }
 
-  // Responsive font size like IQ1
   double _getTitleFontSize(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth >= 1024) return 19;
@@ -104,7 +158,6 @@ class _College1ScreenState extends State<College1Screen> {
     return 17;
   }
 
-  // Responsive horizontal padding like IQ1
   double _getHorizontalPadding(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth >= 1024) return 32;
@@ -115,24 +168,23 @@ class _College1ScreenState extends State<College1Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     
-    // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
     
-    // Responsive dimensions
     final double horizontalPadding = _getHorizontalPadding(context);
     final double bannerHeight = isDesktop ? 220 : (isTablet ? 300 : 180);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== HEADER (Updated to match IQ1) =====
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+            // HEADER (keep as is)
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -158,22 +210,19 @@ class _College1ScreenState extends State<College1Screen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back Button - Fixed size like IQ1
                     SizedBox(
                       width: 40,
                       child: IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(
                           Icons.arrow_back,
-                          size: 24, // Fixed size like IQ1
+                          size: 24,
                           color: Colors.white,
                         ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
-                    // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
                         child: Text(
@@ -186,15 +235,13 @@ class _College1ScreenState extends State<College1Screen> {
                         ),
                       ),
                     ),
-                    
-                    // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
                 ),
               ),
             ),
 
-            // ===== MAIN CONTENT =====
+            // MAIN CONTENT
             Expanded(
               child: SingleChildScrollView(
                 child: Center(
@@ -205,7 +252,7 @@ class _College1ScreenState extends State<College1Screen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ===== TOP AUTO SCROLL AD BANNER =====
+                        // TOP AUTO SCROLL AD BANNER (keep as is)
                         Container(
                           margin: EdgeInsets.only(
                             top: isDesktop ? 8 : 0,
@@ -233,26 +280,38 @@ class _College1ScreenState extends State<College1Screen> {
                                   return Container(
                                     width: screenWidth,
                                     color: const Color(0xFFF0F0F0),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.image,
-                                            size: 60,
-                                            color: const Color(0xFF0B5ED7),
+                                    child: Image.network(
+                                      bannerAds[index],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.image,
+                                                size: 60,
+                                                color: const Color(0xFF0B5ED7),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Advertisement ${index + 1}',
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  color: Color(0xFF0B5ED7),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Advertisement ${index + 1}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Color(0xFF0B5ED7),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                   );
                                 },
@@ -261,7 +320,7 @@ class _College1ScreenState extends State<College1Screen> {
                           ),
                         ),
 
-                        // Dots Indicator
+                        // Dots Indicator (keep as is)
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -281,7 +340,7 @@ class _College1ScreenState extends State<College1Screen> {
                           }),
                         ),
 
-                        // ===== BODY =====
+                        // BODY - Categories Section with API data
                         Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: isDesktop ? 0 : horizontalPadding,
@@ -307,87 +366,87 @@ class _College1ScreenState extends State<College1Screen> {
                                 ),
                               ),
 
-                              // Categories Grid
+                              // Categories Grid with Loading/Error states
                               Padding(
                                 padding: EdgeInsets.only(
                                   left: isDesktop ? horizontalPadding : (isTablet ? 20 : 10),
                                   right: isDesktop ? horizontalPadding : (isTablet ? 20 : 10),
                                   bottom: isTablet ? 40 : 30,
                                 ),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final double availableWidth = constraints.maxWidth;
-                                    final int crossAxisCount = isDesktop ? 3 : (isTablet ? 3 : 2);
-                                    final double spacing = isTablet ? 20 : 16;
-                                    final double runSpacing = isTablet ? 35 : 30;
-                                    final double totalSpacing = spacing * (crossAxisCount - 1);
-                                    final double itemWidth = (availableWidth - totalSpacing) / crossAxisCount;
-                                    
-                                    return Wrap(
-                                      spacing: spacing,
-                                      runSpacing: runSpacing,
-                                      alignment: WrapAlignment.center,
-                                      children: categories.map((category) {
-                                        return SizedBox(
-                                          width: itemWidth,
-                                          child: _buildCategoryCard(
-                                            category: category,
-                                            isTablet: isTablet,
-                                            isDesktop: isDesktop,
-                                          ),
-                                        );
-                                      }).toList(),
-                                    );
-                                  },
+                                child: _buildCategoriesContent(
+                                  isTablet: isTablet,
+                                  isDesktop: isDesktop,
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        // ===== VIDEO AD - EDGE TO EDGE =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: isTablet ? 40 : 30,
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                        // ===== YOUTUBE VIDEO SECTION =====
+                        if (_youtubeUrls.isNotEmpty) ...[
+                          if (_youtubeUrls.length > 1)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: isTablet ? 16 : 12,
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Videos',
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 22 : 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: _previousVideo,
+                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                      ),
+                                      Text(
+                                        '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0B5ED7),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _nextVideo,
+                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                size: 40,
-                                color: Colors.white,
-                              ),
+                            ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: _youtubeUrls.length > 1 ? 0 : (isTablet ? 40 : 30),
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              borderRadius: 0,
                             ),
                           ),
-                        ),
-
-                        // Spacer for Footer
-                        //SizedBox(height: isDesktop ? 80 : 120),
+                        ] else
+                          // VIDEO AD - EDGE TO EDGE (keep as is)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: isTablet ? 40 : 30,
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: 'https://www.youtube.com/embed/NONufn3jgXI',
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: 'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                              borderRadius: 0,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -395,7 +454,7 @@ class _College1ScreenState extends State<College1Screen> {
               ),
             ),
 
-            // ===== FOOTER =====
+            // FOOTER (keep as is)
             Footer(
               currentIndex: _footerIndex,
               onItemTapped: (index) {
@@ -407,6 +466,121 @@ class _College1ScreenState extends State<College1Screen> {
           ],
         ),
       ),
+      if (_isLoading)
+        const GlassLoader(message: 'Loading categories...'),
+    ],
+  ),
+);
+}
+
+// New method to build categories content with loading/error states
+Widget _buildCategoriesContent({
+required bool isTablet,
+required bool isDesktop,
+}) {
+if (_isLoading) {
+  return const SizedBox(height: 200); // Placeholder while loading
+}
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 60,
+                color: Colors.red[300],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load categories',
+                style: TextStyle(
+                  fontSize: isDesktop ? 18 : 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isDesktop ? 14 : 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchCategories,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0052A2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_categories.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.category_outlined,
+                size: 60,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No categories available',
+                style: TextStyle(
+                  fontSize: isDesktop ? 18 : 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Build the categories grid
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double availableWidth = constraints.maxWidth;
+        final int crossAxisCount = isDesktop ? 3 : (isTablet ? 3 : 2);
+        final double spacing = isTablet ? 20 : 16;
+        final double runSpacing = isTablet ? 35 : 30;
+        final double totalSpacing = spacing * (crossAxisCount - 1);
+        final double itemWidth = (availableWidth - totalSpacing) / crossAxisCount;
+        
+        return Wrap(
+          spacing: spacing,
+          runSpacing: runSpacing,
+          alignment: WrapAlignment.center,
+          children: _categories.map((category) {
+            return SizedBox(
+              width: itemWidth,
+              child: _buildCategoryCard(
+                category: category,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -417,14 +591,15 @@ class _College1ScreenState extends State<College1Screen> {
   }) {
     return GestureDetector(
       onTap: () {
-       Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => College2Screen(
-        category: category,
-      ),
-    ),
-  );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => College2Screen(
+              category: category,
+            ),
+          ),
+        );
+        // Optional: Show snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Selected: ${category['name']}'),
@@ -447,7 +622,7 @@ class _College1ScreenState extends State<College1Screen> {
         ),
         child: Column(
           children: [
-            // Icon Container
+            // Icon Container - You can use the category image here if available
             Container(
               width: isDesktop ? 80 : (isTablet ? 75 : 60),
               height: isDesktop ? 80 : (isTablet ? 75 : 60),
@@ -457,6 +632,13 @@ class _College1ScreenState extends State<College1Screen> {
               decoration: BoxDecoration(
                 color: category['color'] as Color,
                 borderRadius: BorderRadius.circular(12),
+                // Uncomment below to use category image if you prefer
+                // image: category['image'] != null && category['image'].isNotEmpty
+                //     ? DecorationImage(
+                //         image: NetworkImage(category['image']),
+                //         fit: BoxFit.cover,
+                //       )
+                //     : null,
               ),
               child: Icon(
                 category['icon'] as IconData,

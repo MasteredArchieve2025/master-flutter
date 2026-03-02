@@ -1,15 +1,24 @@
 // lib/pages/College/College4.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
+import '../../components/glass_loader.dart';
 import 'College5.dart';
+import '../../Api/School/Colleges/College_service.dart';
 
 class College4Screen extends StatefulWidget {
   final String degree;
+  final int? categoryId;
+  final int? degreeId;
   
   const College4Screen({
     super.key,
     required this.degree,
+    this.categoryId,
+    this.degreeId,
   });
 
   @override
@@ -24,59 +33,62 @@ class _College4ScreenState extends State<College4Screen> {
   Timer? _adTimer;
 
   // Banner Ads Data
-  final List<String> bannerAds = [
+  final List<String> _defaultBannerAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  // Data
-  final List<Map<String, dynamic>> allColleges = [
-    {
-      'id': '1',
-      'name': 'Arunachala College of Engineering For Women',
-      'location': 'Nagercoil · 2.4 km',
-      'type': 'Private',
-      'category': 'All',
-    },
-    {
-      'id': '2',
-      'name': 'Arunachala College of Engineering For Women',
-      'location': 'Nagercoil · 3.1 km',
-      'type': 'Private',
-      'category': 'All',
-    },
-  ];
+  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
-  final List<Map<String, dynamic>> govtUniversities = [
-    {
-      'id': '3',
-      'name': 'Government College of Technology',
-      'location': 'Coimbatore · 4.8 km',
-      'type': 'Govt',
-      'category': 'Govt',
-    },
-  ];
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  int _currentVideoIndex = 0;
+  bool _isLoadingAds = true;
 
-  final List<Map<String, dynamic>> autonomousUniversities = [
-    {
-      'id': '4',
-      'name': 'PSG College of Technology',
-      'location': 'Coimbatore · 5.2 km',
-      'type': 'Autonomous',
-      'category': 'Autonomous',
-    },
-  ];
+  // API Data
+  List<Map<String, dynamic>> _allColleges = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  String? _selectedCity;
+
+  List<String> get _availableCities {
+    final cities = _allColleges.map((c) {
+      if (c['fullData'] != null && c['fullData'] is CollegeInfo) {
+        return (c['fullData'] as CollegeInfo).city;
+      }
+      return '';
+    }).where((city) => city.isNotEmpty).toSet().toList();
+    cities.sort();
+    return cities;
+  }
 
   List<Map<String, dynamic>> get _colleges {
-    if (_activeTab == "Govt") return govtUniversities;
-    if (_activeTab == "Autonomous") return autonomousUniversities;
-    return allColleges;
+    List<Map<String, dynamic>> filtered = _allColleges;
+
+    if (_selectedCity != null && _selectedCity!.isNotEmpty) {
+      filtered = filtered.where((c) {
+        if (c['fullData'] != null && c['fullData'] is CollegeInfo) {
+          return (c['fullData'] as CollegeInfo).city == _selectedCity;
+        }
+        return false;
+      }).toList();
+    }
+    
+    if (_activeTab == "Govt") {
+      filtered = filtered.where((c) => c['category']?.toString().toLowerCase().contains('govt') == true || c['type']?.toString().toLowerCase().contains('govt') == true).toList();
+    } else if (_activeTab == "Autonomous") {
+      filtered = filtered.where((c) => c['type']?.toString().toLowerCase().contains('auto') == true).toList();
+    }
+
+    return filtered;
   }
 
   @override
   void initState() {
     super.initState();
+    _loadAdvertisements();
+    _fetchColleges();
     // Auto scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
@@ -89,6 +101,90 @@ class _College4ScreenState extends State<College4Screen> {
         );
       }
     });
+  }
+
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for collegepage4...');
+    try {
+      final response = await http.get(
+        Uri.parse('https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage4'),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          setState(() {
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+            _isLoadingAds = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+    }
+  }
+
+  void _nextVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
+    });
+  }
+
+  void _previousVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+    });
+  }
+
+  String _getVideoThumbnail(String url) {
+    if (url.contains('youtube.com/embed/')) {
+      final videoId = url.split('/').last;
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    }
+    return url;
+  }
+
+  Future<void> _fetchColleges() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final colleges = await CollegeService.getColleges();
+      
+      // Filter by degree if not "All Colleges"
+      // Filter by category and degree if provided
+      List<CollegeInfo> degreeColleges = colleges;
+      
+      if (widget.categoryId != null) {
+        degreeColleges = degreeColleges.where((c) => c.categoryId == widget.categoryId).toList();
+      }
+      
+      if (widget.degreeId != null) {
+        degreeColleges = degreeColleges.where((c) => c.degreeId == widget.degreeId).toList();
+      } else if (widget.degree != 'All Colleges' && widget.degree.isNotEmpty) {
+        // Fallback to name filtering
+        degreeColleges = degreeColleges.where((c) => c.degreeName == widget.degree).toList();
+      }
+
+      setState(() {
+        _allColleges = degreeColleges.map((c) => c.toCollegeMap()).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -139,10 +235,12 @@ class _College4ScreenState extends State<College4Screen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== HEADER (Updated to match IQ1) =====
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // ===== HEADER (Updated to match IQ1) =====
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -243,26 +341,38 @@ class _College4ScreenState extends State<College4Screen> {
                                   return Container(
                                     width: screenWidth,
                                     color: const Color(0xFFF0F0F0),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.image,
-                                            size: 60,
-                                            color: const Color(0xFF0B5ED7),
+                                    child: Image.network(
+                                      bannerAds[index],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.image,
+                                                size: 60,
+                                                color: const Color(0xFF0B5ED7),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Advertisement ${index + 1}',
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  color: Color(0xFF0B5ED7),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Advertisement ${index + 1}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Color(0xFF0B5ED7),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                   );
                                 },
@@ -300,7 +410,7 @@ class _College4ScreenState extends State<College4Screen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Filters Button
+                              // Filters Dropdown
                               Container(
                                 width: (screenWidth - (isDesktop ? 80 : (isTablet ? 48 : 24))) / 2,
                                 padding: EdgeInsets.symmetric(
@@ -309,27 +419,59 @@ class _College4ScreenState extends State<College4Screen> {
                                 ),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: const Color(0xFFCCCCCC),
+                                    color: _selectedCity != null ? const Color(0xFF0052A2) : const Color(0xFFCCCCCC),
                                     width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
+                                  color: _selectedCity != null 
+                                    ? const Color(0xFFE8F1FF) 
+                                    : Colors.transparent,
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Filters',
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    isExpanded: true,
+                                    isDense: true,
+                                    icon: Icon(
+                                      Icons.arrow_drop_down,
+                                      size: isTablet ? 18 : 16,
+                                      color: _selectedCity != null 
+                                        ? const Color(0xFF0052A2) 
+                                        : const Color(0xFF333333),
+                                    ),
+                                    value: _selectedCity,
+                                    hint: Text(
+                                      'Filters (District)',
                                       style: TextStyle(
-                                        fontSize: isTablet ? 16 : 14,
+                                        fontSize: isTablet ? 14 : 12,
                                         color: const Color(0xFF333333),
                                       ),
                                     ),
-                                    Icon(
-                                      Icons.arrow_drop_down,
-                                      size: isTablet ? 18 : 16,
-                                      color: const Color(0xFF333333),
+                                    style: TextStyle(
+                                      fontSize: isTablet ? 14 : 12,
+                                      color: _selectedCity != null 
+                                        ? const Color(0xFF0052A2) 
+                                        : const Color(0xFF333333),
+                                      fontWeight: _selectedCity != null ? FontWeight.bold : FontWeight.normal,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
+                                    items: [
+                                      const DropdownMenuItem<String>(
+                                        value: null,
+                                        child: Text('All Districts'),
+                                      ),
+                                      ..._availableCities.map((String city) {
+                                        return DropdownMenuItem<String>(
+                                          value: city,
+                                          child: Text(city),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _selectedCity = newValue;
+                                      });
+                                    },
+                                  ),
                                 ),
                               ),
                               
@@ -430,57 +572,115 @@ class _College4ScreenState extends State<College4Screen> {
                             horizontal: isDesktop ? horizontalPadding : horizontalPadding,
                             vertical: isTablet ? 16 : 12,
                           ),
-                          child: Column(
-                            children: _colleges.map((college) {
-                              return _buildCollegeCard(
-                                college: college,
-                                isTablet: isTablet,
-                                isDesktop: isDesktop,
-                              );
-                            }).toList(),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(height: 200) // Placeholder while loading
+                              : _errorMessage != null
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(40.0),
+                                        child: Column(
+                                          children: [
+                                            Icon(Icons.error_outline, size: 50, color: Colors.red[300]),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Failed to load colleges',
+                                              style: TextStyle(fontSize: 18, color: Colors.grey[800]),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            ElevatedButton(
+                                              onPressed: _fetchColleges,
+                                              child: const Text('Retry'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : _colleges.isEmpty
+                                      ? Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(40.0),
+                                            child: Text(
+                                              'No colleges found matching the criteria',
+                                              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                                            ),
+                                          ),
+                                        )
+                                      : Column(
+                                          children: _colleges.map((college) {
+                                            return _buildCollegeCard(
+                                              college: college,
+                                              isTablet: isTablet,
+                                              isDesktop: isDesktop,
+                                            );
+                                          }).toList(),
+                                        ),
                         ),
 
-                        // ===== YOUTUBE VIDEO - EDGE TO EDGE =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: isTablet ? 40 : 30,
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                        // ===== YOUTUBE VIDEO SECTION =====
+                        if (_youtubeUrls.isNotEmpty) ...[
+                          if (_youtubeUrls.length > 1)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: isTablet ? 16 : 12,
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Videos',
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 22 : 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: _previousVideo,
+                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                      ),
+                                      Text(
+                                        '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0B5ED7),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _nextVideo,
+                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                size: 40,
-                                color: Colors.white,
-                              ),
+                            ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: _youtubeUrls.length > 1 ? 0 : (isTablet ? 40 : 30),
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                              height: isDesktop ? 400 : (isTablet ? 320 : 250),
+                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              borderRadius: 0,
                             ),
                           ),
-                        ),
+                        ] else
+                          // VIDEO AD - EDGE TO EDGE
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: isTablet ? 40 : 30,
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: 'https://www.youtube.com/embed/NONufn3jgXI',
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: 'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                              borderRadius: 0,
+                            ),
+                          ),
 
                         // ===== FOOTER SPACER =====
                         //SizedBox(height: isDesktop ? 40 : 60), // Reduced space
@@ -503,8 +703,12 @@ class _College4ScreenState extends State<College4Screen> {
           ],
         ),
       ),
-    );
-  }
+      if (_isLoading)
+        const GlassLoader(message: 'Loading colleges...'),
+    ],
+  ),
+);
+}
 
   Widget _buildCollegeCard({
     required Map<String, dynamic> college,
@@ -551,12 +755,20 @@ class _College4ScreenState extends State<College4Screen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF0052A2),
                 borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
+                image: college['logo'] != null && college['logo'].isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(college['logo']),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.school,
-                size: isDesktop ? 40 : (isTablet ? 40 : 30),
-                color: Colors.white,
-              ),
+              child: college['logo'] == null || college['logo'].isEmpty
+                  ? Icon(
+                      Icons.school,
+                      size: isDesktop ? 40 : (isTablet ? 40 : 30),
+                      color: Colors.white,
+                    )
+                  : null,
             ),
             
             SizedBox(width: isTablet ? 16 : 12),

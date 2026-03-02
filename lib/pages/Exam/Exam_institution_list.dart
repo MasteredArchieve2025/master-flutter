@@ -279,7 +279,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
     
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double adHeight = _responsiveValue(180, 300, 240);
+    final double adHeight = _responsiveValue(180, 200, 200);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
@@ -392,53 +392,43 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                     children: [
                                       // ===== ADVERTISEMENT BANNER =====
                                       if (adImages.isNotEmpty)
-                                        Container(
-                                          margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                          padding: EdgeInsets.only(top: _responsiveValue(16, 20, 24)),
-                                          child: SizedBox(
-                                            height: adHeight,
-                                            child: PageView.builder(
-                                              controller: _adController,
-                                              itemCount: adImages.length,
-                                              onPageChanged: (index) {
-                                                setState(() {
-                                                  _activeAdIndex = index;
-                                                });
-                                              },
-                                              itemBuilder: (context, index) {
-                                                return Image.network(
-                                                  adImages[index],
-                                                  width: screenWidth,
-                                                  height: adHeight,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Container(
-                                                      width: screenWidth,
-                                                      height: adHeight,
-                                                      color: Colors.black12,
-                                                      child: const Center(
-                                                        child: Icon(Icons.broken_image, color: Colors.grey),
-                                                      ),
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            ),
+                                        SizedBox(
+                                          height: adHeight,
+                                          child: PageView.builder(
+                                            controller: _adController,
+                                            itemCount: adImages.length,
+                                            onPageChanged: (index) {
+                                              setState(() {
+                                                _activeAdIndex = index;
+                                              });
+                                            },
+                                            itemBuilder: (context, index) {
+                                              return Image.network(
+                                                adImages[index],
+                                                width: screenWidth,
+                                                height: adHeight,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: screenWidth,
+                                                    height: adHeight,
+                                                    color: Colors.black12,
+                                                    child: const Center(
+                                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
                                           ),
                                         )
                                       else if (_isLoadingAds)
                                         Container(
-                                          margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                          padding: EdgeInsets.only(top: _responsiveValue(16, 20, 24)),
-                                          child: Container(
-                                            height: adHeight,
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius: BorderRadius.circular(_scale(12)),
-                                            ),
-                                            child: const Center(
-                                              child: CircularProgressIndicator(),
-                                            ),
+                                          height: adHeight,
+                                          width: screenWidth,
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(),
                                           ),
                                         ),
 
@@ -626,42 +616,21 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                         ),
                                       ),
 
-                                      // ===== INSTITUTIONS GRID =====
+                                      // ===== INSTITUTIONS LIST =====
                                       if (_filteredInstitutions.isNotEmpty) ...[
-                                        Container(
-                                          width: double.infinity,
-                                          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                          child: LayoutBuilder(
-                                            builder: (context, constraints) {
-                                              // Calculate responsive card width
-                                              double cardWidth;
-                                              int crossAxisCount;
-                                              
-                                              if (isDesktop) {
-                                                crossAxisCount = 3;
-                                                cardWidth = (constraints.maxWidth - _scale(16) * (crossAxisCount - 1)) / crossAxisCount;
-                                              } else {
-                                                // Tablet & Mobile
-                                                crossAxisCount = 2;
-                                                cardWidth = (constraints.maxWidth - _scale(12) * (crossAxisCount - 1)) / crossAxisCount;
-                                              }
-                                              
-                                              return Wrap(
-                                                alignment: WrapAlignment.center,
-                                                spacing: _responsiveValue(8, 12, 16),
-                                                runSpacing: _responsiveValue(12, 16, 20),
-                                                children: _filteredInstitutions.map((institution) {
-                                                  return Container(
-                                                    width: cardWidth,
-                                                    margin: isMobile 
-                                                      ? EdgeInsets.only(bottom: _scale(12))
-                                                      : EdgeInsets.zero,
-                                                    child: _buildInstitutionCard(institution, isMobile: isMobile, isTablet: isTablet, isDesktop: isDesktop),
-                                                  );
-                                                }).toList(),
-                                              );
-                                            },
-                                          ),
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          padding: EdgeInsets.zero,
+                                          itemCount: _filteredInstitutions.length,
+                                          itemBuilder: (context, index) {
+                                            return _buildInstitutionCard(
+                                              _filteredInstitutions[index],
+                                              isMobile: isMobile,
+                                              isTablet: isTablet,
+                                              isDesktop: isDesktop,
+                                            );
+                                          },
                                         ),
                                       ] else ...[
                                         // ===== NO RESULTS =====
@@ -769,168 +738,204 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
     bool hasImage = institution['image'] != null && 
                     institution['image'].toString().isNotEmpty;
 
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: isMobile ? 0 : _scale(2),
-      ),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => InstituteDetailsScreen(
-                institutionId: institution['id'],
-                institutionData: institution['originalData'],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InstituteDetailsScreen(
+              institutionId: institution['id'],
+              institutionData: institution['originalData'],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: isDesktop ? 40 : (isTablet ? 24 : 16),
+          vertical: isTablet ? 9 : 7,
+        ),
+        padding: EdgeInsets.all(isTablet ? 18 : 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Institution Logo/Image
+            Container(
+              width: isTablet ? 100 : 80,
+              height: isTablet ? 100 : 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                color: const Color(0xFFF0F4F8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                child: hasImage
+                    ? Image.network(
+                        institution['image'],
+                        width: isTablet ? 100 : 80,
+                        height: isTablet ? 100 : 80,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: Colors.grey[100],
+                            child: Center(
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFFF0F4F8),
+                            child: Icon(
+                              Icons.school_outlined,
+                              size: isTablet ? 40 : 32,
+                              color: const Color(0xFF0052A2).withOpacity(0.5),
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: const Color(0xFFF0F4F8),
+                        child: Icon(
+                          Icons.school_outlined,
+                          size: isTablet ? 40 : 32,
+                          color: const Color(0xFF0052A2).withOpacity(0.5),
+                        ),
+                      ),
               ),
             ),
-          );
-        },
-        child: Container(
-          padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: _scale(8),
-                offset: Offset(0, _scale(2)),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Logo/Image Placeholder - Centered
-              Container(
-                width: _scale(50),
-                height: _scale(50),
-                decoration: BoxDecoration(
-                  color: hasImage ? null : const Color(0xFF4A90E2).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(_scale(12)),
-                  image: hasImage
-                      ? DecorationImage(
-                          image: NetworkImage(institution['image']),
-                          fit: BoxFit.cover,
-                          onError: (exception, stackTrace) {},
-                        )
-                      : null,
-                ),
-                child: !hasImage
-                    ? Icon(
-                        Icons.school,
-                        size: _scale(26),
-                        color: const Color(0xFF4A90E2),
-                      )
-                    : null,
-              ),
-              SizedBox(height: _scale(10)),
-
-              // Content - Centered
-              Text(
-                institution['name'],
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: _responsiveValue(14, 16, 18),
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                  height: 1.2,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: _scale(6)),
-
-              // Location Container - Centered
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            
+            const SizedBox(width: 14),
+            
+            // Institution Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Area
+                  // Name and Rating
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Icons.location_pin,
-                        size: _scale(12),
-                        color: const Color(0xFF4A90E2),
-                      ),
-                      SizedBox(width: _scale(4)),
-                      Flexible(
+                      Expanded(
                         child: Text(
-                          institution['area'],
+                          institution['name'],
                           style: TextStyle(
-                            fontSize: _responsiveValue(11, 12, 13),
-                            color: const Color(0xFF666666),
-                            fontWeight: FontWeight.w500,
+                            fontSize: isTablet ? 18 : 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 8 : 6,
+                          vertical: isTablet ? 4 : 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF9E6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              size: isTablet ? 16 : 14,
+                              color: const Color(0xFFFFB703),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              institution['rating'].toString(),
+                              style: TextStyle(
+                                fontSize: isTablet ? 14 : 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: _scale(3)),
                   
-                  // Rating if available
-                  if (institution['rating'] > 0)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.star,
-                          size: _scale(12),
-                          color: const Color(0xFFFFD700),
-                        ),
-                        SizedBox(width: _scale(4)),
-                        Text(
-                          '${institution['rating']}',
-                          style: TextStyle(
-                            fontSize: _responsiveValue(11, 12, 13),
-                            color: const Color(0xFF666666),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  
+                  // Location
+                  Text(
+                    "📍 ${institution['area']}${institution['district'].isNotEmpty ? ', ${institution['district']}' : ''}",
+                    style: TextStyle(
+                      fontSize: isTablet ? 14 : 12,
+                      color: const Color(0xFF5F6F81),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Result info
+                  Text(
+                    "📊 ${institution['result'].toString().isNotEmpty ? institution['result'] : 'Result Data Not Available'}",
+                    style: TextStyle(
+                      fontSize: isTablet ? 13 : 11,
+                      color: const Color(0xFF4B5563),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Category Tag
+                  Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isTablet ? 10 : 8,
+                      vertical: isTablet ? 5 : 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F1FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      institution['type'].length > 25 
+                        ? '${institution['type'].substring(0, 25)}...'
+                        : institution['type'],
+                      style: TextStyle(
+                        fontSize: isTablet ? 13 : 11,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF0B5ED7),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              SizedBox(height: _scale(8)),
-
-              // Type Badge - Centered
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: _scale(8),
-                  vertical: _scale(3),
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F7FF),
-                  borderRadius: BorderRadius.circular(_scale(6)),
-                ),
-                child: Text(
-                  institution['type'].length > 25 
-                      ? '${institution['type'].substring(0, 25)}...'
-                      : institution['type'],
-                  style: TextStyle(
-                    fontSize: _responsiveValue(10, 11, 12),
-                    color: const Color(0xFF4A90E2),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              
-              SizedBox(height: _scale(10)),
-              
-              // Bottom Arrow for feedback - Centered
-              Icon(
-                Icons.chevron_right,
-                size: _scale(18),
-                color: const Color(0xFF4A90E2),
-              ),
-            ],
-          ),
+            ),
+            
+            const SizedBox(width: 12),
+            
+            // Chevron Icon
+            Icon(
+              Icons.chevron_right,
+              size: isTablet ? 24 : 20,
+              color: const Color(0xFF0B5ED7),
+            ),
+          ],
         ),
       ),
     );

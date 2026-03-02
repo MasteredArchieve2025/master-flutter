@@ -326,6 +326,7 @@ class _Exam3ScreenState extends State<Exam3Screen> {
                           ),
 
                         // ===== 2 COLUMN GRID =====
+                        SizedBox(height: _responsiveValue(16, 24, 32)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                           child: Row(

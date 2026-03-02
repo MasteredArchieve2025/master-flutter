@@ -791,7 +791,8 @@ class _Exam2ScreenState extends State<Exam2Screen> {
         );
       },
       child: Container(
-        width: width,
+        width: width*0.9,
+         margin: EdgeInsets.symmetric(horizontal: width * 0.05), // Center the smaller card
         padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -799,8 +800,8 @@ class _Exam2ScreenState extends State<Exam2Screen> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
-              blurRadius: _scale(8),
-              offset: Offset(0, _scale(2)),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -810,10 +811,10 @@ class _Exam2ScreenState extends State<Exam2Screen> {
           children: [
             // Image/Icon Container - Centered
             Container(
-              width: _responsiveValue(40, 48, 56),
-              height: _responsiveValue(40, 48, 56),
+              width: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
+              height: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_scale(10)),
+                borderRadius: BorderRadius.circular(_scale(16)), // Slightly larger border radius
                 image: hasValidImage
                     ? DecorationImage(
                         image: NetworkImage(exam['image']),
@@ -823,19 +824,19 @@ class _Exam2ScreenState extends State<Exam2Screen> {
                         },
                       )
                     : null,
-                color: hasValidImage ? null : (exam['color'] as Color).withOpacity(0.12),
+                color: hasValidImage ? null : const Color(0xFFE6F0FF),
               ),
               child: !hasValidImage
                   ? Center(
                       child: Icon(
                         Icons.image,
-                        size: _responsiveValue(22, 26, 30),
-                        color: (exam['color'] as Color).withOpacity(0.7),
+                        size: _responsiveValue(25, 30, 35), // Increased from 22/26/30 to 40/50/60
+                        color: const Color(0xFF0052A2).withOpacity(0.5),
                       ),
                     )
                   : null,
             ),
-            SizedBox(height: _scale(10)),
+            SizedBox(height: _scale(14)), // Slightly increased spacing
 
             // Title - Centered
             Text(

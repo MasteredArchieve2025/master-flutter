@@ -448,7 +448,7 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                                             ),
                                             SizedBox(height: _responsiveValue(20, 24, 28)),
 
-                                            // Grid View
+                                            // Grid View - Fixed missing closing bracket
                                             if (examCategories.isEmpty)
                                               const Center(
                                                 child: Padding(
@@ -466,11 +466,10 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                                                     width: cardWidth,
                                                   );
                                                 }).toList(),
-                                          ),
-                                           ],
+                                              ), // Added missing closing bracket
+                                          ],
                                         ),
-                                    
-                                      ),    
+                                      ),
 
                                       // ===== BANNER SECTION =====
                                       Container(
@@ -591,8 +590,9 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         );
       },
       child: Container(
-        width: width,
-        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
+        width: width*0.9,
+         margin: EdgeInsets.symmetric(horizontal: width * 0.05), // Center the smaller card
+        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -607,12 +607,12 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo Container - Centered
+            // Logo Container - Bigger size
             Container(
-              width: _responsiveValue(40, 50, 60),
-              height: _responsiveValue(40, 50, 60),
+              width: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
+              height: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_scale(12)),
+                borderRadius: BorderRadius.circular(_scale(16)), // Slightly larger border radius
                 image: hasValidImage
                     ? DecorationImage(
                         image: NetworkImage(exam['image']),
@@ -626,13 +626,13 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                   ? Center(
                       child: Icon(
                         Icons.image,
-                        size: _responsiveValue(22, 26, 30),
+                        size: _responsiveValue(25, 30, 35), // Increased from 22/26/30 to 40/50/60
                         color: const Color(0xFF0052A2).withOpacity(0.5),
                       ),
                     )
                   : null,
             ),
-            SizedBox(height: _scale(10)),
+            SizedBox(height: _scale(14)), // Slightly increased spacing
 
             // Title - Centered
             Text(

@@ -1,8 +1,14 @@
 // lib/pages/College/College2.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
+import '../../components/glass_loader.dart';
 import 'College3.dart';
+import '../../Api/School/Colleges/College_service.dart';
+import '../../Api/baseurl.dart';
 
 class College2Screen extends StatefulWidget {
   final Map<String, dynamic> category;
@@ -23,49 +29,29 @@ class _College2ScreenState extends State<College2Screen> {
   Timer? _adTimer;
 
   // Banner Ads Data
-  final List<String> bannerAds = [
+  final List<String> _defaultBannerAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  // Degrees Data
-  final List<Map<String, dynamic>> degrees = [
-    {
-      'title': 'B.E',
-      'desc': 'Engineering degree with core technical skills',
-      'icon': Icons.settings,
-    },
-    {
-      'title': 'B.Tech',
-      'desc': 'Technology-focused engineering program',
-      'icon': Icons.memory,
-    },
-    {
-      'title': 'B.Arch',
-      'desc': 'Architecture and design studies',
-      'icon': Icons.business,
-    },
-    {
-      'title': 'BCA',
-      'desc': 'Computer applications and software basics',
-      'icon': Icons.laptop,
-    },
-    {
-      'title': 'B.Sc',
-      'desc': 'Science-based undergraduate programs',
-      'icon': Icons.science,
-    },
-    {
-      'title': 'BBA',
-      'desc': 'Business administration and management',
-      'icon': Icons.work,
-    },
-  ];
+  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+
+  // Degrees Data from API
+  List<Map<String, dynamic>> _degrees = [];
+  bool _isLoadingDegrees = true;
+  bool _isLoadingAds = true;
+  String? _errorMessage;
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  int _currentVideoIndex = 0;
+
 
   @override
   void initState() {
     super.initState();
+    _fetchDegrees();
+    _loadAdvertisements();
     // Auto scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
@@ -78,6 +64,84 @@ class _College2ScreenState extends State<College2Screen> {
         );
       }
     });
+  }
+
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for collegepage2...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=collegepage2'),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          setState(() {
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+            _isLoadingAds = false;
+          });
+        } else {
+          setState(() { _isLoadingAds = false; });
+        }
+      } else {
+        setState(() { _isLoadingAds = false; });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() { _isLoadingAds = false; });
+    }
+  }
+
+  void _nextVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
+    });
+  }
+
+  void _previousVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+    });
+  }
+
+  String _getVideoThumbnail(String url) {
+    if (url.contains('youtube.com/embed/')) {
+      final videoId = url.split('/').last;
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    }
+    return url;
+  }
+
+  Future<void> _fetchDegrees() async {
+    setState(() {
+      _isLoadingDegrees = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final allDegrees = await CollegeService.getCollegeDegrees();
+      // Filter by category if we have the current category ID, otherwise show all
+      final filteredDegrees = widget.category['id'] != null
+          ? allDegrees.where((d) => d.categoryId == widget.category['id']).toList()
+          : allDegrees;
+
+      setState(() {
+        _degrees = filteredDegrees.map((d) => d.toDegreeMap()).toList();
+        _isLoadingDegrees = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoadingDegrees = false;
+      });
+    }
   }
 
   @override
@@ -128,10 +192,12 @@ class _College2ScreenState extends State<College2Screen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== HEADER (Updated to match IQ1) =====
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // ===== HEADER (Updated to match IQ1) =====
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -232,26 +298,38 @@ class _College2ScreenState extends State<College2Screen> {
                                   return Container(
                                     width: screenWidth,
                                     color: const Color(0xFFF0F0F0),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.image,
-                                            size: 60,
-                                            color: const Color(0xFF0B5ED7),
+                                    child: Image.network(
+                                      bannerAds[index],
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.image,
+                                                size: 60,
+                                                color: const Color(0xFF0B5ED7),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Advertisement ${index + 1}',
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  color: Color(0xFF0B5ED7),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Advertisement ${index + 1}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Color(0xFF0B5ED7),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                   );
                                 },
@@ -324,7 +402,34 @@ class _College2ScreenState extends State<College2Screen> {
                           padding: EdgeInsets.symmetric(
                             horizontal: isDesktop ? 0 : horizontalPadding,
                           ),
-                          child: LayoutBuilder(
+                          child: _isLoadingDegrees
+                              ? const SizedBox(height: 200) // Placeholder while loading
+                              : _errorMessage != null
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.error_outline, size: 50, color: Colors.red[300]),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Failed to load degrees',
+                                            style: TextStyle(fontSize: 18, color: Colors.grey[800]),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: _fetchDegrees,
+                                            child: const Text('Retry'),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : _degrees.isEmpty
+                                      ? Center(
+                                          child: Text(
+                                            'No degrees available for this category',
+                                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                                          ),
+                                        )
+                                      : LayoutBuilder(
                             builder: (context, constraints) {
                               final double availableWidth = constraints.maxWidth;
                               final int crossAxisCount = isDesktop ? 2 : 2; // Always 2 columns
@@ -338,11 +443,11 @@ class _College2ScreenState extends State<College2Screen> {
                                 spacing: spacing,
                                 runSpacing: runSpacing,
                                 alignment: WrapAlignment.spaceBetween,
-                                children: List.generate(degrees.length, (index) {
-                                  final degree = degrees[index];
+                                children: List.generate(_degrees.length, (index) {
+                                  final degree = _degrees[index];
                                   
                                   // Check if this is a single item in the last row
-                                  final bool isSingleLastItem = _isSingleLastItem(index, degrees.length);
+                                  final bool isSingleLastItem = _isSingleLastItem(index, _degrees.length);
                                   
                                   return Container(
                                     width: isSingleLastItem && itemWidthPercentage < 47 ? 
@@ -360,46 +465,71 @@ class _College2ScreenState extends State<College2Screen> {
                           ),
                         ),
 
-                        // ===== VIDEO AD - EDGE TO EDGE =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            top: isTablet ? 40 : 30,
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                        // ===== YOUTUBE VIDEO SECTION =====
+                        if (_youtubeUrls.isNotEmpty) ...[
+                          if (_youtubeUrls.length > 1)
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                                vertical: isTablet ? 16 : 12,
                               ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Videos',
+                                    style: TextStyle(
+                                      fontSize: isDesktop ? 22 : 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: _previousVideo,
+                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                      ),
+                                      Text(
+                                        '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0B5ED7),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: _nextVideo,
+                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                size: 40,
-                                color: Colors.white,
-                              ),
+                            ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: _youtubeUrls.length > 1 ? 0 : (isTablet ? 40 : 30),
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              borderRadius: 0,
                             ),
                           ),
-                        ),
+                        ] else
+                          // VIDEO AD - EDGE TO EDGE (keep as is)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: isTablet ? 40 : 30,
+                            ),
+                            child: CommonYoutubePlayer(
+                              youtubeUrl: 'https://www.youtube.com/embed/NONufn3jgXI',
+                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                              placeholderThumbnail: 'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                              borderRadius: 0,
+                            ),
+                          ),
 
                         // Spacer for Footer
                         //SizedBox(height: isDesktop ? 80 : 120),
@@ -422,8 +552,12 @@ class _College2ScreenState extends State<College2Screen> {
           ],
         ),
       ),
-    );
-  }
+      if (_isLoadingDegrees)
+        const GlassLoader(message: 'Loading degrees...'),
+    ],
+  ),
+);
+}
 
   bool _isSingleLastItem(int index, int totalItems) {
     const itemsPerRow = 2;
@@ -448,6 +582,8 @@ class _College2ScreenState extends State<College2Screen> {
     MaterialPageRoute(
       builder: (context) => College3Screen(
         degree: degree['title'] as String,
+        categoryId: degree['categoryId'] as int?,
+        degreeId: degree['id'] as int?,
       ),
     ),
   );
