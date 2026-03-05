@@ -26,7 +26,7 @@ class IQResultScreen extends StatelessWidget {
     final iqScore = _calculateIQ();
     final performance = _getPerformance();
     final categoryScores = _calculateCategoryScores();
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
@@ -34,29 +34,30 @@ class IQResultScreen extends StatelessWidget {
           children: [
             // Header
             _buildHeader(context),
-            
+
             // Main Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                 child: Column(
                   children: [
                     // IQ Score Card
                     _buildIQCard(iqScore, performance),
                     const SizedBox(height: 20),
-                    
+
                     // Score Breakdown
                     _buildScoreCard(),
                     const SizedBox(height: 20),
-                    
+
                     // Category Performance
                     _buildCategoryCard(categoryScores),
                     const SizedBox(height: 20),
-                    
+
                     // Detailed Analysis
                     _buildAnalysisCard(performance),
                     const SizedBox(height: 20),
-                    
+
                     // Action Buttons
                     _buildActionButtons(context),
                   ],
@@ -86,12 +87,18 @@ class IQResultScreen extends StatelessWidget {
 
   Color _getPerformanceColor(String performance) {
     switch (performance) {
-      case "Exceptional": return const Color(0xFF4CAF50);
-      case "Excellent": return const Color(0xFF2196F3);
-      case "Above Average": return const Color(0xFF00BCD4);
-      case "Average": return const Color(0xFFFF9800);
-      case "Below Average": return const Color(0xFFF44336);
-      default: return const Color(0xFF0072BC);
+      case "Exceptional":
+        return const Color(0xFF4CAF50);
+      case "Excellent":
+        return const Color(0xFF2196F3);
+      case "Above Average":
+        return const Color(0xFF00BCD4);
+      case "Average":
+        return const Color(0xFFFF9800);
+      case "Below Average":
+        return const Color(0xFFF44336);
+      default:
+        return const Color(0xFF0072BC);
     }
   }
 
@@ -197,7 +204,7 @@ class IQResultScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Title
             Expanded(
               child: Center(
@@ -211,7 +218,7 @@ class IQResultScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Share Button
             GestureDetector(
               onTap: () => _shareResults(context),
@@ -260,7 +267,7 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           Text(
             '$iqScore',
             style: const TextStyle(
@@ -270,7 +277,7 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Performance Badge
           Container(
             decoration: BoxDecoration(
@@ -288,7 +295,7 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Text(
             'Based on your performance across $totalQuestions questions',
             style: TextStyle(
@@ -328,7 +335,7 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Score Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -339,7 +346,8 @@ class IQResultScreen extends StatelessWidget {
                 height: 40,
                 color: const Color(0xFFE9ECEF),
               ),
-              _buildScoreItem('$correctAnswers/$totalQuestions', 'Correct Answers'),
+              _buildScoreItem(
+                  '$correctAnswers/$totalQuestions', 'Correct Answers'),
               Container(
                 width: 1,
                 height: 40,
@@ -349,7 +357,7 @@ class IQResultScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Progress Circle
           Column(
             children: [
@@ -363,7 +371,8 @@ class IQResultScreen extends StatelessWidget {
                       value: percentage / 100,
                       strokeWidth: 10,
                       backgroundColor: const Color(0xFFE9ECEF),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0072BC)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF0072BC)),
                     ),
                   ),
                   Text(
@@ -444,14 +453,13 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          
           ...categoryScores.entries.map((entry) {
             final category = entry.key;
             final data = entry.value;
-            final catPercentage = data['total']! > 0 
-                ? (data['correct']! / data['total']!) * 100 
+            final catPercentage = data['total']! > 0
+                ? (data['correct']! / data['total']!) * 100
                 : 0.0;
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -557,21 +565,18 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          
           _buildAnalysisRow(
             Icons.check_circle,
             const Color(0xFF4CAF50),
             'You answered $correctAnswers questions correctly',
           ),
           const SizedBox(height: 14),
-          
           _buildAnalysisRow(
             Icons.access_time,
             const Color(0xFFFF9800),
             'Average time per question: ${(timeTaken / totalQuestions).round()} seconds',
           ),
           const SizedBox(height: 14),
-          
           _buildAnalysisRow(
             Icons.emoji_events,
             const Color(0xFFFFC107),
@@ -650,9 +655,9 @@ class IQResultScreen extends StatelessWidget {
             ),
           ),
         ),
-        
+
         const SizedBox(width: 12),
-        
+
         // Home Button
         Expanded(
           child: ElevatedButton(

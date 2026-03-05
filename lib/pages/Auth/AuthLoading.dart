@@ -25,7 +25,7 @@ class _AuthLoadingScreenState extends State<AuthLoadingScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F8FF),
       body: Center(
         child: CircularProgressIndicator(
           color: Color(0xFF0B66C3),

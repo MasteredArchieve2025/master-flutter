@@ -12,7 +12,8 @@ import '../../Api/baseurl.dart';
 class Tution2Screen extends StatefulWidget {
   final String selectedClass;
 
-  const Tution2Screen({super.key,
+  const Tution2Screen({
+    super.key,
     required this.selectedClass,
   });
 
@@ -27,7 +28,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
   bool _showAll = false;
   final PageController _adController = PageController();
   Timer? _timer;
-  
+
   bool _isLoading = true;
   String? _errorMessage;
   List<Tution> _tuitions = [];
@@ -38,7 +39,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
   List<String> _youtubeUrls = [];
   bool _adsLoaded = false;
   bool _apiCallFailed = false;
-  
+
   // Default ads (fallback if API fails)
   final List<String> defaultAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200',
@@ -61,7 +62,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
 
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for tuitionspage2...');
-    
+
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=tuitionspage2'),
@@ -85,7 +86,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
             }
 
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
               debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
             }
@@ -105,7 +107,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
           _adsLoaded = true;
           _apiCallFailed = true;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -129,7 +131,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
         _apiCallFailed = true;
       });
     } finally {
-      debugPrint('✅ Using ${ads.length} images (${_adImages.isEmpty ? 'fallback' : 'API'})');
+      debugPrint(
+          '✅ Using ${ads.length} images (${_adImages.isEmpty ? 'fallback' : 'API'})');
       // Start auto-scroll after ads are loaded
       _startAdAutoScroll();
     }
@@ -158,10 +161,10 @@ class _Tution2ScreenState extends State<Tution2Screen> {
     try {
       final data = await TutionService().fetchTuitions();
       final tuitions = data.map((json) => Tution.fromJson(json)).toList();
-      
+
       // Add small delay to ensure loader is visible
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (mounted) {
         setState(() {
           _tuitions = tuitions;
@@ -196,7 +199,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -240,17 +244,17 @@ class _Tution2ScreenState extends State<Tution2Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double adHeight = isTablet ? 200 : 180; // Updated to match Tutions3
+    final double adHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
     final double bannerPadding = isTablet ? 24 : 16;
     final double cardPadding = isTablet ? 20 : 14;
     final double cardMargin = isTablet ? 20 : 14;
-    final double videoHeight = isTablet ? 220 : 180; // Updated to match Tutions3
+    final double videoHeight = isDesktop ? 400 : (isTablet ? 320 : 250);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
@@ -296,7 +300,6 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             constraints: const BoxConstraints(),
                           ),
                         ),
-                        
                         Expanded(
                           child: Center(
                             child: Column(
@@ -315,7 +318,6 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             ),
                           ),
                         ),
-                        
                         const SizedBox(width: 40),
                       ],
                     ),
@@ -354,12 +356,14 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                       color: const Color(0xFF0052A2),
                                       child: Center(
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.broken_image,
                                               size: 50,
-                                              color: Colors.white.withOpacity(0.5),
+                                              color:
+                                                  Colors.white.withOpacity(0.5),
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
@@ -374,7 +378,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                       ),
                                     );
                                   },
-                                  loadingBuilder: (context, child, loadingProgress) {
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
                                     return Container(
                                       width: screenWidth,
@@ -382,9 +387,16 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                       color: const Color(0xFF0052A2),
                                       child: Center(
                                         child: CircularProgressIndicator(
-                                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                          value: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<
+                                                  Color>(Colors.white),
+                                          value: loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
                                               : null,
                                         ),
                                       ),
@@ -407,9 +419,9 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 6),
                               decoration: BoxDecoration(
-                                color: _adIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _adIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -454,10 +466,12 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                           padding: EdgeInsets.all(bannerPadding),
                           decoration: BoxDecoration(
                             color: const Color(0xFF0B5ED7),
-                            borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                            borderRadius:
+                                BorderRadius.circular(isTablet ? 20 : 16),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF0B5ED7).withOpacity(0.25),
+                                color:
+                                    const Color(0xFF0B5ED7).withOpacity(0.25),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -493,7 +507,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             padding: const EdgeInsets.all(20),
                             child: Center(
                               child: Text(
-                                _errorMessage!, 
+                                _errorMessage!,
                                 style: const TextStyle(color: Colors.red),
                               ),
                             ),
@@ -504,12 +518,14 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                           const Padding(
                             padding: EdgeInsets.all(40),
                             child: Center(
-                              child: Text('No tuition centers found for this class.'),
+                              child: Text(
+                                  'No tuition centers found for this class.'),
                             ),
                           )
 
                         // Institute List
-                        else if (!_isLoading && _filteredTuitions.isNotEmpty) ...[
+                        else if (!_isLoading &&
+                            _filteredTuitions.isNotEmpty) ...[
                           // Section Header
                           Container(
                             margin: EdgeInsets.only(
@@ -534,7 +550,9 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                           ),
 
                           // Institute Cards
-                          ..._filteredTuitions.take(_showAll ? _filteredTuitions.length : 3).map((item) {
+                          ..._filteredTuitions
+                              .take(_showAll ? _filteredTuitions.length : 3)
+                              .map((item) {
                             return MouseRegion(
                               cursor: SystemMouseCursors.click,
                               child: GestureDetector(
@@ -559,7 +577,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                   padding: EdgeInsets.all(cardPadding),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
+                                    borderRadius: BorderRadius.circular(
+                                        isTablet ? 20 : 16),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.08),
@@ -569,84 +588,111 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                     ],
                                   ),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         width: isTablet ? 120 : 90,
                                         height: isTablet ? 120 : 90,
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF0F0F0),
-                                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                                          borderRadius: BorderRadius.circular(
+                                              isTablet ? 14 : 12),
                                         ),
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                                          borderRadius: BorderRadius.circular(
+                                              isTablet ? 14 : 12),
                                           child: item.tuitionImage != null
                                               ? Image.network(
                                                   item.tuitionImage!,
                                                   fit: BoxFit.cover,
-                                                  loadingBuilder: (context, child, loadingProgress) {
-                                                    if (loadingProgress == null) return child;
+                                                  loadingBuilder: (context,
+                                                      child, loadingProgress) {
+                                                    if (loadingProgress == null)
+                                                      return child;
                                                     return Container(
                                                       color: Colors.grey[100],
                                                       child: const Center(
-                                                        child: CircularProgressIndicator(
+                                                        child:
+                                                            CircularProgressIndicator(
                                                           strokeWidth: 2,
-                                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                      Color>(
+                                                                  Color(
+                                                                      0xFF0B5ED7)),
                                                         ),
                                                       ),
                                                     );
                                                   },
-                                                  errorBuilder: (context, error, stackTrace) => 
-                                                      const Icon(Icons.school, size: 40, color: Colors.grey),
+                                                  errorBuilder: (context, error,
+                                                          stackTrace) =>
+                                                      const Icon(Icons.school,
+                                                          size: 40,
+                                                          color: Colors.grey),
                                                 )
-                                              : const Icon(Icons.school, size: 40, color: Colors.grey),
+                                              : const Icon(Icons.school,
+                                                  size: 40, color: Colors.grey),
                                         ),
                                       ),
-
                                       const SizedBox(width: 20),
-
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Expanded(
                                                   child: Text(
                                                     item.tuitionName,
                                                     style: TextStyle(
-                                                      fontSize: isTablet ? 20 : 16,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontSize:
+                                                          isTablet ? 20 : 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       color: Colors.black,
                                                     ),
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
                                                     horizontal: 8,
                                                     vertical: 4,
                                                   ),
                                                   decoration: BoxDecoration(
-                                                    color: const Color(0xFFFFF9E6),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    color:
+                                                        const Color(0xFFFFF9E6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                   ),
                                                   child: Row(
                                                     children: [
                                                       const Icon(
                                                         Icons.star,
                                                         size: 16,
-                                                        color: Color(0xFFFFB703),
+                                                        color:
+                                                            Color(0xFFFFB703),
                                                       ),
                                                       const SizedBox(width: 4),
                                                       Text(
                                                         item.rating.toString(),
                                                         style: TextStyle(
-                                                          fontSize: isTablet ? 16 : 12,
-                                                          fontWeight: FontWeight.w600,
+                                                          fontSize: isTablet
+                                                              ? 16
+                                                              : 12,
+                                                          fontWeight:
+                                                              FontWeight.w600,
                                                           color: Colors.black,
                                                         ),
                                                       ),
@@ -655,9 +701,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                                 ),
                                               ],
                                             ),
-
                                             const SizedBox(height: 4),
-
                                             Text(
                                               item.subjectsOffered.join(', '),
                                               style: TextStyle(
@@ -668,52 +712,64 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
-
                                             const SizedBox(height: 12),
-
                                             Row(
                                               children: [
-                                                if (item.teachingMode.isNotEmpty)
+                                                if (item
+                                                    .teachingMode.isNotEmpty)
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
                                                       horizontal: 12,
                                                       vertical: 6,
                                                     ),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFE8F1FF),
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      color: const Color(
+                                                          0xFFE8F1FF),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
                                                     ),
                                                     child: Text(
                                                       item.teachingMode.first,
                                                       style: TextStyle(
-                                                        fontSize: isTablet ? 14 : 11,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: const Color(0xFF0B5ED7),
+                                                        fontSize:
+                                                            isTablet ? 14 : 11,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: const Color(
+                                                            0xFF0B5ED7),
                                                       ),
                                                     ),
                                                   ),
-
                                                 const SizedBox(width: 8),
-
                                                 Expanded(
                                                   child: Container(
-                                                    padding: const EdgeInsets.symmetric(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
                                                       horizontal: 12,
                                                       vertical: 6,
                                                     ),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFF1F3F6),
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      color: const Color(
+                                                          0xFFF1F3F6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
                                                     ),
                                                     child: Text(
                                                       item.location,
                                                       style: TextStyle(
-                                                        fontSize: isTablet ? 14 : 11,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: const Color(0xFF5F6F81),
+                                                        fontSize:
+                                                            isTablet ? 14 : 11,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: const Color(
+                                                            0xFF5F6F81),
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ),
@@ -722,7 +778,6 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                           ],
                                         ),
                                       ),
-
                                       const SizedBox(width: 12),
                                       Icon(
                                         Icons.chevron_right,
@@ -770,7 +825,9 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        _showAll ? "See less" : "See all institutes",
+                                        _showAll
+                                            ? "See less"
+                                            : "See all institutes",
                                         style: TextStyle(
                                           color: const Color(0xFF0B5ED7),
                                           fontSize: isTablet ? 18 : 15,
@@ -779,7 +836,9 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Icon(
-                                        _showAll ? Icons.expand_less : Icons.expand_more,
+                                        _showAll
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
                                         size: isTablet ? 22 : 16,
                                         color: const Color(0xFF0B5ED7),
                                       ),
@@ -836,7 +895,6 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                               ],
                             ),
                           ),
-
                           Container(
                             margin: const EdgeInsets.only(top: 20),
                             width: double.infinity,
@@ -846,7 +904,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                               image: DecorationImage(
                                 image: NetworkImage(
                                   _youtubeUrls.isNotEmpty
-                                      ? _getVideoThumbnail(_youtubeUrls[_currentVideoIndex])
+                                      ? _getVideoThumbnail(
+                                          _youtubeUrls[_currentVideoIndex])
                                       : 'https://img.youtube.com/vi/PHJVAQ6kFHM/maxresdefault.jpg',
                                 ),
                                 fit: BoxFit.cover,
@@ -879,10 +938,10 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                 ),
                                 if (_youtubeUrls.length > 1)
                                   Positioned(
-                                    bottom: 16,
                                     right: 16,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: Colors.black.withOpacity(0.7),
                                         borderRadius: BorderRadius.circular(20),
@@ -891,7 +950,8 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                         children: [
                                           IconButton(
                                             onPressed: _previousVideo,
-                                            icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                                            icon: const Icon(Icons.chevron_left,
+                                                color: Colors.white, size: 20),
                                             constraints: const BoxConstraints(),
                                             padding: EdgeInsets.zero,
                                           ),
@@ -905,7 +965,10 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                                           ),
                                           IconButton(
                                             onPressed: _nextVideo,
-                                            icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                                            icon: const Icon(
+                                                Icons.chevron_right,
+                                                color: Colors.white,
+                                                size: 20),
                                             constraints: const BoxConstraints(),
                                             padding: EdgeInsets.zero,
                                           ),
@@ -917,7 +980,7 @@ class _Tution2ScreenState extends State<Tution2Screen> {
                             ),
                           ),
                         ],
-                        
+
                         const SizedBox(height: 16),
                       ],
                     ),

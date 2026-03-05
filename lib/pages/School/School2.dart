@@ -33,7 +33,7 @@ class _School2ScreenState extends State<School2Screen> {
   // API Data
   List<School> _schools = [];
   List<School> _filteredSchools = [];
-  
+
   // Advertisement Data
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
@@ -55,7 +55,8 @@ class _School2ScreenState extends State<School2Screen> {
     return categorySet.toList();
   }
 
-  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : defaultBannerAds;
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : defaultBannerAds;
 
   @override
   void initState() {
@@ -76,20 +77,21 @@ class _School2ScreenState extends State<School2Screen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             _pageName = apiData['page_name'];
-            
+
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
           });
@@ -110,10 +112,10 @@ class _School2ScreenState extends State<School2Screen> {
     try {
       final schoolsData = await SchoolService().fetchSchools();
       final schools = schoolsData.map((json) => School.fromJson(json)).toList();
-      
+
       // Small delay to ensure loader is visible
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       if (mounted) {
         setState(() {
           _schools = schools;
@@ -149,17 +151,17 @@ class _School2ScreenState extends State<School2Screen> {
   void _filterSchools() {
     setState(() {
       _filteredSchools = _schools.where((school) {
-        final matchesCategory = _selectedCategory == "All" || 
+        final matchesCategory = _selectedCategory == "All" ||
             school.category.contains(_selectedCategory);
-        
+
         final schoolName = school.schoolName.toLowerCase();
         final location = school.location.toLowerCase();
         final query = _searchQuery.toLowerCase();
-        
-        final matchesSearch = _searchQuery.isEmpty || 
+
+        final matchesSearch = _searchQuery.isEmpty ||
             schoolName.contains(query) ||
             location.contains(query);
-        
+
         return matchesCategory && matchesSearch;
       }).toList();
     });
@@ -175,7 +177,8 @@ class _School2ScreenState extends State<School2Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -226,7 +229,7 @@ class _School2ScreenState extends State<School2Screen> {
               ),
             ],
           ),
-          
+
           // Glass Loader - covers entire screen when loading
           if (_isLoading)
             const GlassLoader(
@@ -374,7 +377,7 @@ class _School2ScreenState extends State<School2Screen> {
 
   Widget _buildAdBanner(double screenWidth) {
     return SizedBox(
-      height: isTablet ? 200 : 180,
+      height: isTablet ? 300 : 200,
       child: PageView.builder(
         controller: _bannerController,
         itemCount: bannerAds.length,
@@ -388,15 +391,15 @@ class _School2ScreenState extends State<School2Screen> {
         itemBuilder: (context, index) {
           return SizedBox(
             width: screenWidth,
-            height: isTablet ? 200 : 180,
+            height: isTablet ? 300 : 200,
             child: Image.network(
               bannerAds[index],
               width: screenWidth,
-              height: isTablet ? 200 : 180,
+              height: isTablet ? 300 : 200,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 width: screenWidth,
-                height: isTablet ? 200 : 180,
+                height: isTablet ? 300 : 200,
                 color: const Color(0xFF0052A2),
                 child: Center(
                   child: Column(
@@ -423,13 +426,15 @@ class _School2ScreenState extends State<School2Screen> {
                 if (loadingProgress == null) return child;
                 return Container(
                   width: screenWidth,
-                  height: isTablet ? 200 : 180,
+                  height: isTablet ? 300 : 200,
                   color: const Color(0xFF0052A2),
                   child: Center(
                     child: CircularProgressIndicator(
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.white),
                       value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
                           : null,
                     ),
                   ),
@@ -454,9 +459,9 @@ class _School2ScreenState extends State<School2Screen> {
             height: 8,
             margin: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
-              color: _currentBannerIndex == index 
-                ? const Color(0xFF0B5ED7) 
-                : const Color(0xFFCCCCCC),
+              color: _currentBannerIndex == index
+                  ? const Color(0xFF0B5ED7)
+                  : const Color(0xFFCCCCCC),
               borderRadius: BorderRadius.circular(4),
             ),
           );
@@ -547,9 +552,7 @@ class _School2ScreenState extends State<School2Screen> {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: _showFilters 
-                  ? const Color(0xFF0B5ED7) 
-                  : Colors.white,
+                color: _showFilters ? const Color(0xFF0B5ED7) : Colors.white,
                 borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
                 boxShadow: [
                   BoxShadow(
@@ -565,9 +568,8 @@ class _School2ScreenState extends State<School2Screen> {
                   Icon(
                     Icons.filter_list,
                     size: isTablet ? 22 : 18,
-                    color: _showFilters 
-                      ? Colors.white 
-                      : const Color(0xFF0B5ED7),
+                    color:
+                        _showFilters ? Colors.white : const Color(0xFF0B5ED7),
                   ),
                   if (_showFilters) ...[
                     const SizedBox(width: 8),
@@ -633,7 +635,7 @@ class _School2ScreenState extends State<School2Screen> {
 
   Widget _buildFilterOption(String label, String value) {
     final isSelected = _selectedCategory == value;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -647,9 +649,7 @@ class _School2ScreenState extends State<School2Screen> {
           vertical: isTablet ? 10 : 8,
         ),
         decoration: BoxDecoration(
-          color: isSelected 
-            ? const Color(0xFF0B5ED7) 
-            : const Color(0xFFF5F7FA),
+          color: isSelected ? const Color(0xFF0B5ED7) : const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -666,7 +666,7 @@ class _School2ScreenState extends State<School2Screen> {
 
   Widget _buildCategories() {
     final cats = categories;
-    
+
     if (cats.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -683,7 +683,7 @@ class _School2ScreenState extends State<School2Screen> {
         itemBuilder: (context, index) {
           final category = cats[index];
           final isSelected = _selectedCategory == category;
-          
+
           return Container(
             margin: EdgeInsets.only(right: isTablet ? 12 : 8),
             child: GestureDetector(
@@ -699,9 +699,9 @@ class _School2ScreenState extends State<School2Screen> {
                   vertical: isTablet ? 10 : 8,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected 
-                    ? const Color(0xFF0B5ED7) 
-                    : const Color(0xFFF1F3F6),
+                  color: isSelected
+                      ? const Color(0xFF0B5ED7)
+                      : const Color(0xFFF1F3F6),
                   borderRadius: BorderRadius.circular(isTablet ? 20 : 18),
                   boxShadow: [
                     if (!isSelected)
@@ -715,9 +715,7 @@ class _School2ScreenState extends State<School2Screen> {
                 child: Text(
                   category,
                   style: TextStyle(
-                    color: isSelected 
-                      ? Colors.white 
-                      : const Color(0xFF5F6F81),
+                    color: isSelected ? Colors.white : const Color(0xFF5F6F81),
                     fontSize: isTablet ? 16 : 13,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   ),
@@ -816,7 +814,7 @@ class _School2ScreenState extends State<School2Screen> {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
-          context, 
+          context,
           '/school3',
           arguments: school.toJson(),
         );
@@ -850,7 +848,8 @@ class _School2ScreenState extends State<School2Screen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
-                child: school.schoolLogo != null && school.schoolLogo!.isNotEmpty
+                child: school.schoolLogo != null &&
+                        school.schoolLogo!.isNotEmpty
                     ? Image.network(
                         school.schoolLogo!,
                         width: isTablet ? 100 : 80,
@@ -863,7 +862,8 @@ class _School2ScreenState extends State<School2Screen> {
                             child: Center(
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF0B5ED7)),
                               ),
                             ),
                           );
@@ -889,9 +889,9 @@ class _School2ScreenState extends State<School2Screen> {
                       ),
               ),
             ),
-            
+
             const SizedBox(width: 14),
-            
+
             // School Details
             Expanded(
               child: Column(
@@ -943,9 +943,9 @@ class _School2ScreenState extends State<School2Screen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Location
                   Text(
                     "📍 ${school.location}",
@@ -956,9 +956,9 @@ class _School2ScreenState extends State<School2Screen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Result info
                   Text(
                     "📊 ${school.result}",
@@ -969,9 +969,9 @@ class _School2ScreenState extends State<School2Screen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Category Tags
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -1002,9 +1002,9 @@ class _School2ScreenState extends State<School2Screen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // Chevron Icon
             Icon(
               Icons.chevron_right,
@@ -1019,7 +1019,7 @@ class _School2ScreenState extends State<School2Screen> {
 
   Widget _buildVideoHeader() {
     if (_youtubeUrls.isEmpty) return const SizedBox.shrink();
-    
+
     return Container(
       margin: EdgeInsets.only(
         top: isTablet ? 24 : 20,
@@ -1044,7 +1044,8 @@ class _School2ScreenState extends State<School2Screen> {
               children: [
                 IconButton(
                   onPressed: _previousVideo,
-                  icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                  icon:
+                      const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
                 ),
                 Text(
                   '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
@@ -1055,7 +1056,8 @@ class _School2ScreenState extends State<School2Screen> {
                 ),
                 IconButton(
                   onPressed: _nextVideo,
-                  icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                  icon:
+                      const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
                 ),
               ],
             ),
@@ -1072,7 +1074,7 @@ class _School2ScreenState extends State<School2Screen> {
           bottom: 0,
         ),
         width: double.infinity,
-        height: isTablet ? 320 : 220,
+        height: isTablet ? 320 : 250,
         decoration: const BoxDecoration(
           color: Colors.black,
           image: DecorationImage(
@@ -1127,7 +1129,7 @@ class _School2ScreenState extends State<School2Screen> {
           bottom: 0,
         ),
         width: double.infinity,
-        height: isTablet ? 320 : 220,
+        height: isTablet ? 320 : 250,
         decoration: BoxDecoration(
           color: Colors.black,
           image: DecorationImage(

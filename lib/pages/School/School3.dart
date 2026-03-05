@@ -14,9 +14,6 @@ import 'package:flutter/foundation.dart';
 import '../../Widgets/ImageGalleryPopup.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 
-
-
-
 // ==================== SCHOOL DETAILS SCREEN ====================
 class School3Screen extends StatefulWidget {
   final Map<String, dynamic>? school;
@@ -33,7 +30,7 @@ class _School3ScreenState extends State<School3Screen> {
   List<String> _youtubeUrls = [];
   int _currentAd = 0;
   int _currentVideoIndex = 0;
-  
+
   // Default ads (fallback if API fails)
   final List<String> defaultAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200',
@@ -45,19 +42,19 @@ class _School3ScreenState extends State<School3Screen> {
   final TextEditingController _reviewController = TextEditingController();
   Timer? _timer;
   int _footerIndex = 0;
-  
+
   final PageController _pageController = PageController();
-  
+
   // Reviews from API
   List<Map<String, dynamic>> _reviews = [];
   double _averageRating = 0.0;
   int _totalReviews = 0;
-  
+
   bool _isLoading = false;
   bool _isSubmittingReview = false;
   String? _errorMessage;
   Map<String, dynamic>? _fetchedSchool;
-  
+
   // Authentication using AuthTokenManager
   final AuthTokenManager _authManager = AuthTokenManager.instance;
   bool _isLoggedIn = false;
@@ -67,21 +64,24 @@ class _School3ScreenState extends State<School3Screen> {
 
   List<String> get ads => _adImages.isNotEmpty ? _adImages : defaultAds;
 
-  Map<String, dynamic> get school => _fetchedSchool ?? widget.school ?? {
-    'schoolName': 'Loading school...',
-    'location': '',
-    'about': '',
-    'rating': '0.0',
-    'result': '',
-    'classes': [],
-    'classesOffered': [],
-    'teachingMode': [],
-    'category': [],
-    'mobileNumber': '',
-    'whatsappNumber': '',
-    'mapLink': '',
-    'schoolLogo': '',
-  };
+  Map<String, dynamic> get school =>
+      _fetchedSchool ??
+      widget.school ??
+      {
+        'schoolName': 'Loading school...',
+        'location': '',
+        'about': '',
+        'rating': '0.0',
+        'result': '',
+        'classes': [],
+        'classesOffered': [],
+        'teachingMode': [],
+        'category': [],
+        'mobileNumber': '',
+        'whatsappNumber': '',
+        'mapLink': '',
+        'schoolLogo': '',
+      };
 
   @override
   void initState() {
@@ -102,18 +102,19 @@ class _School3ScreenState extends State<School3Screen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
           });
@@ -147,7 +148,7 @@ class _School3ScreenState extends State<School3Screen> {
     try {
       final hasToken = await _authManager.hasToken();
       final userData = await _authManager.getUserData();
-      
+
       if (mounted) {
         setState(() {
           _isLoggedIn = hasToken;
@@ -155,7 +156,7 @@ class _School3ScreenState extends State<School3Screen> {
           _isAuthChecking = false;
         });
       }
-      
+
       // Load reviews after auth check
       _loadReviews();
     } catch (e) {
@@ -211,12 +212,13 @@ class _School3ScreenState extends State<School3Screen> {
       );
 
       // Format reviews
-      final formattedReviews = reviews.map((r) => ReviewService().formatReview(r)).toList();
+      final formattedReviews =
+          reviews.map((r) => ReviewService().formatReview(r)).toList();
 
       // Get average rating and total from response
       double avgRating = 0.0;
       int totalReviews = reviews.length;
-      
+
       if (avgData['averageRating'] != null) {
         avgRating = (avgData['averageRating'] as num).toDouble();
       }
@@ -227,7 +229,8 @@ class _School3ScreenState extends State<School3Screen> {
       // Check if current user has reviewed
       bool userReviewed = false;
       if (_currentUserId != null) {
-        userReviewed = formattedReviews.any((r) => r['userId'] == _currentUserId);
+        userReviewed =
+            formattedReviews.any((r) => r['userId'] == _currentUserId);
       }
 
       if (mounted) {
@@ -302,11 +305,10 @@ class _School3ScreenState extends State<School3Screen> {
         setState(() {
           _hasUserReviewed = true;
         });
-        
+
         if (mounted) {
-          _showDialog('Already Reviewed', 
-            'You have already submitted a review for this school. Each user can only post one review.'
-          );
+          _showDialog('Already Reviewed',
+              'You have already submitted a review for this school. Each user can only post one review.');
         }
       } else {
         if (mounted) {
@@ -370,7 +372,8 @@ class _School3ScreenState extends State<School3Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -442,7 +445,8 @@ class _School3ScreenState extends State<School3Screen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('WhatsApp'),
-          content: Text('Open WhatsApp chat with ${school['schoolName']} ($whatsapp)?'),
+          content: Text(
+              'Open WhatsApp chat with ${school['schoolName']} ($whatsapp)?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -464,7 +468,8 @@ class _School3ScreenState extends State<School3Screen> {
     }
   }
 
-  Widget _buildChip(String label, bool isMobile, bool isTablet, bool isDesktop) {
+  Widget _buildChip(
+      String label, bool isMobile, bool isTablet, bool isDesktop) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
@@ -486,7 +491,8 @@ class _School3ScreenState extends State<School3Screen> {
     );
   }
 
-  Widget _buildTeachingModeChip(String label, bool isMobile, bool isTablet, bool isDesktop) {
+  Widget _buildTeachingModeChip(
+      String label, bool isMobile, bool isTablet, bool isDesktop) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
@@ -501,7 +507,9 @@ class _School3ScreenState extends State<School3Screen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            label.toLowerCase().contains('online') ? Icons.videocam_outlined : Icons.person_outline,
+            label.toLowerCase().contains('online')
+                ? Icons.videocam_outlined
+                : Icons.person_outline,
             size: 16,
             color: const Color(0xFF0369A1),
           ),
@@ -628,16 +636,28 @@ class _School3ScreenState extends State<School3Screen> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
-    final double bannerHeight = isMobile ? 180 : isTablet ? 300 : 300;
-    final double videoHeight = isMobile ? 200 : isTablet ? 0 : 350;
-    
+
+    final double bannerHeight = isMobile
+        ? 200
+        : isTablet
+            ? 300
+            : 300;
+    final double videoHeight = isMobile
+        ? 250
+        : isTablet
+            ? 320
+            : 400;
+
     final double horizontalPadding = 16.0;
-    final double cardPadding = isMobile ? 16 : isTablet ? 18 : 22;
+    final double cardPadding = isMobile
+        ? 16
+        : isTablet
+            ? 18
+            : 22;
 
     // Parse rating
     double ratingValue = _averageRating > 0 ? _averageRating : 0.0;
@@ -693,7 +713,8 @@ class _School3ScreenState extends State<School3Screen> {
                                   color: const Color(0xFF0052A2),
                                   child: Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.broken_image,
@@ -713,7 +734,8 @@ class _School3ScreenState extends State<School3Screen> {
                                   ),
                                 );
                               },
-                              loadingBuilder: (context, child, loadingProgress) {
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
                                 return Container(
                                   width: screenWidth,
@@ -721,10 +743,17 @@ class _School3ScreenState extends State<School3Screen> {
                                   color: const Color(0xFF0052A2),
                                   child: Center(
                                     child: CircularProgressIndicator(
-                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                          : null,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
                                     ),
                                   ),
                                 );
@@ -745,9 +774,9 @@ class _School3ScreenState extends State<School3Screen> {
                           height: 8,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
-                            color: _currentAd == index 
-                              ? const Color(0xFF0B5ED7) 
-                              : const Color(0xFFCCCCCC),
+                            color: _currentAd == index
+                                ? const Color(0xFF0B5ED7)
+                                : const Color(0xFFCCCCCC),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         );
@@ -764,7 +793,8 @@ class _School3ScreenState extends State<School3Screen> {
                           // Hero Card
                           Container(
                             width: double.infinity,
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             padding: EdgeInsets.all(cardPadding),
                             decoration: BoxDecoration(
                               color: const Color(0xFF0052A2),
@@ -776,41 +806,50 @@ class _School3ScreenState extends State<School3Screen> {
                                 // School Logo and Name Row
                                 Row(
                                   children: [
-                                    if (school['schoolLogo'] != null && school['schoolLogo'].toString().isNotEmpty)
+                                    if (school['schoolLogo'] != null &&
+                                        school['schoolLogo']
+                                            .toString()
+                                            .isNotEmpty)
                                       Container(
                                         width: 60,
                                         height: 60,
-                                        margin: const EdgeInsets.only(right: 12),
+                                        margin:
+                                            const EdgeInsets.only(right: 12),
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Builder(
-                                            builder: (context) {
-                                              if (kDebugMode) {
-                                                debugPrint('[DEBUG SCHOOL 3] Logo for ${school['schoolName']}: ${school['schoolLogo']}');
-                                              }
-                                              return Image.network(
-                                                school['schoolLogo'].toString(),
-                                                fit: BoxFit.cover,
-                                                loadingBuilder: (context, child, loadingProgress) {
-                                                  if (loadingProgress == null) return child;
-                                                  return Container(
-                                                    color: Colors.white.withOpacity(0.1),
-                                                    child: const Center(
-                                                      child: GlassLoader(),
-                                                    ),
-                                                  );
-                                                },
-                                                errorBuilder: (context, error, stackTrace) => Container(
-                                                  color: Colors.red[50],
-                                                  child: const Icon(
-                                                    Icons.warning_amber_rounded,
-                                                    color: Colors.red,
-                                                    size: 30,
-                                                  ),
-                                                ),
-                                              );
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: Builder(builder: (context) {
+                                            if (kDebugMode) {
+                                              debugPrint(
+                                                  '[DEBUG SCHOOL 3] Logo for ${school['schoolName']}: ${school['schoolLogo']}');
                                             }
-                                          ),
+                                            return Image.network(
+                                              school['schoolLogo'].toString(),
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null)
+                                                  return child;
+                                                return Container(
+                                                  color: Colors.white
+                                                      .withOpacity(0.1),
+                                                  child: const Center(
+                                                    child: GlassLoader(),
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder: (context, error,
+                                                      stackTrace) =>
+                                                  Container(
+                                                color: Colors.red[50],
+                                                child: const Icon(
+                                                  Icons.warning_amber_rounded,
+                                                  color: Colors.red,
+                                                  size: 30,
+                                                ),
+                                              ),
+                                            );
+                                          }),
                                         ),
                                       ),
                                     Expanded(
@@ -818,16 +857,20 @@ class _School3ScreenState extends State<School3Screen> {
                                         school['schoolName'],
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: isMobile ? 20 : isTablet ? 22 : 24,
+                                          fontSize: isMobile
+                                              ? 20
+                                              : isTablet
+                                                  ? 22
+                                                  : 24,
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 8),
-                                
+
                                 // Rating and Result
                                 Row(
                                   children: [
@@ -875,7 +918,11 @@ class _School3ScreenState extends State<School3Screen> {
                                         school['result'] ?? '',
                                         style: TextStyle(
                                           color: const Color(0xFFE8F0FF),
-                                          fontSize: isMobile ? 12 : isTablet ? 13 : 14,
+                                          fontSize: isMobile
+                                              ? 12
+                                              : isTablet
+                                                  ? 13
+                                                  : 14,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -883,16 +930,20 @@ class _School3ScreenState extends State<School3Screen> {
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 8),
-                                
+
                                 // Location
                                 Row(
                                   children: [
                                     Icon(
                                       Icons.location_on_outlined,
                                       color: const Color(0xFFE8F0FF),
-                                      size: isMobile ? 16 : isTablet ? 18 : 20,
+                                      size: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
@@ -900,21 +951,27 @@ class _School3ScreenState extends State<School3Screen> {
                                         school['location'] ?? '',
                                         style: TextStyle(
                                           color: const Color(0xFFE8F0FF),
-                                          fontSize: isMobile ? 12 : isTablet ? 14 : 15,
+                                          fontSize: isMobile
+                                              ? 12
+                                              : isTablet
+                                                  ? 14
+                                                  : 15,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 12),
-                                
+
                                 // Category Tags
-                                if (school['category'] != null && (school['category'] as List).isNotEmpty)
+                                if (school['category'] != null &&
+                                    (school['category'] as List).isNotEmpty)
                                   Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: (school['category'] as List).map((cat) {
+                                    children:
+                                        (school['category'] as List).map((cat) {
                                       return Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
@@ -922,9 +979,11 @@ class _School3ScreenState extends State<School3Screen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           border: Border.all(
-                                            color: Colors.white.withOpacity(0.3),
+                                            color:
+                                                Colors.white.withOpacity(0.3),
                                           ),
                                         ),
                                         child: Text(
@@ -945,10 +1004,12 @@ class _School3ScreenState extends State<School3Screen> {
                           const SizedBox(height: 16),
 
                           // Classes Offered
-                          if (school['classes'] != null && (school['classes'] as List).isNotEmpty)
+                          if (school['classes'] != null &&
+                              (school['classes'] as List).isNotEmpty)
                             Container(
                               width: double.infinity,
-                              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -960,7 +1021,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     'Classes Offered',
                                     style: TextStyle(
-                                      fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                      fontSize: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -969,8 +1034,10 @@ class _School3ScreenState extends State<School3Screen> {
                                   Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: (school['classes'] as List).map((className) {
-                                      return _buildChip(className.toString(), isMobile, isTablet, isDesktop);
+                                    children: (school['classes'] as List)
+                                        .map((className) {
+                                      return _buildChip(className.toString(),
+                                          isMobile, isTablet, isDesktop);
                                     }).toList(),
                                   ),
                                 ],
@@ -980,10 +1047,12 @@ class _School3ScreenState extends State<School3Screen> {
                           const SizedBox(height: 16),
 
                           // Teaching Mode
-                          if (school['teachingMode'] != null && (school['teachingMode'] as List).isNotEmpty)
+                          if (school['teachingMode'] != null &&
+                              (school['teachingMode'] as List).isNotEmpty)
                             Container(
                               width: double.infinity,
-                              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -995,7 +1064,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     'Teaching Mode',
                                     style: TextStyle(
-                                      fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                      fontSize: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -1004,8 +1077,13 @@ class _School3ScreenState extends State<School3Screen> {
                                   Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: (school['teachingMode'] as List).map((mode) {
-                                      return _buildTeachingModeChip(mode.toString(), isMobile, isTablet, isDesktop);
+                                    children: (school['teachingMode'] as List)
+                                        .map((mode) {
+                                      return _buildTeachingModeChip(
+                                          mode.toString(),
+                                          isMobile,
+                                          isTablet,
+                                          isDesktop);
                                     }).toList(),
                                   ),
                                 ],
@@ -1015,10 +1093,12 @@ class _School3ScreenState extends State<School3Screen> {
                           const SizedBox(height: 16),
 
                           // Extracurricular Activities
-                          if (school['classesOffered'] != null && (school['classesOffered'] as List).isNotEmpty)
+                          if (school['classesOffered'] != null &&
+                              (school['classesOffered'] as List).isNotEmpty)
                             Container(
                               width: double.infinity,
-                              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -1030,7 +1110,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     'Extracurricular Activities',
                                     style: TextStyle(
-                                      fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                      fontSize: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -1039,8 +1123,10 @@ class _School3ScreenState extends State<School3Screen> {
                                   Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: (school['classesOffered'] as List).map((activity) {
-                                      return _buildChip(activity.toString(), isMobile, isTablet, isDesktop);
+                                    children: (school['classesOffered'] as List)
+                                        .map((activity) {
+                                      return _buildChip(activity.toString(),
+                                          isMobile, isTablet, isDesktop);
                                     }).toList(),
                                   ),
                                 ],
@@ -1051,7 +1137,8 @@ class _School3ScreenState extends State<School3Screen> {
 
                           // View Map Button
                           Container(
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             child: ElevatedButton(
                               onPressed: _openMap,
                               style: ElevatedButton.styleFrom(
@@ -1060,7 +1147,12 @@ class _School3ScreenState extends State<School3Screen> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 minimumSize: const Size(double.infinity, 50),
-                                padding: EdgeInsets.symmetric(vertical: isMobile ? 14 : isTablet ? 16 : 18),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: isMobile
+                                        ? 14
+                                        : isTablet
+                                            ? 16
+                                            : 18),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1068,7 +1160,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Icon(
                                     Icons.map_outlined,
                                     color: Colors.white,
-                                    size: isMobile ? 18 : isTablet ? 20 : 22,
+                                    size: isMobile
+                                        ? 18
+                                        : isTablet
+                                            ? 20
+                                            : 22,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -1076,7 +1172,11 @@ class _School3ScreenState extends State<School3Screen> {
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: isMobile ? 14 : isTablet ? 16 : 18,
+                                      fontSize: isMobile
+                                          ? 14
+                                          : isTablet
+                                              ? 16
+                                              : 18,
                                     ),
                                   ),
                                 ],
@@ -1090,7 +1190,8 @@ class _School3ScreenState extends State<School3Screen> {
                           if (school['about'] != null)
                             Container(
                               width: double.infinity,
-                              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -1102,7 +1203,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     'About School',
                                     style: TextStyle(
-                                      fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                      fontSize: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -1111,7 +1216,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     school['about'],
                                     style: TextStyle(
-                                      fontSize: isMobile ? 13 : isTablet ? 15 : 16,
+                                      fontSize: isMobile
+                                          ? 13
+                                          : isTablet
+                                              ? 15
+                                              : 16,
                                       color: const Color(0xFF5F6F81),
                                       height: 1.5,
                                     ),
@@ -1121,12 +1230,14 @@ class _School3ScreenState extends State<School3Screen> {
                             ),
 
                           const SizedBox(height: 16),
-                          
+
                           // School Gallery
-                          if (school['gallery'] != null && (school['gallery'] as List).isNotEmpty)
+                          if (school['gallery'] != null &&
+                              (school['gallery'] as List).isNotEmpty)
                             Container(
                               width: double.infinity,
-                              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding),
                               padding: EdgeInsets.all(cardPadding),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -1138,7 +1249,11 @@ class _School3ScreenState extends State<School3Screen> {
                                   Text(
                                     'School Gallery',
                                     style: TextStyle(
-                                      fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                      fontSize: isMobile
+                                          ? 16
+                                          : isTablet
+                                              ? 18
+                                              : 20,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.black,
                                     ),
@@ -1148,35 +1263,48 @@ class _School3ScreenState extends State<School3Screen> {
                                     height: isMobile ? 120 : 180,
                                     child: ListView.builder(
                                       scrollDirection: Axis.horizontal,
-                                      itemCount: (school['gallery'] as List).length,
+                                      itemCount:
+                                          (school['gallery'] as List).length,
                                       itemBuilder: (context, index) {
-                                        final imageUrl = (school['gallery'] as List)[index].toString();
+                                        final imageUrl =
+                                            (school['gallery'] as List)[index]
+                                                .toString();
                                         return Container(
                                           width: isMobile ? 180 : 250,
-                                          margin: const EdgeInsets.only(right: 12),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            final galleryList = (school['gallery'] as List)
-                                                .map((e) => e.toString())
-                                                .toList();
-                                            showImageGallery(context, galleryList, index);
-                                          },
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(12),
-                                            child: CachedNetworkImage(
-                                              imageUrl: imageUrl,
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) => Container(
-                                                color: Colors.grey[200],
-                                                child: const Center(child: GlassLoader()),
-                                              ),
-                                              errorWidget: (context, url, error) => Container(
-                                                color: Colors.grey[200],
-                                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                                          margin:
+                                              const EdgeInsets.only(right: 12),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              final galleryList =
+                                                  (school['gallery'] as List)
+                                                      .map((e) => e.toString())
+                                                      .toList();
+                                              showImageGallery(
+                                                  context, galleryList, index);
+                                            },
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: CachedNetworkImage(
+                                                imageUrl: imageUrl,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Container(
+                                                  color: Colors.grey[200],
+                                                  child: const Center(
+                                                      child: GlassLoader()),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        Container(
+                                                  color: Colors.grey[200],
+                                                  child: const Icon(
+                                                      Icons.image_not_supported,
+                                                      color: Colors.grey),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
                                         );
                                       },
                                     ),
@@ -1184,12 +1312,13 @@ class _School3ScreenState extends State<School3Screen> {
                                 ],
                               ),
                             ),
-                            
+
                           const SizedBox(height: 16),
 
                           // Call & WhatsApp Buttons
                           Container(
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             child: Row(
                               children: [
                                 Expanded(
@@ -1201,16 +1330,25 @@ class _School3ScreenState extends State<School3Screen> {
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                       padding: EdgeInsets.symmetric(
-                                        vertical: isMobile ? 14 : isTablet ? 16 : 18,
+                                        vertical: isMobile
+                                            ? 14
+                                            : isTablet
+                                                ? 16
+                                                : 18,
                                       ),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.call,
                                           color: Colors.white,
-                                          size: isMobile ? 18 : isTablet ? 20 : 22,
+                                          size: isMobile
+                                              ? 18
+                                              : isTablet
+                                                  ? 20
+                                                  : 22,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
@@ -1218,16 +1356,23 @@ class _School3ScreenState extends State<School3Screen> {
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w700,
-                                            fontSize: isMobile ? 14 : isTablet ? 16 : 17,
+                                            fontSize: isMobile
+                                                ? 14
+                                                : isTablet
+                                                    ? 16
+                                                    : 17,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
-                                
-                                SizedBox(width: isMobile ? 8 : isTablet ? 10 : 12),
-                                
+                                SizedBox(
+                                    width: isMobile
+                                        ? 8
+                                        : isTablet
+                                            ? 10
+                                            : 12),
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: _openWhatsApp,
@@ -1237,16 +1382,25 @@ class _School3ScreenState extends State<School3Screen> {
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                       padding: EdgeInsets.symmetric(
-                                        vertical: isMobile ? 14 : isTablet ? 16 : 18,
+                                        vertical: isMobile
+                                            ? 14
+                                            : isTablet
+                                                ? 16
+                                                : 18,
                                       ),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.chat,
                                           color: Colors.white,
-                                          size: isMobile ? 18 : isTablet ? 20 : 22,
+                                          size: isMobile
+                                              ? 18
+                                              : isTablet
+                                                  ? 20
+                                                  : 22,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
@@ -1254,7 +1408,11 @@ class _School3ScreenState extends State<School3Screen> {
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w700,
-                                            fontSize: isMobile ? 14 : isTablet ? 16 : 17,
+                                            fontSize: isMobile
+                                                ? 14
+                                                : isTablet
+                                                    ? 16
+                                                    : 17,
                                           ),
                                         ),
                                       ],
@@ -1270,7 +1428,8 @@ class _School3ScreenState extends State<School3Screen> {
                           // Rate & Review Section
                           Container(
                             width: double.infinity,
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             padding: EdgeInsets.all(cardPadding),
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -1280,12 +1439,17 @@ class _School3ScreenState extends State<School3Screen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Rate & Review',
                                       style: TextStyle(
-                                        fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                        fontSize: isMobile
+                                            ? 16
+                                            : isTablet
+                                                ? 18
+                                                : 20,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
@@ -1295,15 +1459,16 @@ class _School3ScreenState extends State<School3Screen> {
                                         onPressed: _navigateToLogin,
                                         child: const Text(
                                           'Login to review',
-                                          style: TextStyle(color: Color(0xFF0B5ED7)),
+                                          style: TextStyle(
+                                              color: Color(0xFF0B5ED7)),
                                         ),
                                       ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                
                                 if (_isAuthChecking)
-                                  const Center(child: Padding(
+                                  const Center(
+                                      child: Padding(
                                     padding: EdgeInsets.all(20),
                                     child: GlassLoader(),
                                   ))
@@ -1314,15 +1479,18 @@ class _School3ScreenState extends State<School3Screen> {
                                       children: [
                                         const Text(
                                           'Login to share your experience',
-                                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                                          style: TextStyle(
+                                              fontSize: 14, color: Colors.grey),
                                         ),
                                         const SizedBox(height: 8),
                                         ElevatedButton(
                                           onPressed: _navigateToLogin,
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF0B5ED7),
+                                            backgroundColor:
+                                                const Color(0xFF0B5ED7),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(20),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                             ),
                                           ),
                                           child: const Text('Login to review'),
@@ -1342,7 +1510,8 @@ class _School3ScreenState extends State<School3Screen> {
                                       children: [
                                         Row(
                                           children: [
-                                            Icon(Icons.info_outline, color: Colors.orange[700]),
+                                            Icon(Icons.info_outline,
+                                                color: Colors.orange[700]),
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
@@ -1382,9 +1551,14 @@ class _School3ScreenState extends State<School3Screen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: List.generate(5, (index) {
                                       return IconButton(
-                                        onPressed: _isSubmittingReview ? null : () => setState(() => _rating = index + 1),
+                                        onPressed: _isSubmittingReview
+                                            ? null
+                                            : () => setState(
+                                                () => _rating = index + 1),
                                         icon: Icon(
-                                          index < _rating ? Icons.star : Icons.star_border,
+                                          index < _rating
+                                              ? Icons.star
+                                              : Icons.star_border,
                                           size: isTablet ? 36 : 32,
                                           color: const Color(0xFFFFD700),
                                         ),
@@ -1398,7 +1572,8 @@ class _School3ScreenState extends State<School3Screen> {
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF8FAFF),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: const Color(0xFFE0E7FF)),
+                                      border: Border.all(
+                                          color: const Color(0xFFE0E7FF)),
                                     ),
                                     child: TextField(
                                       controller: _reviewController,
@@ -1412,7 +1587,8 @@ class _School3ScreenState extends State<School3Screen> {
                                           fontSize: isTablet ? 16 : 14,
                                         ),
                                         border: InputBorder.none,
-                                        contentPadding: EdgeInsets.all(isTablet ? 16 : 12),
+                                        contentPadding:
+                                            EdgeInsets.all(isTablet ? 16 : 12),
                                       ),
                                       style: TextStyle(
                                         fontSize: isTablet ? 16 : 14,
@@ -1423,12 +1599,16 @@ class _School3ScreenState extends State<School3Screen> {
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
-                                      onPressed: _isSubmittingReview ? null : _submitReview,
+                                      onPressed: _isSubmittingReview
+                                          ? null
+                                          : _submitReview,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0B5ED7),
+                                        backgroundColor:
+                                            const Color(0xFF0B5ED7),
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(30),
+                                          borderRadius:
+                                              BorderRadius.circular(30),
                                         ),
                                         padding: EdgeInsets.symmetric(
                                           vertical: isTablet ? 16 : 14,
@@ -1442,7 +1622,8 @@ class _School3ScreenState extends State<School3Screen> {
                                               child: GlassLoader(),
                                             )
                                           : Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
                                               children: [
                                                 Icon(
                                                   Icons.send,
@@ -1452,7 +1633,8 @@ class _School3ScreenState extends State<School3Screen> {
                                                 Text(
                                                   'Submit Review',
                                                   style: TextStyle(
-                                                    fontSize: isTablet ? 16 : 14,
+                                                    fontSize:
+                                                        isTablet ? 16 : 14,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -1470,7 +1652,8 @@ class _School3ScreenState extends State<School3Screen> {
                           // User Reviews Section
                           Container(
                             width: double.infinity,
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             padding: EdgeInsets.all(cardPadding),
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -1480,30 +1663,40 @@ class _School3ScreenState extends State<School3Screen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'User Reviews (${_reviews.length})',
                                       style: TextStyle(
-                                        fontSize: isMobile ? 16 : isTablet ? 18 : 20,
+                                        fontSize: isMobile
+                                            ? 16
+                                            : isTablet
+                                                ? 18
+                                                : 20,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
                                     ),
                                     if (_averageRating > 0)
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFFFF9E6),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.star, size: 16, color: Color(0xFFFFB703)),
+                                            const Icon(Icons.star,
+                                                size: 16,
+                                                color: Color(0xFFFFB703)),
                                             const SizedBox(width: 4),
                                             Text(
                                               _averageRating.toStringAsFixed(1),
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
@@ -1511,7 +1704,6 @@ class _School3ScreenState extends State<School3Screen> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                
                                 if (_reviews.isEmpty)
                                   Container(
                                     padding: const EdgeInsets.all(20),
@@ -1533,7 +1725,8 @@ class _School3ScreenState extends State<School3Screen> {
                                           ),
                                           if (_isLoggedIn && !_hasUserReviewed)
                                             Padding(
-                                              padding: const EdgeInsets.only(top: 8),
+                                              padding:
+                                                  const EdgeInsets.only(top: 8),
                                               child: Text(
                                                 'Be the first to review!',
                                                 style: TextStyle(
@@ -1549,35 +1742,60 @@ class _School3ScreenState extends State<School3Screen> {
                                 else
                                   ..._reviews.map((review) {
                                     return Container(
-                                      margin: EdgeInsets.only(bottom: isMobile ? 10 : isTablet ? 12 : 14),
-                                      padding: EdgeInsets.all(isMobile ? 12 : isTablet ? 14 : 16),
+                                      margin: EdgeInsets.only(
+                                          bottom: isMobile
+                                              ? 10
+                                              : isTablet
+                                                  ? 12
+                                                  : 14),
+                                      padding: EdgeInsets.all(isMobile
+                                          ? 12
+                                          : isTablet
+                                              ? 14
+                                              : 16),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFF8FAFF),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               Expanded(
                                                 child: Text(
                                                   review['name'],
                                                   style: TextStyle(
-                                                    fontSize: isMobile ? 14 : isTablet ? 16 : 17,
+                                                    fontSize: isMobile
+                                                        ? 14
+                                                        : isTablet
+                                                            ? 16
+                                                            : 17,
                                                     fontWeight: FontWeight.w700,
-                                                    color: const Color(0xFF004780),
+                                                    color:
+                                                        const Color(0xFF004780),
                                                   ),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                               Row(
-                                                children: List.generate(5, (index) {
+                                                children:
+                                                    List.generate(5, (index) {
                                                   return Icon(
-                                                    index < review['rating'] ? Icons.star : Icons.star_outline,
-                                                    color: const Color(0xFFFFD700),
-                                                    size: isMobile ? 14 : isTablet ? 16 : 18,
+                                                    index < review['rating']
+                                                        ? Icons.star
+                                                        : Icons.star_outline,
+                                                    color:
+                                                        const Color(0xFFFFD700),
+                                                    size: isMobile
+                                                        ? 14
+                                                        : isTablet
+                                                            ? 16
+                                                            : 18,
                                                   );
                                                 }),
                                               ),
@@ -1587,16 +1805,22 @@ class _School3ScreenState extends State<School3Screen> {
                                           Text(
                                             review['comment'],
                                             style: TextStyle(
-                                              fontSize: isMobile ? 13 : isTablet ? 15 : 16,
+                                              fontSize: isMobile
+                                                  ? 13
+                                                  : isTablet
+                                                      ? 15
+                                                      : 16,
                                               color: const Color(0xFF5F6F81),
                                               height: 1.5,
                                             ),
                                           ),
                                           if (review['createdAt'] != null)
                                             Padding(
-                                              padding: const EdgeInsets.only(top: 8),
+                                              padding:
+                                                  const EdgeInsets.only(top: 8),
                                               child: Text(
-                                                _formatDate(review['createdAt']),
+                                                _formatDate(
+                                                    review['createdAt']),
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   color: Colors.grey[500],
@@ -1615,7 +1839,11 @@ class _School3ScreenState extends State<School3Screen> {
                           if (_youtubeUrls.isNotEmpty || !isTablet || isDesktop)
                             Container(
                               margin: EdgeInsets.only(
-                                top: isMobile ? 32 : isTablet ? 40 : 48,
+                                top: isMobile
+                                    ? 32
+                                    : isTablet
+                                        ? 40
+                                        : 48,
                                 bottom: 0,
                               ),
                               width: double.infinity,
@@ -1625,28 +1853,35 @@ class _School3ScreenState extends State<School3Screen> {
                               ),
                               child: Stack(
                                 children: [
-                                    CommonYoutubePlayer(
-                                      youtubeUrl: _youtubeUrls[_currentVideoIndex],
-                                      height: videoHeight,
-                                      placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
-                                      borderRadius: 0,
-                                    ),
+                                  CommonYoutubePlayer(
+                                    youtubeUrl:
+                                        _youtubeUrls[_currentVideoIndex],
+                                    height: videoHeight,
+                                    placeholderThumbnail: _getVideoThumbnail(
+                                        _youtubeUrls[_currentVideoIndex]),
+                                    borderRadius: 0,
+                                  ),
                                   if (_youtubeUrls.length > 1)
                                     Positioned(
-                                      bottom: 16,
                                       right: 16,
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: Colors.black.withOpacity(0.7),
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         child: Row(
                                           children: [
                                             IconButton(
                                               onPressed: _previousVideo,
-                                              icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-                                              constraints: const BoxConstraints(),
+                                              icon: const Icon(
+                                                  Icons.chevron_left,
+                                                  color: Colors.white,
+                                                  size: 20),
+                                              constraints:
+                                                  const BoxConstraints(),
                                               padding: EdgeInsets.zero,
                                             ),
                                             Text(
@@ -1659,8 +1894,12 @@ class _School3ScreenState extends State<School3Screen> {
                                             ),
                                             IconButton(
                                               onPressed: _nextVideo,
-                                              icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                                              constraints: const BoxConstraints(),
+                                              icon: const Icon(
+                                                  Icons.chevron_right,
+                                                  color: Colors.white,
+                                                  size: 20),
+                                              constraints:
+                                                  const BoxConstraints(),
                                               padding: EdgeInsets.zero,
                                             ),
                                           ],

@@ -11,7 +11,7 @@ import 'package:master/Widgets/CommonYoutubePlayer.dart';
 
 class InstitutionsListScreen extends StatefulWidget {
   final int? typeId; // TypeId passed from Exam3
-  
+
   const InstitutionsListScreen({
     super.key,
     this.typeId,
@@ -48,7 +48,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
     super.initState();
     _fetchInstitutions();
     _fetchAdvertisements();
-    
+
     // Auto scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_adController.hasClients && mounted && adImages.isNotEmpty) {
@@ -72,7 +72,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
 
   Future<void> _fetchInstitutions() async {
     debugPrint('🔄 Loading institutions...');
-    
+
     try {
       String apiUrl;
       if (widget.typeId != null) {
@@ -82,9 +82,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
         // Fetch all institutions
         apiUrl = '${BaseUrl.baseUrl}/api/institutions';
       }
-      
+
       debugPrint('📡 Fetching institutions from: $apiUrl');
-      
+
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {
@@ -111,8 +111,10 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
             // Extract location string and determine area/district
             String location = item['location'] ?? 'Unknown';
             List<String> locationParts = location.split(',');
-            String area = locationParts.isNotEmpty ? locationParts[0].trim() : location;
-            String district = locationParts.length > 1 ? locationParts[1].trim() : location;
+            String area =
+                locationParts.isNotEmpty ? locationParts[0].trim() : location;
+            String district =
+                locationParts.length > 1 ? locationParts[1].trim() : location;
 
             // Add unique areas to filter list
             if (!areas.contains(area) && area != 'Unknown') {
@@ -126,18 +128,21 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
               'district': district,
               'type': _getInstitutionType(item['category']),
               'image': imageUrl,
-              'rating': item['rating'] != null ? double.tryParse(item['rating'].toString()) ?? 0.0 : 0.0,
+              'rating': item['rating'] != null
+                  ? double.tryParse(item['rating'].toString()) ?? 0.0
+                  : 0.0,
               'result': item['result'] ?? '',
               'shortDescription': item['shortDescription'] ?? '',
               'originalData': item, // Keep full data for details page
             };
           }).toList();
-          
+
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load institutions. Status: ${response.statusCode}';
+          _errorMessage =
+              'Failed to load institutions. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -154,7 +159,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
     debugPrint('🔄 Loading advertisements for examinstitutions...');
     try {
       final response = await http.get(
-        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=examinstitutions'),
+        Uri.parse(
+            '${BaseUrl.baseUrl}/api/advertisements?page=examinstitutions'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -164,10 +170,12 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
           if (mounted) {
             setState(() {
               adImages = List<String>.from(data['data']['images'] ?? []);
-              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              youtubeUrls =
+                  List<String>.from(data['data']['youtube_urls'] ?? []);
               _isLoadingAds = false;
             });
-            debugPrint('✅ Loaded ${adImages.length} ad images for examinstitutions');
+            debugPrint(
+                '✅ Loaded ${adImages.length} ad images for examinstitutions');
           }
         }
       } else {
@@ -234,11 +242,18 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
   List<Map<String, dynamic>> get _filteredInstitutions {
     return institutionsData.where((institute) {
       final matchesSearch = _searchQuery.isEmpty ||
-          institute['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          institute['area'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          institute['district'].toLowerCase().contains(_searchQuery.toLowerCase());
+          institute['name']
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          institute['area']
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          institute['district']
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
 
-      final matchesArea = _selectedArea == 'all' || institute['area'] == _selectedArea;
+      final matchesArea =
+          _selectedArea == 'all' || institute['area'] == _selectedArea;
 
       return matchesSearch && matchesArea;
     }).toList();
@@ -271,15 +286,15 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double adHeight = _responsiveValue(180, 200, 200);
+    final double adHeight = _responsiveValue(200, 300, 300);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
@@ -304,7 +319,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: _responsiveValue(52, 72, 80),
                     child: Row(
                       children: [
@@ -386,7 +402,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                           : SingleChildScrollView(
                               child: Center(
                                 child: Container(
-                                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                                  constraints:
+                                      BoxConstraints(maxWidth: maxContentWidth),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -408,13 +425,16 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                                 width: screenWidth,
                                                 height: adHeight,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) {
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
                                                   return Container(
                                                     width: screenWidth,
                                                     height: adHeight,
                                                     color: Colors.black12,
                                                     child: const Center(
-                                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                                      child: Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.grey),
                                                     ),
                                                   );
                                                 },
@@ -438,20 +458,29 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFF6F9FF),
                                           ),
-                                          padding: EdgeInsets.symmetric(vertical: _scale(12)),
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: _scale(12)),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: List.generate(adImages.length, (index) {
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: List.generate(
+                                                adImages.length, (index) {
                                               return AnimatedContainer(
-                                                duration: const Duration(milliseconds: 300),
-                                                width: _activeAdIndex == index ? _scale(16) : _scale(8),
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                width: _activeAdIndex == index
+                                                    ? _scale(16)
+                                                    : _scale(8),
                                                 height: _scale(8),
-                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
+                                                margin: EdgeInsets.symmetric(
+                                                    horizontal: _scale(4)),
                                                 decoration: BoxDecoration(
-                                                  color: _activeAdIndex == index 
-                                                    ? const Color(0xFF0B5ED7) 
-                                                    : const Color(0xFFCCCCCC),
-                                                  borderRadius: BorderRadius.circular(_scale(4)),
+                                                  color: _activeAdIndex == index
+                                                      ? const Color(0xFF0B5ED7)
+                                                      : const Color(0xFFCCCCCC),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          _scale(4)),
                                                 ),
                                               );
                                             }),
@@ -463,18 +492,22 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                         width: double.infinity,
                                         padding: EdgeInsets.symmetric(
                                           horizontal: horizontalPadding,
-                                          vertical: _responsiveValue(16, 20, 24),
+                                          vertical:
+                                              _responsiveValue(16, 20, 24),
                                         ),
                                         child: Container(
                                           padding: EdgeInsets.symmetric(
-                                            horizontal: _responsiveValue(14, 16, 18),
+                                            horizontal:
+                                                _responsiveValue(14, 16, 18),
                                           ),
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(_scale(10)),
+                                            borderRadius: BorderRadius.circular(
+                                                _scale(10)),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withOpacity(0.08),
+                                                color: Colors.black
+                                                    .withOpacity(0.08),
                                                 blurRadius: _scale(6),
                                                 offset: Offset(0, _scale(2)),
                                               ),
@@ -492,17 +525,24 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                                 child: TextField(
                                                   controller: _searchController,
                                                   decoration: InputDecoration(
-                                                    hintText: 'Search institutions...',
+                                                    hintText:
+                                                        'Search institutions...',
                                                     hintStyle: TextStyle(
-                                                      color: const Color(0xFF999999),
-                                                      fontSize: _responsiveValue(14, 15, 16),
+                                                      color: const Color(
+                                                          0xFF999999),
+                                                      fontSize:
+                                                          _responsiveValue(
+                                                              14, 15, 16),
                                                     ),
                                                     border: InputBorder.none,
-                                                    contentPadding: EdgeInsets.zero,
+                                                    contentPadding:
+                                                        EdgeInsets.zero,
                                                   ),
                                                   style: TextStyle(
-                                                    fontSize: _responsiveValue(14, 15, 16),
-                                                    color: const Color(0xFF333333),
+                                                    fontSize: _responsiveValue(
+                                                        14, 15, 16),
+                                                    color:
+                                                        const Color(0xFF333333),
                                                   ),
                                                 ),
                                               ),
@@ -514,7 +554,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                                   icon: Icon(
                                                     Icons.close,
                                                     size: _scale(20),
-                                                    color: const Color(0xFF999999),
+                                                    color:
+                                                        const Color(0xFF999999),
                                                   ),
                                                   padding: EdgeInsets.zero,
                                                   constraints: BoxConstraints(
@@ -534,50 +575,75 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                           padding: EdgeInsets.only(
                                             left: horizontalPadding,
                                             right: horizontalPadding,
-                                            bottom: _responsiveValue(16, 20, 24),
                                           ),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 'Filter by Area:',
                                                 style: TextStyle(
-                                                  fontSize: _responsiveValue(14, 15, 16),
+                                                  fontSize: _responsiveValue(
+                                                      14, 15, 16),
                                                   fontWeight: FontWeight.w600,
-                                                  color: const Color(0xFF003366),
+                                                  color:
+                                                      const Color(0xFF003366),
                                                 ),
                                               ),
                                               SizedBox(height: _scale(8)),
                                               SingleChildScrollView(
-                                                scrollDirection: Axis.horizontal,
+                                                scrollDirection:
+                                                    Axis.horizontal,
                                                 child: Row(
                                                   children: areas.map((area) {
-                                                    bool isActive = _selectedArea == area;
+                                                    bool isActive =
+                                                        _selectedArea == area;
                                                     return Container(
-                                                      margin: EdgeInsets.only(right: _scale(8)),
+                                                      margin: EdgeInsets.only(
+                                                          right: _scale(8)),
                                                       child: ChoiceChip(
                                                         label: Text(
-                                                          area == 'all' ? 'All Areas' : area,
+                                                          area == 'all'
+                                                              ? 'All Areas'
+                                                              : area,
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(13, 14, 15),
-                                                            fontWeight: FontWeight.w600,
-                                                            color: isActive ? Colors.white : const Color(0xFF666666),
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    13, 14, 15),
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: isActive
+                                                                ? Colors.white
+                                                                : const Color(
+                                                                    0xFF666666),
                                                           ),
                                                         ),
                                                         selected: isActive,
                                                         onSelected: (selected) {
                                                           setState(() {
-                                                            _selectedArea = area;
+                                                            _selectedArea =
+                                                                area;
                                                           });
                                                         },
-                                                        backgroundColor: const Color(0xFFF0F0F0),
-                                                        selectedColor: const Color(0xFF4A90E2),
-                                                        padding: EdgeInsets.symmetric(
-                                                          horizontal: _scale(14),
+                                                        backgroundColor:
+                                                            const Color(
+                                                                0xFFF0F0F0),
+                                                        selectedColor:
+                                                            const Color(
+                                                                0xFF4A90E2),
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                          horizontal:
+                                                              _scale(14),
                                                           vertical: _scale(8),
                                                         ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(_scale(16)),
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          16)),
                                                         ),
                                                       ),
                                                     );
@@ -591,15 +657,20 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                       // ===== RESULTS COUNT =====
                                       Container(
                                         width: double.infinity,
-                                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                        margin: EdgeInsets.only(bottom: _responsiveValue(12, 16, 20)),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: horizontalPadding),
+                                        margin: EdgeInsets.only(
+                                            bottom:
+                                                _responsiveValue(12, 16, 20)),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               '${_filteredInstitutions.length} Institutions Found',
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(16, 18, 20),
+                                                fontSize: _responsiveValue(
+                                                    16, 18, 20),
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF003366),
                                               ),
@@ -608,7 +679,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                             Text(
                                               'Showing ${_selectedArea == 'all' ? 'all areas' : _selectedArea}',
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(13, 14, 15),
+                                                fontSize: _responsiveValue(
+                                                    13, 14, 15),
                                                 color: const Color(0xFF666666),
                                               ),
                                             ),
@@ -620,9 +692,11 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                       if (_filteredInstitutions.isNotEmpty) ...[
                                         ListView.builder(
                                           shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
                                           padding: EdgeInsets.zero,
-                                          itemCount: _filteredInstitutions.length,
+                                          itemCount:
+                                              _filteredInstitutions.length,
                                           itemBuilder: (context, index) {
                                             return _buildInstitutionCard(
                                               _filteredInstitutions[index],
@@ -637,7 +711,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                         Container(
                                           width: double.infinity,
                                           padding: EdgeInsets.symmetric(
-                                            vertical: _responsiveValue(40, 50, 60),
+                                            vertical:
+                                                _responsiveValue(40, 50, 60),
                                           ),
                                           child: Column(
                                             children: [
@@ -650,20 +725,26 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                               Text(
                                                 'No institutions found',
                                                 style: TextStyle(
-                                                  fontSize: _responsiveValue(16, 18, 20),
+                                                  fontSize: _responsiveValue(
+                                                      16, 18, 20),
                                                   fontWeight: FontWeight.w600,
-                                                  color: const Color(0xFF666666),
+                                                  color:
+                                                      const Color(0xFF666666),
                                                 ),
                                               ),
                                               SizedBox(height: _scale(8)),
                                               Padding(
-                                                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        horizontalPadding),
                                                 child: Text(
                                                   'Try changing your search or filters',
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    fontSize: _responsiveValue(13, 14, 15),
-                                                    color: const Color(0xFF999999),
+                                                    fontSize: _responsiveValue(
+                                                        13, 14, 15),
+                                                    color:
+                                                        const Color(0xFF999999),
                                                     height: 1.5,
                                                   ),
                                                 ),
@@ -678,35 +759,45 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                                         Padding(
                                           padding: EdgeInsets.symmetric(
                                             horizontal: horizontalPadding,
-                                            vertical: _responsiveValue(16, 20, 24),
+                                            vertical:
+                                                _responsiveValue(16, 20, 24),
                                           ),
                                           child: Row(
                                             children: [
-                                              const Icon(Icons.play_circle_fill, color: Colors.red),
+                                              const Icon(Icons.play_circle_fill,
+                                                  color: Colors.red),
                                               const SizedBox(width: 8),
                                               Text(
                                                 'Institution Tutorials',
                                                 style: TextStyle(
-                                                  fontSize: _responsiveValue(18, 20, 22),
+                                                  fontSize: _responsiveValue(
+                                                      18, 20, 22),
                                                   fontWeight: FontWeight.w700,
-                                                  color: const Color(0xFF003366),
+                                                  color:
+                                                      const Color(0xFF003366),
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        ...youtubeUrls.map((url) => Container(
-                                          width: screenWidth,
-                                          margin: EdgeInsets.only(
-                                            bottom: _responsiveValue(16, 20, 24),
-                                          ),
-                                          child: CommonYoutubePlayer(
-                                            youtubeUrl: url,
-                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                            placeholderThumbnail: _getYoutubeThumbnail(url),
-                                            borderRadius: 0,
-                                          ),
-                                        )).toList(),
+                                        ...youtubeUrls
+                                            .map((url) => Container(
+                                                  width: screenWidth,
+                                                  margin: EdgeInsets.only(),
+                                                  child: CommonYoutubePlayer(
+                                                    youtubeUrl: url,
+                                                    height: isDesktop
+                                                        ? 360
+                                                        : (isTablet
+                                                            ? 320
+                                                            : 220),
+                                                    placeholderThumbnail:
+                                                        _getYoutubeThumbnail(
+                                                            url),
+                                                    borderRadius: 0,
+                                                  ),
+                                                ))
+                                            .toList(),
                                       ],
                                     ],
                                   ),
@@ -717,7 +808,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
               ],
             ),
           ),
-          
+
           // Full screen loader for initial loading
           if (_isLoading && institutionsData.isEmpty)
             const GlassLoader(
@@ -730,13 +821,14 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
   }
 
   // Build Institution Card Widget
-  Widget _buildInstitutionCard(Map<String, dynamic> institution, {
+  Widget _buildInstitutionCard(
+    Map<String, dynamic> institution, {
     required bool isMobile,
     required bool isTablet,
     required bool isDesktop,
   }) {
-    bool hasImage = institution['image'] != null && 
-                    institution['image'].toString().isNotEmpty;
+    bool hasImage = institution['image'] != null &&
+        institution['image'].toString().isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -792,7 +884,8 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                             child: Center(
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF0B5ED7)),
                               ),
                             ),
                           );
@@ -818,9 +911,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                       ),
               ),
             ),
-            
+
             const SizedBox(width: 14),
-            
+
             // Institution Details
             Expanded(
               child: Column(
@@ -872,9 +965,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Location
                   Text(
                     "📍 ${institution['area']}${institution['district'].isNotEmpty ? ', ${institution['district']}' : ''}",
@@ -885,9 +978,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Result info
                   Text(
                     "📊 ${institution['result'].toString().isNotEmpty ? institution['result'] : 'Result Data Not Available'}",
@@ -898,9 +991,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Category Tag
                   Container(
                     margin: const EdgeInsets.only(right: 6),
@@ -913,9 +1006,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      institution['type'].length > 25 
-                        ? '${institution['type'].substring(0, 25)}...'
-                        : institution['type'],
+                      institution['type'].length > 25
+                          ? '${institution['type'].substring(0, 25)}...'
+                          : institution['type'],
                       style: TextStyle(
                         fontSize: isTablet ? 13 : 11,
                         fontWeight: FontWeight.w500,
@@ -926,9 +1019,9 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // Chevron Icon
             Icon(
               Icons.chevron_right,

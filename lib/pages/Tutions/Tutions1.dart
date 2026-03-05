@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Widgets/Footer.dart';
-import 'Tutions2.dart';  // Correct - they're in the same directory
+import 'Tutions2.dart'; // Correct - they're in the same directory
 
 // ==================== TUITION CLASSES SCREEN ====================
 class Tution1Screen extends StatefulWidget {
@@ -12,19 +12,79 @@ class Tution1Screen extends StatefulWidget {
 
 class _Tution1ScreenState extends State<Tution1Screen> {
   int _footerIndex = 0;
-  
+
   // Standards Data
   final List<Map<String, dynamic>> standards = [
-    {"id": "1", "title": "Class 12", "subtitle": "Science, Commerce & Arts", "icon": Icons.school, "color": Color(0xFF4F46E5)},
-    {"id": "2", "title": "Class 11", "subtitle": "Science, Commerce & Arts", "icon": Icons.book, "color": Color(0xFF059669)},
-    {"id": "3", "title": "Class 10", "subtitle": "Secondary Education Boards", "icon": Icons.workspace_premium, "color": Color(0xFFDC2626)},
-    {"id": "4", "title": "Class 9", "subtitle": "Foundation Courses", "icon": Icons.library_books, "color": Color(0xFFEA580C)},
-    {"id": "5", "title": "Classes 6 - 8", "subtitle": "Middle School Curriculum", "icon": Icons.emoji_emotions, "color": Color(0xFF2563EB)},
-    {"id": "6", "title": "Classes 1 - 5", "subtitle": "Primary School Curriculum", "icon": Icons.emoji_emotions_outlined, "color": Color(0xFF7C3AED)},
-    {"id": "7", "title": "Competitive", "subtitle": "JEE, NEET, UPSC", "icon": Icons.emoji_events, "color": Color(0xFFDB2777)},
-    {"id": "8", "title": "Language", "subtitle": "English, French, Spanish", "icon": Icons.language, "color": Color(0xFF0891B2)},
-    {"id": "9", "title": "Special Needs", "subtitle": "Personalized Learning", "icon": Icons.accessibility_new, "color": Color(0xFFCA8A04)},
-    {"id": "10", "title": "University", "subtitle": "Graduate & Post Graduate", "icon": Icons.business, "color": Color(0xFF475569)},
+    {
+      "id": "1",
+      "title": "Class 12",
+      "subtitle": "Science, Commerce & Arts",
+      "icon": Icons.school,
+      "color": Color(0xFF4F46E5)
+    },
+    {
+      "id": "2",
+      "title": "Class 11",
+      "subtitle": "Science, Commerce & Arts",
+      "icon": Icons.book,
+      "color": Color(0xFF059669)
+    },
+    {
+      "id": "3",
+      "title": "Class 10",
+      "subtitle": "Secondary Education Boards",
+      "icon": Icons.workspace_premium,
+      "color": Color(0xFFDC2626)
+    },
+    {
+      "id": "4",
+      "title": "Class 9",
+      "subtitle": "Foundation Courses",
+      "icon": Icons.library_books,
+      "color": Color(0xFFEA580C)
+    },
+    {
+      "id": "5",
+      "title": "Classes 6 - 8",
+      "subtitle": "Middle School Curriculum",
+      "icon": Icons.emoji_emotions,
+      "color": Color(0xFF2563EB)
+    },
+    {
+      "id": "6",
+      "title": "Classes 1 - 5",
+      "subtitle": "Primary School Curriculum",
+      "icon": Icons.emoji_emotions_outlined,
+      "color": Color(0xFF7C3AED)
+    },
+    {
+      "id": "7",
+      "title": "Competitive",
+      "subtitle": "JEE, NEET, UPSC",
+      "icon": Icons.emoji_events,
+      "color": Color(0xFFDB2777)
+    },
+    {
+      "id": "8",
+      "title": "Language",
+      "subtitle": "English, French, Spanish",
+      "icon": Icons.language,
+      "color": Color(0xFF0891B2)
+    },
+    {
+      "id": "9",
+      "title": "Special Needs",
+      "subtitle": "Personalized Learning",
+      "icon": Icons.accessibility_new,
+      "color": Color(0xFFCA8A04)
+    },
+    {
+      "id": "10",
+      "title": "University",
+      "subtitle": "Graduate & Post Graduate",
+      "icon": Icons.business,
+      "color": Color(0xFF475569)
+    },
   ];
 
   // Responsive header height like IQ1
@@ -55,19 +115,20 @@ class _Tution1ScreenState extends State<Tution1Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
     final bool isLandscape = screenWidth > screenHeight;
-    
+
     // Responsive calculations
     final int numColumns = isTablet ? (isLandscape ? 4 : 3) : 2;
     final double containerPadding = _getHorizontalPadding(context);
     final double cardSpacing = isTablet ? 16 : 12;
     final double availableWidth = screenWidth - (containerPadding * 2);
-    final double cardWidth = (availableWidth - (cardSpacing * (numColumns - 1))) / numColumns;
+    final double cardWidth =
+        (availableWidth - (cardSpacing * (numColumns - 1))) / numColumns;
     final double cardHeight = isTablet ? 170 : 150;
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
@@ -112,7 +173,7 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Center Content
                     Expanded(
                       child: Column(
@@ -128,7 +189,7 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          
+
                           // Subtitle
                           const SizedBox(height: 2),
                           Text(
@@ -142,7 +203,7 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                         ],
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
@@ -192,9 +253,9 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                               color: const Color(0xFF0B5ED7),
                             ),
                           ),
-                          
+
                           const SizedBox(width: 16),
-                          
+
                           // Text Content
                           Expanded(
                             child: Column(
@@ -241,7 +302,7 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                         final item = standards[index];
                         final bool isFirstInRow = index % numColumns == 0;
                         final bool isLastInRow = (index + 1) % numColumns == 0;
-                        
+
                         return Container(
                           margin: EdgeInsets.only(
                             left: isFirstInRow ? containerPadding : 0,
@@ -257,7 +318,7 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                         );
                       },
                     ),
-                    
+
                     // Spacer for Footer
                     SizedBox(height: isTablet ? 100 : 80),
                   ],
@@ -289,14 +350,14 @@ class _Tution1ScreenState extends State<Tution1Screen> {
     return GestureDetector(
       onTap: () {
         // Navigate to Tutions2 screen with selected class
-         Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Tution2Screen(
-            selectedClass: item['title'] as String,
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Tution2Screen(
+              selectedClass: item['title'] as String,
+            ),
           ),
-        ),
-      );
+        );
       },
       child: Container(
         width: cardWidth,
@@ -331,13 +392,14 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                 color: item['color'] as Color,
               ),
             ),
-            
+
             SizedBox(height: isTablet ? 16 : 12),
-            
+
             // Title - FIXED: Added constraints
             Container(
               constraints: BoxConstraints(
-                maxWidth: cardWidth - (isTablet ? 40 : 32), // Account for padding
+                maxWidth:
+                    cardWidth - (isTablet ? 40 : 32), // Account for padding
               ),
               child: Text(
                 item['title'],
@@ -351,9 +413,9 @@ class _Tution1ScreenState extends State<Tution1Screen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            
+
             SizedBox(height: isTablet ? 6 : 4),
-            
+
             // Subtitle - FIXED: Added constraints and proper overflow
             Container(
               constraints: BoxConstraints(

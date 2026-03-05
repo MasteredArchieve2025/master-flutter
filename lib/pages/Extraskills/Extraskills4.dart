@@ -12,9 +12,6 @@ import '../../components/glass_loader.dart';
 import '../../Widgets/ImageGalleryPopup.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 
-
-
-
 class Extraskills4Screen extends StatefulWidget {
   final Map<String, dynamic> institution;
 
@@ -143,7 +140,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
           _isLoadingAds = false;
           _apiCallFailed = true;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -193,35 +190,38 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> responseData = json.decode(response.body);
-        
+
         debugPrint('✅ Response is a List with ${responseData.length} items');
-        
+
         // Format each review using the userName from API
         final formattedReviews = responseData.map((review) {
           return {
             'id': review['id'] ?? 0,
-            'name': review['userName'] ?? 'User ${review['userId']}', // Now gets actual username from API!
+            'name': review['userName'] ??
+                'User ${review['userId']}', // Now gets actual username from API!
             'rating': review['rating'] ?? 0,
             'comment': review['review'] ?? review['comment'] ?? '',
             'userId': review['userId'] ?? 0,
             'createdAt': review['createdAt'] ?? '',
           };
         }).toList();
-        
-        debugPrint('✅ Formatted ${formattedReviews.length} reviews with user names');
+
+        debugPrint(
+            '✅ Formatted ${formattedReviews.length} reviews with user names');
 
         // Try to fetch average rating (if endpoint exists)
         double avgRating = 0.0;
         int totalReviews = formattedReviews.length;
-        
+
         try {
           final avgResponse = await http.get(
-            Uri.parse('${BaseUrl.baseUrl}/api/extra-skill-reviews/$institutionId/average'),
+            Uri.parse(
+                '${BaseUrl.baseUrl}/api/extra-skill-reviews/$institutionId/average'),
           );
 
           if (avgResponse.statusCode == 200) {
             final avgData = json.decode(avgResponse.body);
-            
+
             if (avgData is Map<String, dynamic>) {
               if (avgData['averageRating'] != null) {
                 avgRating = (avgData['averageRating'] as num).toDouble();
@@ -232,13 +232,12 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
             }
           }
         } catch (e) {
-          debugPrint('⚠️ Could not fetch average rating, calculating from reviews');
+          debugPrint(
+              '⚠️ Could not fetch average rating, calculating from reviews');
           // Calculate average from reviews
           if (formattedReviews.isNotEmpty) {
             final sum = formattedReviews.fold<int>(
-              0, 
-              (sum, review) => sum + (review['rating'] as int)
-            );
+                0, (sum, review) => sum + (review['rating'] as int));
             avgRating = sum / formattedReviews.length;
           }
         }
@@ -246,9 +245,11 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
         // Check if current user has reviewed
         bool userReviewed = false;
         if (_currentUserId != null) {
-          userReviewed = formattedReviews.any((r) => r['userId'] == _currentUserId);
+          userReviewed =
+              formattedReviews.any((r) => r['userId'] == _currentUserId);
           if (userReviewed) {
-            debugPrint('✅ Current user (ID: $_currentUserId) has already reviewed');
+            debugPrint(
+                '✅ Current user (ID: $_currentUserId) has already reviewed');
           }
         }
 
@@ -260,7 +261,7 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
             _hasUserReviewed = userReviewed;
             _isLoadingReviews = false;
           });
-          
+
           // Print to verify names are showing
           for (var review in _reviews) {
             debugPrint('📝 Review by: ${review['name']}');
@@ -542,8 +543,10 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
     final isDesktop = screenWidth >= 1024;
 
-    final double responsiveBannerHeight = _responsiveValue(200, 280, 300); // Updated to match Extraskills3
-    final double videoHeight = _responsiveValue(220, 280, 360); // Updated to match Extraskills3
+    final double responsiveBannerHeight =
+        _responsiveValue(200, 300, 300); // Updated to match Extraskills3
+    final double videoHeight =
+        _responsiveValue(250, 320, 400); // Updated to match Extraskills3
     final double heroCardHeight = _responsiveValue(240, 260, 280);
     final double galleryImageSize = _responsiveValue(100, 130, 160);
     final double horizontalPadding = _responsiveValue(16, 20, 24);
@@ -590,14 +593,16 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
               bottom: false,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                height: _responsiveValue(52, 72, 80), // Updated to match Extraskills3
+                height: _responsiveValue(
+                    52, 72, 80), // Updated to match Extraskills3
                 child: Row(
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: Icon(
                         Icons.arrow_back,
-                        size: _responsiveValue(24, 26, 28), // Updated to match Extraskills3
+                        size: _responsiveValue(
+                            24, 26, 28), // Updated to match Extraskills3
                         color: Colors.white,
                       ),
                     ),
@@ -606,14 +611,17 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                         child: Text(
                           'Institution Details',
                           style: TextStyle(
-                            fontSize: _responsiveValue(18, 22, 24), // Updated to match Extraskills3
+                            fontSize: _responsiveValue(
+                                18, 22, 24), // Updated to match Extraskills3
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(width: _responsiveValue(40, 44, 48)), // Updated to match Extraskills3
+                    SizedBox(
+                        width: _responsiveValue(
+                            40, 44, 48)), // Updated to match Extraskills3
                   ],
                 ),
               ),
@@ -712,18 +720,19 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                         children: bannerAds.asMap().entries.map((entry) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            width: _currentBannerIndex == entry.key 
-                              ? _responsiveValue(20, 22, 24) 
-                              : _responsiveValue(8, 9, 10),
+                            width: _currentBannerIndex == entry.key
+                                ? _responsiveValue(20, 22, 24)
+                                : _responsiveValue(8, 9, 10),
                             height: _responsiveValue(8, 9, 10),
                             margin: EdgeInsets.symmetric(
                               horizontal: _responsiveValue(4, 5, 6),
                             ),
                             decoration: BoxDecoration(
                               color: _currentBannerIndex == entry.key
-                                ? const Color(0xFF0B5ED7)
-                                : const Color(0xFFCCCCCC),
-                              borderRadius: BorderRadius.circular(_responsiveValue(4, 5, 6)),
+                                  ? const Color(0xFF0B5ED7)
+                                  : const Color(0xFFCCCCCC),
+                              borderRadius: BorderRadius.circular(
+                                  _responsiveValue(4, 5, 6)),
                             ),
                           );
                         }).toList(),
@@ -820,7 +829,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                         : null,
                                   ),
 
-                                  SizedBox(height: _responsiveValue(12, 14, 16)),
+                                  SizedBox(
+                                      height: _responsiveValue(12, 14, 16)),
 
                                   Text(
                                     institutionName,
@@ -1000,10 +1010,13 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
 
                                       return GestureDetector(
                                         onTap: () {
-                                          final galleryList = (widget.institution['gallery'] as List)
-                                              .map((e) => e.toString())
-                                              .toList();
-                                          showImageGallery(context, galleryList, index);
+                                          final galleryList =
+                                              (widget.institution['gallery']
+                                                      as List)
+                                                  .map((e) => e.toString())
+                                                  .toList();
+                                          showImageGallery(
+                                              context, galleryList, index);
                                         },
                                         child: Container(
                                           width: galleryImageSize,
@@ -1022,7 +1035,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                             image: DecorationImage(
                                               image: NetworkImage(fullImageUrl),
                                               fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {},
+                                              onError:
+                                                  (exception, stackTrace) {},
                                             ),
                                           ),
                                           child: Container(
@@ -1216,7 +1230,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               _responsiveValue(12, 14, 16)),
                                         ),
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(14, 15, 16),
+                                          fontSize:
+                                              _responsiveValue(14, 15, 16),
                                         ),
                                       ),
                                     ),
@@ -1260,8 +1275,9 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                   Text(
                                                     'Submit Review',
                                                     style: TextStyle(
-                                                      fontSize: _responsiveValue(
-                                                          14, 15, 16),
+                                                      fontSize:
+                                                          _responsiveValue(
+                                                              14, 15, 16),
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
@@ -1385,8 +1401,9 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                                   Text(
                                                     review['comment'],
                                                     style: TextStyle(
-                                                      fontSize: _responsiveValue(
-                                                          13, 14, 15),
+                                                      fontSize:
+                                                          _responsiveValue(
+                                                              13, 14, 15),
                                                       color: const Color(
                                                           0xFF5F6F81),
                                                       height: 1.5,
@@ -1436,7 +1453,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               BorderRadius.circular(14),
                                         ),
                                         padding: EdgeInsets.symmetric(
-                                          vertical: _responsiveValue(14, 16, 18),
+                                          vertical:
+                                              _responsiveValue(14, 16, 18),
                                         ),
                                       ),
                                       child: Row(
@@ -1472,7 +1490,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               BorderRadius.circular(14),
                                         ),
                                         padding: EdgeInsets.symmetric(
-                                          vertical: _responsiveValue(14, 16, 18),
+                                          vertical:
+                                              _responsiveValue(14, 16, 18),
                                         ),
                                       ),
                                       child: Row(
@@ -1506,12 +1525,14 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                   padding: EdgeInsets.only(
                                       top: _responsiveValue(20, 24, 28)),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         'Videos',
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(18, 20, 22),
+                                          fontSize:
+                                              _responsiveValue(18, 20, 22),
                                           fontWeight: FontWeight.w700,
                                           color: Colors.black,
                                         ),
@@ -1534,7 +1555,8 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                           ),
                                           IconButton(
                                             onPressed: _nextVideo,
-                                            icon: const Icon(Icons.chevron_right,
+                                            icon: const Icon(
+                                                Icons.chevron_right,
                                                 color: Color(0xFF0B5ED7)),
                                             constraints: const BoxConstraints(),
                                             padding: EdgeInsets.zero,
@@ -1544,39 +1566,47 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                     ],
                                   ),
                                 ),
-                                Container(
-                                  width: double.infinity,
-                                  height: videoHeight,
-                                  margin: EdgeInsets.only(
-                                    top: _responsiveValue(12, 16, 20),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      CommonYoutubePlayer(
-                                        youtubeUrl: _youtubeUrls[_currentVideoIndex],
-                                        height: videoHeight,
-                                        placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
-                                        borderRadius: 0,
-                                      ),
+                              Container(
+                                width: double.infinity,
+                                height: videoHeight,
+                                margin: EdgeInsets.only(
+                                  top: _responsiveValue(12, 16, 20),
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                ),
+                                child: Stack(
+                                  children: [
+                                    CommonYoutubePlayer(
+                                      youtubeUrl:
+                                          _youtubeUrls[_currentVideoIndex],
+                                      height: videoHeight,
+                                      placeholderThumbnail: _getVideoThumbnail(
+                                          _youtubeUrls[_currentVideoIndex]),
+                                      borderRadius: 0,
+                                    ),
                                     if (_youtubeUrls.length > 1)
                                       Positioned(
-                                        bottom: 16,
                                         right: 16,
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.7),
-                                            borderRadius: BorderRadius.circular(20),
+                                            color:
+                                                Colors.black.withOpacity(0.7),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
                                           ),
                                           child: Row(
                                             children: [
                                               IconButton(
                                                 onPressed: _previousVideo,
-                                                icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-                                                constraints: const BoxConstraints(),
+                                                icon: const Icon(
+                                                    Icons.chevron_left,
+                                                    color: Colors.white,
+                                                    size: 20),
+                                                constraints:
+                                                    const BoxConstraints(),
                                                 padding: EdgeInsets.zero,
                                               ),
                                               Text(
@@ -1589,8 +1619,12 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                               ),
                                               IconButton(
                                                 onPressed: _nextVideo,
-                                                icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                                                constraints: const BoxConstraints(),
+                                                icon: const Icon(
+                                                    Icons.chevron_right,
+                                                    color: Colors.white,
+                                                    size: 20),
+                                                constraints:
+                                                    const BoxConstraints(),
                                                 padding: EdgeInsets.zero,
                                               ),
                                             ],
@@ -1612,9 +1646,11 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
                                   color: Colors.black,
                                 ),
                                 child: CommonYoutubePlayer(
-                                  youtubeUrl: 'https://www.youtube.com/embed/L2zqTYgcpfx',
+                                  youtubeUrl:
+                                      'https://www.youtube.com/embed/L2zqTYgcpfx',
                                   height: videoHeight,
-                                  placeholderThumbnail: 'https://img.youtube.com/vi/L2zqTYgcpfx/maxresdefault.jpg',
+                                  placeholderThumbnail:
+                                      'https://img.youtube.com/vi/L2zqTYgcpfx/maxresdefault.jpg',
                                   borderRadius: 0,
                                 ),
                               ),

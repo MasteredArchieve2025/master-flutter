@@ -55,7 +55,8 @@ class JobDetail {
         parsedTags = List<String>.from(json['tags']);
       } else if (json['tags'] is String) {
         // Split by comma if it's a comma-separated string
-        parsedTags = (json['tags'] as String).split(',').map((e) => e.trim()).toList();
+        parsedTags =
+            (json['tags'] as String).split(',').map((e) => e.trim()).toList();
       }
     }
 
@@ -87,8 +88,10 @@ class JobDetail {
     try {
       final dt = DateTime.parse(createdAt);
       final diff = DateTime.now().difference(dt);
-      if (diff.inDays > 0) return 'Posted ${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-      if (diff.inHours > 0) return 'Posted ${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+      if (diff.inDays > 0)
+        return 'Posted ${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+      if (diff.inHours > 0)
+        return 'Posted ${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
       return 'Posted just now';
     } catch (_) {
       return '';
@@ -246,20 +249,21 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             _pageName = apiData['page_name'];
-            
+
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
           });
@@ -275,7 +279,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
 
   List<JobDetail> get _filteredJobs {
     if (selectedFilter == 'All') return _jobs;
-    
+
     return _jobs.where((job) {
       // Check each tag for a match
       for (String tag in job.tags) {
@@ -283,7 +287,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
           return true;
         }
         // Also check if the tag contains variations like "fulltime" without space
-        if (selectedFilter.toLowerCase() == "full time" && 
+        if (selectedFilter.toLowerCase() == "full time" &&
             tag.toLowerCase().contains("full")) {
           return true;
         }
@@ -305,14 +309,17 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
       if (!mounted) return;
       if (_pageController.hasClients) {
         int nextPage = currentAdIndex + 1;
-        int itemCount = _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
+        int itemCount =
+            _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
         if (nextPage >= itemCount) nextPage = 0;
-        
-        _pageController.animateToPage(
+
+        _pageController
+            .animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        ).then((_) {
+        )
+            .then((_) {
           if (mounted) _autoScrollNext();
         }).catchError((e) {
           _isAutoScrollStarted = false;
@@ -329,8 +336,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
     final screenSize = MediaQuery.of(context).size;
     isTablet = screenSize.width >= 768;
     isWeb = screenSize.width >= 1024;
-    final adHeight =
-        screenSize.height * 0.25 > 200 ? 200.0 : screenSize.height * 0.25;
+    final adHeight = isWeb ? 300.0 : (isTablet ? 300.0 : 200.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -456,7 +462,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
               ),
             ],
           ),
-          
+
           // Glass Loader
           if (_isLoading)
             const GlassLoader(
@@ -593,8 +599,8 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
                 // Show "NEW" if posted within last 3 days
                 if (_isNew(job.createdAt))
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CAF50),
                       borderRadius: BorderRadius.circular(4),
@@ -632,8 +638,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
                   const SizedBox(width: 4),
                   Text(
                     job.location,
-                    style:
-                        TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -658,8 +663,7 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
               children: [
                 Text(
                   job.postedTimeLabel,
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                 ),
                 const Text(
                   "View Details",
@@ -751,8 +755,8 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
               width: 40,
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back,
-                    size: 24, color: Colors.white),
+                icon:
+                    const Icon(Icons.arrow_back, size: 24, color: Colors.white),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -801,7 +805,9 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
                   return GestureDetector(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening advertisement ${index + 1}')),
+                        SnackBar(
+                            content:
+                                Text('Opening advertisement ${index + 1}')),
                       );
                     },
                     child: Stack(
@@ -841,9 +847,13 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
                               color: const Color(0xFF0052A2),
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
                                       : null,
                                 ),
                               ),
@@ -991,10 +1001,10 @@ class _ITSoftwareJobsScreenState extends State<ITSoftwareJobsScreen> {
 
   Widget _buildVideoPlayer() {
     // Use first YouTube URL from API if available, otherwise use default
-    String videoUrl = _youtubeUrls.isNotEmpty 
-        ? _youtubeUrls.first 
+    String videoUrl = _youtubeUrls.isNotEmpty
+        ? _youtubeUrls.first
         : 'https://www.youtube.com/embed/qYapc_bkfxw';
-    
+
     // Extract video ID for thumbnail
     String thumbnailUrl = '';
     if (videoUrl.contains('youtube.com/embed/')) {

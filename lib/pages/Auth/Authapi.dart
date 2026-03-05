@@ -11,7 +11,8 @@ class AuthApi {
     ),
   );
 
-  static Future<Map<String, dynamic>> loginApi(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> loginApi(
+      Map<String, dynamic> data) async {
     try {
       final response = await _dio.post('/api/auth/login', data: data);
       return response.data;
@@ -20,7 +21,8 @@ class AuthApi {
     }
   }
 
-  static Future<Map<String, dynamic>> signupApi(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> signupApi(
+      Map<String, dynamic> data) async {
     try {
       final response = await _dio.post('/api/auth/signup', data: data);
       return response.data;
@@ -29,7 +31,8 @@ class AuthApi {
     }
   }
 
-  static Future<Map<String, dynamic>> forgotPasswordApi(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> forgotPasswordApi(
+      Map<String, dynamic> data) async {
     try {
       final response = await _dio.post('/api/auth/forgot-password', data: data);
       return response.data;
@@ -40,9 +43,9 @@ class AuthApi {
 
   static String _handleError(DioException e) {
     if (e.response != null) {
-      return e.response?.data['message'] ?? 
-             e.response?.data['error'] ?? 
-             'Something went wrong';
+      return e.response?.data['message'] ??
+          e.response?.data['error'] ??
+          'Something went wrong';
     }
     return 'Network Error';
   }

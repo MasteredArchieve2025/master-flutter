@@ -12,7 +12,7 @@ class College3Screen extends StatefulWidget {
   final String? degree;
   final int? categoryId;
   final int? degreeId;
-  
+
   const College3Screen({
     super.key,
     this.degree,
@@ -37,7 +37,8 @@ class _College3ScreenState extends State<College3Screen> {
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
@@ -66,7 +67,8 @@ class _College3ScreenState extends State<College3Screen> {
     debugPrint('🔄 Loading advertisements for collegepage3...');
     try {
       final response = await http.get(
-        Uri.parse('https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage3'),
+        Uri.parse(
+            'https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage3'),
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -76,20 +78,27 @@ class _College3ScreenState extends State<College3Screen> {
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
             _isLoadingAds = false;
           });
         } else {
-          setState(() { _isLoadingAds = false; });
+          setState(() {
+            _isLoadingAds = false;
+          });
         }
       } else {
-        setState(() { _isLoadingAds = false; });
+        setState(() {
+          _isLoadingAds = false;
+        });
       }
     } catch (e) {
       debugPrint('❌ Error loading advertisements: $e');
-      setState(() { _isLoadingAds = false; });
+      setState(() {
+        _isLoadingAds = false;
+      });
     }
   }
 
@@ -103,7 +112,8 @@ class _College3ScreenState extends State<College3Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -150,12 +160,12 @@ class _College3ScreenState extends State<College3Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions
     final double horizontalPadding = _getHorizontalPadding(context);
     final double bannerHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
@@ -206,7 +216,7 @@ class _College3ScreenState extends State<College3Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
@@ -220,7 +230,7 @@ class _College3ScreenState extends State<College3Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
@@ -245,9 +255,8 @@ class _College3ScreenState extends State<College3Screen> {
                             top: isDesktop ? 0 : 0,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: isDesktop
-                                ? BorderRadius.circular(12)
-                                : null,
+                            borderRadius:
+                                isDesktop ? BorderRadius.circular(12) : null,
                           ),
                           child: ClipRRect(
                             borderRadius: isDesktop
@@ -270,16 +279,21 @@ class _College3ScreenState extends State<College3Screen> {
                                     child: Image.network(
                                       bannerAds[index],
                                       fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
                                         return const Center(
-                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                          child: CircularProgressIndicator(
+                                              color: Color(0xFF0B5ED7)),
                                         );
                                       },
-                                      errorBuilder: (context, error, stackTrace) {
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
                                         return Center(
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Icon(
                                                 Icons.image,
@@ -318,9 +332,9 @@ class _College3ScreenState extends State<College3Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -330,7 +344,9 @@ class _College3ScreenState extends State<College3Screen> {
                         // ===== 2 COLUMN GRID =====
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: isDesktop ? horizontalPadding : horizontalPadding,
+                            horizontal: isDesktop
+                                ? horizontalPadding
+                                : horizontalPadding,
                             vertical: isTablet ? 24 : 16,
                           ),
                           child: Row(
@@ -350,19 +366,22 @@ class _College3ScreenState extends State<College3Screen> {
                                     isTablet: isTablet,
                                     isDesktop: isDesktop,
                                     onTap: () {
-                                        Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => College4Screen(
-        degree: widget.degree ?? 'All Colleges',
-        categoryId: widget.categoryId,
-        degreeId: widget.degreeId,
-      ),
-    ),
-  );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => College4Screen(
+                                            degree:
+                                                widget.degree ?? 'All Colleges',
+                                            categoryId: widget.categoryId,
+                                            degreeId: widget.degreeId,
+                                          ),
+                                        ),
+                                      );
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Navigate to College4 - ${widget.degree ?? 'All Colleges'}'),
+                                          content: Text(
+                                              'Navigate to College4 - ${widget.degree ?? 'All Colleges'}'),
                                           duration: const Duration(seconds: 1),
                                         ),
                                       );
@@ -370,7 +389,7 @@ class _College3ScreenState extends State<College3Screen> {
                                   ),
                                 ),
                               ),
-                              
+
                               // View Courses Card
                               Expanded(
                                 child: Container(
@@ -381,21 +400,25 @@ class _College3ScreenState extends State<College3Screen> {
                                   child: _buildGridCard(
                                     icon: Icons.book,
                                     title: 'View Courses',
-                                    subtitle: 'Explore Colleges for all Degrees',
+                                    subtitle:
+                                        'Explore Colleges for all Degrees',
                                     isTablet: isTablet,
                                     isDesktop: isDesktop,
                                     onTap: () {
                                       // Navigate to Collegecourse1
-                                       Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const Collegecourse1Screen(),
-    ),
-  );
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const Collegecourse1Screen(),
+                                        ),
+                                      );
 
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Navigate to Collegecourse1'),
+                                          content: Text(
+                                              'Navigate to Collegecourse1'),
                                           duration: const Duration(seconds: 1),
                                         ),
                                       );
@@ -416,7 +439,8 @@ class _College3ScreenState extends State<College3Screen> {
                                 vertical: isTablet ? 16 : 12,
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Videos',
@@ -430,7 +454,8 @@ class _College3ScreenState extends State<College3Screen> {
                                     children: [
                                       IconButton(
                                         onPressed: _previousVideo,
-                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_left,
+                                            color: Color(0xFF0B5ED7)),
                                       ),
                                       Text(
                                         '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
@@ -441,7 +466,8 @@ class _College3ScreenState extends State<College3Screen> {
                                       ),
                                       IconButton(
                                         onPressed: _nextVideo,
-                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_right,
+                                            color: Color(0xFF0B5ED7)),
                                       ),
                                     ],
                                   ),
@@ -450,12 +476,15 @@ class _College3ScreenState extends State<College3Screen> {
                             ),
                           Padding(
                             padding: EdgeInsets.only(
-                              top: _youtubeUrls.length > 1 ? 0 : (isTablet ? 40 : 30),
+                              top: _youtubeUrls.length > 1
+                                  ? 0
+                                  : (isTablet ? 40 : 30),
                             ),
                             child: CommonYoutubePlayer(
                               youtubeUrl: _youtubeUrls[_currentVideoIndex],
                               height: isDesktop ? 400 : (isTablet ? 320 : 250),
-                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              placeholderThumbnail: _getVideoThumbnail(
+                                  _youtubeUrls[_currentVideoIndex]),
                               borderRadius: 0,
                             ),
                           ),
@@ -466,15 +495,17 @@ class _College3ScreenState extends State<College3Screen> {
                               top: isTablet ? 40 : 30,
                             ),
                             child: CommonYoutubePlayer(
-                              youtubeUrl: 'https://www.youtube.com/embed/qYapc_bkfxw',
+                              youtubeUrl:
+                                  'https://www.youtube.com/embed/qYapc_bkfxw',
                               height: isDesktop ? 400 : (isTablet ? 320 : 250),
-                              placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+                              placeholderThumbnail:
+                                  'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
                               borderRadius: 0,
                             ),
                           ),
 
                         // Spacer for Footer
-                       // SizedBox(height: isDesktop ? 60 : 80),
+                        // SizedBox(height: isDesktop ? 60 : 80),
                       ],
                     ),
                   ),
@@ -529,9 +560,9 @@ class _College3ScreenState extends State<College3Screen> {
               size: isDesktop ? 48 : (isTablet ? 48 : 40),
               color: const Color(0xFF0B5ED7),
             ),
-            
+
             SizedBox(height: isDesktop ? 12 : (isTablet ? 12 : 10)),
-            
+
             // Title
             Text(
               title,
@@ -542,9 +573,9 @@ class _College3ScreenState extends State<College3Screen> {
                 color: Colors.black,
               ),
             ),
-            
+
             SizedBox(height: isDesktop ? 6 : (isTablet ? 6 : 4)),
-            
+
             // Subtitle
             Text(
               subtitle,

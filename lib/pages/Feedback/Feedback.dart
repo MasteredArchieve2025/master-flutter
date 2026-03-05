@@ -429,7 +429,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Widget _buildFeedbackGrid() {
     final crossAxisCount = MediaQuery.of(context).size.width >= 1024 ? 3 : 2;
-    
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

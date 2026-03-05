@@ -490,7 +490,7 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
     final int numColumns = isDesktop ? 4 : (isTablet ? 3 : 2);
-    final double videoHeight = isMobile ? 220 : (isTablet ? 280 : 360);
+    final double videoHeight = isMobile ? 250 : (isTablet ? 320 : 400);
 
     final double cardWidth = (screenWidth -
             (horizontalPadding * 2) -
@@ -946,7 +946,6 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
                                           ),
                                           if (_youtubeUrls.length > 1)
                                             Positioned(
-                                              bottom: 16,
                                               right: 16,
                                               child: Container(
                                                 padding:

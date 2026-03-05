@@ -54,9 +54,14 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
       'area': 'Nagercoil',
       'district': 'Kanyakumari',
       'state': 'Tamil Nadu',
-      'image': 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=400&fit=crop',
+      'image':
+          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=400&fit=crop',
       'rating': 4.8,
-      'shortDescription': ['Certified Trainers', 'Practical Sessions', '5.0 Rating'],
+      'shortDescription': [
+        'Certified Trainers',
+        'Practical Sessions',
+        '5.0 Rating'
+      ],
     },
     {
       'id': 2,
@@ -64,9 +69,14 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
       'area': 'Marthandam',
       'district': 'Kanyakumari',
       'state': 'Tamil Nadu',
-      'image': 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=400&fit=crop',
+      'image':
+          'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=400&fit=crop',
       'rating': 4.7,
-      'shortDescription': ['Expert Trainers', 'Modern Facilities', 'Flexible Timing'],
+      'shortDescription': [
+        'Expert Trainers',
+        'Modern Facilities',
+        'Flexible Timing'
+      ],
     },
     {
       'id': 3,
@@ -74,13 +84,19 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
       'area': 'Kanyakumari',
       'district': 'Kanyakumari',
       'state': 'Tamil Nadu',
-      'image': 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=400&fit=crop',
+      'image':
+          'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=400&fit=crop',
       'rating': 4.9,
-      'shortDescription': ['Professional Setup', 'Group Classes', 'Performance Opportunities'],
+      'shortDescription': [
+        'Professional Setup',
+        'Group Classes',
+        'Performance Opportunities'
+      ],
     },
   ];
 
-  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
   @override
   void initState() {
@@ -98,7 +114,7 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
 
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for extraskillpage3...');
-    
+
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=extraskillpage3'),
@@ -142,10 +158,11 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
 
   Future<void> _loadInstitutions(int typeId) async {
     debugPrint('🔄 Loading institutions for type $typeId...');
-    
+
     try {
       final response = await http.get(
-        Uri.parse('${BaseUrl.baseUrl}/api/extra-skill-institutions/type/$typeId'),
+        Uri.parse(
+            '${BaseUrl.baseUrl}/api/extra-skill-institutions/type/$typeId'),
       );
 
       debugPrint('📡 Institutions API Response Status: ${response.statusCode}');
@@ -158,15 +175,16 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
           _institutions = data.map((item) {
             // Calculate a rating (you can replace this logic)
             double rating = 4.5 + (item['id'] % 5) * 0.1;
-            
+
             // Create a clean copy of the full data
             Map<String, dynamic> fullData = Map<String, dynamic>.from(item);
-            
+
             return {
               'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
               'name': item['name'] ?? 'Unknown Institution',
               'image': item['image'],
-              'shortDescription': item['shortDescription'] ?? ['Dance', 'Zumba', 'Fitness'],
+              'shortDescription':
+                  item['shortDescription'] ?? ['Dance', 'Zumba', 'Fitness'],
               'area': item['area'] ?? '',
               'district': item['district'] ?? '',
               'state': item['state'] ?? '',
@@ -227,7 +245,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -250,18 +269,18 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    final double videoHeight = isMobile ? 220 : (isTablet ? 280 : 360);
+    final double videoHeight = isMobile ? 250 : (isTablet ? 320 : 400);
 
     // Determine which institutions to display
-    List<Map<String, dynamic>> institutionsToDisplay = _institutions.isNotEmpty 
-        ? _institutions 
+    List<Map<String, dynamic>> institutionsToDisplay = _institutions.isNotEmpty
+        ? _institutions
         : (!_isLoading && _errorMessage != null ? _defaultStudios : []);
 
     return Scaffold(
@@ -286,7 +305,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: _responsiveValue(52, 72, 80),
                     child: Row(
                       children: [
@@ -333,7 +353,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                       : SingleChildScrollView(
                           child: Center(
                             child: Container(
-                              constraints: BoxConstraints(maxWidth: maxContentWidth),
+                              constraints:
+                                  BoxConstraints(maxWidth: maxContentWidth),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -354,21 +375,27 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                           child: Image.network(
                                             bannerAds[index],
                                             width: double.infinity,
-                                            height: _responsiveValue(200, 280, 300),
+                                            height:
+                                                _responsiveValue(200, 280, 300),
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
                                               return Container(
                                                 width: double.infinity,
-                                                height: _responsiveValue(200, 280, 300),
+                                                height: _responsiveValue(
+                                                    200, 280, 300),
                                                 color: const Color(0xFF0052A2),
                                                 child: Center(
                                                   child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
                                                     children: [
                                                       Icon(
                                                         Icons.broken_image,
                                                         size: 50,
-                                                        color: Colors.white.withOpacity(0.5),
+                                                        color: Colors.white
+                                                            .withOpacity(0.5),
                                                       ),
                                                       const SizedBox(height: 8),
                                                       Text(
@@ -383,18 +410,29 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                                 ),
                                               );
                                             },
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) return child;
+                                            loadingBuilder: (context, child,
+                                                loadingProgress) {
+                                              if (loadingProgress == null)
+                                                return child;
                                               return Container(
                                                 width: double.infinity,
-                                                height: _responsiveValue(200, 280, 300),
+                                                height: _responsiveValue(
+                                                    200, 280, 300),
                                                 color: const Color(0xFF0052A2),
                                                 child: Center(
-                                                  child: CircularProgressIndicator(
-                                                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                                    value: loadingProgress.expectedTotalBytes != null
-                                                        ? loadingProgress.cumulativeBytesLoaded /
-                                                            loadingProgress.expectedTotalBytes!
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    valueColor:
+                                                        const AlwaysStoppedAnimation<
+                                                                Color>(
+                                                            Colors.white),
+                                                    value: loadingProgress
+                                                                .expectedTotalBytes !=
+                                                            null
+                                                        ? loadingProgress
+                                                                .cumulativeBytesLoaded /
+                                                            loadingProgress
+                                                                .expectedTotalBytes!
                                                         : null,
                                                   ),
                                                 ),
@@ -405,26 +443,32 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                       },
                                     ),
                                   ),
-                                  
+
                                   // Dots Indicator
-                                  SizedBox(height: _responsiveValue(12, 16, 20)),
+                                  SizedBox(
+                                      height: _responsiveValue(12, 16, 20)),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: bannerAds.asMap().entries.map((entry) {
+                                    children:
+                                        bannerAds.asMap().entries.map((entry) {
                                       return AnimatedContainer(
-                                        duration: const Duration(milliseconds: 300),
-                                        width: _currentCarouselIndex == entry.key 
-                                          ? _responsiveValue(20, 22, 24) 
-                                          : _responsiveValue(8, 9, 10),
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        width:
+                                            _currentCarouselIndex == entry.key
+                                                ? _responsiveValue(20, 22, 24)
+                                                : _responsiveValue(8, 9, 10),
                                         height: _responsiveValue(8, 9, 10),
                                         margin: EdgeInsets.symmetric(
                                           horizontal: _responsiveValue(4, 5, 6),
                                         ),
                                         decoration: BoxDecoration(
-                                          color: _currentCarouselIndex == entry.key
-                                            ? const Color(0xFF0B5ED7)
-                                            : const Color(0xFFCCCCCC),
-                                          borderRadius: BorderRadius.circular(_responsiveValue(4, 5, 6)),
+                                          color:
+                                              _currentCarouselIndex == entry.key
+                                                  ? const Color(0xFF0B5ED7)
+                                                  : const Color(0xFFCCCCCC),
+                                          borderRadius: BorderRadius.circular(
+                                              _responsiveValue(4, 5, 6)),
                                         ),
                                       );
                                     }).toList(),
@@ -441,8 +485,10 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.orange[50],
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: Colors.orange),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          border:
+                                              Border.all(color: Colors.orange),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -469,7 +515,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                   if (widget.skillDescription.isNotEmpty)
                                     Container(
                                       margin: EdgeInsets.all(horizontalPadding),
-                                      padding: EdgeInsets.all(_responsiveValue(16, 18, 20)),
+                                      padding: EdgeInsets.all(
+                                          _responsiveValue(16, 18, 20)),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFF0F8FF),
                                         borderRadius: BorderRadius.circular(12),
@@ -479,19 +526,23 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                         ),
                                       ),
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Icon(
                                             Icons.info_outline,
                                             size: _responsiveValue(20, 22, 24),
                                             color: const Color(0xFF1976D2),
                                           ),
-                                          SizedBox(width: _responsiveValue(12, 14, 16)),
+                                          SizedBox(
+                                              width:
+                                                  _responsiveValue(12, 14, 16)),
                                           Expanded(
                                             child: Text(
                                               widget.skillDescription,
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(14, 15, 16),
+                                                fontSize: _responsiveValue(
+                                                    14, 15, 16),
                                                 color: const Color(0xFF333333),
                                                 height: 1.4,
                                               ),
@@ -510,12 +561,14 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                       _responsiveValue(12, 16, 20),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'Available Institutions',
                                           style: TextStyle(
-                                            fontSize: _responsiveValue(20, 22, 24),
+                                            fontSize:
+                                                _responsiveValue(20, 22, 24),
                                             fontWeight: FontWeight.w700,
                                             color: const Color(0xFF004780),
                                           ),
@@ -523,7 +576,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                         Text(
                                           '${institutionsToDisplay.length} found',
                                           style: TextStyle(
-                                            fontSize: _responsiveValue(14, 15, 16),
+                                            fontSize:
+                                                _responsiveValue(14, 15, 16),
                                             color: Colors.grey[600],
                                           ),
                                         ),
@@ -571,9 +625,11 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                     )
                                   else
                                     Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: horizontalPadding),
                                       child: Column(
-                                        children: institutionsToDisplay.map((institution) {
+                                        children: institutionsToDisplay
+                                            .map((institution) {
                                           return _buildStudioCard(
                                             institution: institution,
                                           );
@@ -582,7 +638,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                     ),
 
                                   // Error message with retry
-                                  if (_errorMessage != null && institutionsToDisplay.isEmpty)
+                                  if (_errorMessage != null &&
+                                      institutionsToDisplay.isEmpty)
                                     Padding(
                                       padding: const EdgeInsets.all(20),
                                       child: Column(
@@ -617,10 +674,12 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                                   _isLoading = true;
                                                   _errorMessage = null;
                                                 });
-                                                _loadInstitutions(widget.typeId!);
+                                                _loadInstitutions(
+                                                    widget.typeId!);
                                               },
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF0B5ED7),
+                                                backgroundColor:
+                                                    const Color(0xFF0B5ED7),
                                               ),
                                               child: const Text('Retry'),
                                             ),
@@ -634,15 +693,18 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                       Padding(
                                         padding: EdgeInsets.symmetric(
                                           horizontal: horizontalPadding,
-                                          vertical: _responsiveValue(12, 16, 20),
+                                          vertical:
+                                              _responsiveValue(12, 16, 20),
                                         ),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
                                               'Videos',
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(18, 20, 22),
+                                                fontSize: _responsiveValue(
+                                                    18, 20, 22),
                                                 fontWeight: FontWeight.w700,
                                                 color: Colors.black,
                                               ),
@@ -651,8 +713,11 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                               children: [
                                                 IconButton(
                                                   onPressed: _previousVideo,
-                                                  icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
-                                                  constraints: const BoxConstraints(),
+                                                  icon: const Icon(
+                                                      Icons.chevron_left,
+                                                      color: Color(0xFF0B5ED7)),
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                   padding: EdgeInsets.zero,
                                                 ),
                                                 Text(
@@ -664,8 +729,11 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                                 ),
                                                 IconButton(
                                                   onPressed: _nextVideo,
-                                                  icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
-                                                  constraints: const BoxConstraints(),
+                                                  icon: const Icon(
+                                                      Icons.chevron_right,
+                                                      color: Color(0xFF0B5ED7)),
+                                                  constraints:
+                                                      const BoxConstraints(),
                                                   padding: EdgeInsets.zero,
                                                 ),
                                               ],
@@ -680,7 +748,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                         color: Colors.black,
                                         image: DecorationImage(
                                           image: NetworkImage(
-                                            _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                            _getVideoThumbnail(_youtubeUrls[
+                                                _currentVideoIndex]),
                                           ),
                                           fit: BoxFit.cover,
                                           onError: (exception, stackTrace) {},
@@ -690,16 +759,20 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                         children: [
                                           Center(
                                             child: GestureDetector(
-                                              onTap: () => _showUrlDialog(_youtubeUrls[_currentVideoIndex]),
+                                              onTap: () => _showUrlDialog(
+                                                  _youtubeUrls[
+                                                      _currentVideoIndex]),
                                               child: Container(
                                                 width: 60,
                                                 height: 60,
                                                 decoration: BoxDecoration(
                                                   color: Colors.red,
-                                                  borderRadius: BorderRadius.circular(30),
+                                                  borderRadius:
+                                                      BorderRadius.circular(30),
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: Colors.black.withOpacity(0.3),
+                                                      color: Colors.black
+                                                          .withOpacity(0.3),
                                                       blurRadius: 10,
                                                       spreadRadius: 2,
                                                     ),
@@ -715,34 +788,47 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                           ),
                                           if (_youtubeUrls.length > 1)
                                             Positioned(
-                                              bottom: 16,
                                               right: 16,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.black.withOpacity(0.7),
-                                                  borderRadius: BorderRadius.circular(20),
+                                                  color: Colors.black
+                                                      .withOpacity(0.7),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
                                                 ),
                                                 child: Row(
                                                   children: [
                                                     IconButton(
                                                       onPressed: _previousVideo,
-                                                      icon: const Icon(Icons.chevron_left, color: Colors.white, size: 20),
-                                                      constraints: const BoxConstraints(),
+                                                      icon: const Icon(
+                                                          Icons.chevron_left,
+                                                          color: Colors.white,
+                                                          size: 20),
+                                                      constraints:
+                                                          const BoxConstraints(),
                                                       padding: EdgeInsets.zero,
                                                     ),
                                                     Text(
                                                       '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
                                                       style: const TextStyle(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.w600,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                         fontSize: 14,
                                                       ),
                                                     ),
                                                     IconButton(
                                                       onPressed: _nextVideo,
-                                                      icon: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-                                                      constraints: const BoxConstraints(),
+                                                      icon: const Icon(
+                                                          Icons.chevron_right,
+                                                          color: Colors.white,
+                                                          size: 20),
+                                                      constraints:
+                                                          const BoxConstraints(),
                                                       padding: EdgeInsets.zero,
                                                     ),
                                                   ],
@@ -771,16 +857,19 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                                       ),
                                       child: Center(
                                         child: GestureDetector(
-                                          onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
+                                          onTap: () => _showUrlDialog(
+                                              'https://www.youtube.com/embed/L2zqTYgcpfg'),
                                           child: Container(
                                             width: 60,
                                             height: 60,
                                             decoration: BoxDecoration(
                                               color: Colors.red,
-                                              borderRadius: BorderRadius.circular(30),
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.3),
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
                                                   blurRadius: 10,
                                                   spreadRadius: 2,
                                                 ),
@@ -804,7 +893,7 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
               ],
             ),
           ),
-          
+
           // Full screen loader
           if (_isLoading && widget.typeId != null)
             const GlassLoader(
@@ -821,25 +910,29 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
   }) {
     // Get location string
     String location = '';
-    if (institution['area'] != null && institution['area'].toString().isNotEmpty) {
+    if (institution['area'] != null &&
+        institution['area'].toString().isNotEmpty) {
       location += institution['area'];
     }
-    if (institution['district'] != null && institution['district'].toString().isNotEmpty) {
+    if (institution['district'] != null &&
+        institution['district'].toString().isNotEmpty) {
       if (location.isNotEmpty) location += ', ';
       location += institution['district'];
     }
-    if (institution['state'] != null && institution['state'].toString().isNotEmpty) {
+    if (institution['state'] != null &&
+        institution['state'].toString().isNotEmpty) {
       if (location.isNotEmpty) location += ', ';
       location += institution['state'];
     }
-    
+
     if (location.isEmpty) {
       location = 'Location not specified';
     }
 
     // Get short description as features
     List<String> features = [];
-    if (institution['shortDescription'] != null && institution['shortDescription'] is List) {
+    if (institution['shortDescription'] != null &&
+        institution['shortDescription'] is List) {
       features = List<String>.from(institution['shortDescription']);
     } else {
       features = ['Dance', 'Zumba', 'Fitness'];
@@ -852,7 +945,8 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
       onTap: () {
         // Safely get the full data to pass to next screen
         Map<String, dynamic> dataToPass;
-        if (institution.containsKey('fullData') && institution['fullData'] != null) {
+        if (institution.containsKey('fullData') &&
+            institution['fullData'] != null) {
           dataToPass = Map<String, dynamic>.from(institution['fullData']);
         } else {
           // Create a clean copy of the current data
@@ -860,7 +954,7 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
           // Remove the fullData key if it exists to avoid circular reference
           dataToPass.remove('fullData');
         }
-        
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -932,9 +1026,9 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                         ),
                       ),
               ),
-              
+
               SizedBox(width: _responsiveValue(16, 18, 20)),
-              
+
               // Institution Info
               Expanded(
                 child: Column(
@@ -952,9 +1046,9 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     SizedBox(height: _responsiveValue(8, 9, 10)),
-                    
+
                     // Location
                     Row(
                       children: [
@@ -977,9 +1071,9 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                         ),
                       ],
                     ),
-                    
+
                     SizedBox(height: _responsiveValue(12, 14, 16)),
-                    
+
                     // Features
                     Wrap(
                       spacing: 8,
@@ -1009,7 +1103,7 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                         );
                       }).toList(),
                     ),
-                    
+
                     // Rating and Actions Row
                     SizedBox(height: _responsiveValue(12, 14, 16)),
                     Row(
@@ -1034,7 +1128,7 @@ class _Extraskills3ScreenState extends State<Extraskills3Screen> {
                             ),
                           ],
                         ),
-                        
+
                         // View Details Button
                         Container(
                           padding: EdgeInsets.symmetric(

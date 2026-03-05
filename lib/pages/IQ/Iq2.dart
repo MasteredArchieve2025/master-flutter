@@ -69,9 +69,9 @@ class _IQ2ScreenState extends State<IQ2Screen> {
       _testStarted = true;
       _timerActive = true;
     });
-    
+
     _startTimer();
-    
+
     // Navigate to IQ3 after a short delay
     Future.delayed(const Duration(milliseconds: 300), () {
       Navigator.push(
@@ -89,7 +89,8 @@ class _IQ2ScreenState extends State<IQ2Screen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Exit Test?"),
-        content: const Text("If you exit now, your progress will not be saved."),
+        content:
+            const Text("If you exit now, your progress will not be saved."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -158,12 +159,12 @@ class _IQ2ScreenState extends State<IQ2Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
@@ -248,10 +249,12 @@ class _IQ2ScreenState extends State<IQ2Screen> {
 
                           // ===== TEST INSTRUCTIONS CARD =====
                           Container(
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(_responsiveValue(16, 20, 24)),
+                              borderRadius: BorderRadius.circular(
+                                  _responsiveValue(16, 20, 24)),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.15),
@@ -266,7 +269,10 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                 Container(
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xFF0072BC), Color(0xFF0052A2)],
+                                      colors: [
+                                        Color(0xFF0072BC),
+                                        Color(0xFF0052A2)
+                                      ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
@@ -288,31 +294,39 @@ class _IQ2ScreenState extends State<IQ2Screen> {
 
                                 // Card Body
                                 Padding(
-                                  padding: EdgeInsets.all(_responsiveValue(20, 28, 32)),
+                                  padding: EdgeInsets.all(
+                                      _responsiveValue(20, 28, 32)),
                                   child: Column(
                                     children: [
                                       // Instructions Intro
                                       Text(
                                         'Please read the following instructions carefully before starting the IQ assessment. This test is designed to evaluate your logical reasoning and problem-solving skills.',
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(16, 18, 20),
+                                          fontSize:
+                                              _responsiveValue(16, 18, 20),
                                           color: const Color(0xFF333333),
                                           height: 1.5,
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
-                                      SizedBox(height: _responsiveValue(20, 28, 32)),
+                                      SizedBox(
+                                          height: _responsiveValue(20, 28, 32)),
 
                                       // ===== INFO GRID =====
                                       LayoutBuilder(
                                         builder: (context, constraints) {
                                           final double infoCardWidth = isMobile
-                                            ? (constraints.maxWidth - _scale(12)) / 2
-                                            : (constraints.maxWidth - _scale(20) * 3) / 4;
-                                          
+                                              ? (constraints.maxWidth -
+                                                      _scale(12)) /
+                                                  2
+                                              : (constraints.maxWidth -
+                                                      _scale(20) * 3) /
+                                                  4;
+
                                           return Wrap(
                                             spacing: _scale(isMobile ? 12 : 20),
-                                            runSpacing: _scale(isMobile ? 12 : 20),
+                                            runSpacing:
+                                                _scale(isMobile ? 12 : 20),
                                             children: [
                                               // Number of Questions
                                               _buildInfoCard(
@@ -322,7 +336,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                                 label: 'questions',
                                                 width: infoCardWidth,
                                               ),
-                                              
+
                                               // Time Limit
                                               _buildInfoCard(
                                                 icon: Icons.timer,
@@ -331,7 +345,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                                 label: 'minutes',
                                                 width: infoCardWidth,
                                               ),
-                                              
+
                                               // Marking Scheme
                                               _buildInfoCard(
                                                 icon: Icons.check_circle,
@@ -340,7 +354,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                                 label: 'per correct answer',
                                                 width: infoCardWidth,
                                               ),
-                                              
+
                                               // Negative Marking
                                               _buildInfoCard(
                                                 icon: Icons.close,
@@ -353,14 +367,17 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                           );
                                         },
                                       ),
-                                      SizedBox(height: _responsiveValue(20, 28, 32)),
+                                      SizedBox(
+                                          height: _responsiveValue(20, 28, 32)),
 
                                       // ===== KEY POINTS =====
                                       Container(
-                                        padding: EdgeInsets.all(_responsiveValue(18, 24, 28)),
+                                        padding: EdgeInsets.all(
+                                            _responsiveValue(18, 24, 28)),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF0F7FF),
-                                          borderRadius: BorderRadius.circular(_responsiveValue(12, 16, 20)),
+                                          borderRadius: BorderRadius.circular(
+                                              _responsiveValue(12, 16, 20)),
                                           border: Border(
                                             left: BorderSide(
                                               color: const Color(0xFF0072BC),
@@ -369,71 +386,75 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               'Key Points:',
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(18, 20, 22),
+                                                fontSize: _responsiveValue(
+                                                    18, 20, 22),
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF003366),
                                               ),
                                             ),
                                             SizedBox(height: _scale(12)),
-                                            
                                             _buildKeyPoint(
                                               'The test consists of 30 questions',
                                               highlightText: '30 questions',
                                             ),
                                             SizedBox(height: _scale(8)),
-                                            
                                             _buildKeyPoint(
                                               'You have 45 minutes to complete',
                                               highlightText: '45 minutes',
                                             ),
                                             SizedBox(height: _scale(8)),
-                                            
                                             _buildKeyPoint(
                                               'Each correct answer awards 2 points',
                                               highlightText: '2 points',
                                             ),
                                             SizedBox(height: _scale(8)),
-                                            
                                             _buildKeyPoint(
                                               'No negative marking for wrong answers',
-                                              highlightText: 'No negative marking',
+                                              highlightText:
+                                                  'No negative marking',
                                             ),
                                             SizedBox(height: _scale(8)),
-                                            
                                             _buildKeyPoint(
                                               'Answer all questions for accurate scoring',
-                                              highlightText: 'Answer all questions',
+                                              highlightText:
+                                                  'Answer all questions',
                                             ),
                                           ],
                                         ),
                                       ),
-                                      SizedBox(height: _responsiveValue(20, 28, 32)),
+                                      SizedBox(
+                                          height: _responsiveValue(20, 28, 32)),
 
                                       // ===== TIMER DISPLAY =====
                                       if (_testStarted)
                                         Container(
-                                          padding: EdgeInsets.all(_responsiveValue(18, 24, 28)),
+                                          padding: EdgeInsets.all(
+                                              _responsiveValue(18, 24, 28)),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFF0052A2),
-                                            borderRadius: BorderRadius.circular(_responsiveValue(12, 16, 20)),
+                                            borderRadius: BorderRadius.circular(
+                                                _responsiveValue(12, 16, 20)),
                                           ),
                                           child: Column(
                                             children: [
                                               Icon(
                                                 Icons.timer,
-                                                size: _scale(isTablet ? 28 : 22),
+                                                size:
+                                                    _scale(isTablet ? 28 : 22),
                                                 color: Colors.white,
                                               ),
                                               SizedBox(height: _scale(8)),
                                               Text(
                                                 _formatTime(_timeLeft),
                                                 style: TextStyle(
-                                                  fontSize: _responsiveValue(36, 42, 48),
+                                                  fontSize: _responsiveValue(
+                                                      36, 42, 48),
                                                   fontWeight: FontWeight.w800,
                                                   color: Colors.white,
                                                 ),
@@ -442,42 +463,53 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                               Text(
                                                 'Time Remaining',
                                                 style: TextStyle(
-                                                  fontSize: _responsiveValue(16, 18, 20),
-                                                  color: Colors.white.withOpacity(0.9),
+                                                  fontSize: _responsiveValue(
+                                                      16, 18, 20),
+                                                  color: Colors.white
+                                                      .withOpacity(0.9),
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                      SizedBox(height: _responsiveValue(20, 28, 32)),
+                                      SizedBox(
+                                          height: _responsiveValue(20, 28, 32)),
 
                                       // ===== START BUTTON =====
                                       GestureDetector(
-                                        onTap: () => setState(() => _modalVisible = true),
+                                        onTap: () => setState(
+                                            () => _modalVisible = true),
                                         child: Container(
                                           decoration: BoxDecoration(
                                             gradient: const LinearGradient(
-                                              colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+                                              colors: [
+                                                Color(0xFFFF416C),
+                                                Color(0xFFFF4B2B)
+                                              ],
                                               begin: Alignment.centerLeft,
                                               end: Alignment.centerRight,
                                             ),
-                                            borderRadius: BorderRadius.circular(_responsiveValue(16, 20, 24)),
+                                            borderRadius: BorderRadius.circular(
+                                                _responsiveValue(16, 20, 24)),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: const Color(0xFFFF416C).withOpacity(0.3),
+                                                color: const Color(0xFFFF416C)
+                                                    .withOpacity(0.3),
                                                 blurRadius: _scale(8),
                                                 offset: Offset(0, _scale(4)),
                                               ),
                                             ],
                                           ),
                                           padding: EdgeInsets.symmetric(
-                                            vertical: _responsiveValue(18, 22, 26),
+                                            vertical:
+                                                _responsiveValue(18, 22, 26),
                                           ),
                                           child: Center(
                                             child: Text(
                                               'Start Test →',
                                               style: TextStyle(
-                                                fontSize: _responsiveValue(18, 22, 24),
+                                                fontSize: _responsiveValue(
+                                                    18, 22, 24),
                                                 fontWeight: FontWeight.w800,
                                                 color: Colors.white,
                                               ),
@@ -485,13 +517,15 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(height: _responsiveValue(16, 20, 24)),
+                                      SizedBox(
+                                          height: _responsiveValue(16, 20, 24)),
 
                                       // ===== NOTE =====
                                       Text(
                                         'Make sure you have a stable internet connection and won\'t be interrupted during the test.',
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(14, 16, 18),
+                                          fontSize:
+                                              _responsiveValue(14, 16, 18),
                                           color: const Color(0xFF666666),
                                           fontStyle: FontStyle.italic,
                                           height: 1.4,
@@ -508,11 +542,14 @@ class _IQ2ScreenState extends State<IQ2Screen> {
 
                           // ===== PROGRESS SECTION =====
                           Container(
-                            margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                            padding: EdgeInsets.all(_responsiveValue(20, 28, 32)),
+                            margin: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
+                            padding:
+                                EdgeInsets.all(_responsiveValue(20, 28, 32)),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(_responsiveValue(16, 20, 24)),
+                              borderRadius: BorderRadius.circular(
+                                  _responsiveValue(16, 20, 24)),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),
@@ -525,7 +562,8 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                               children: [
                                 // Progress Header
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Test Progress',
@@ -546,26 +584,28 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                   ],
                                 ),
                                 SizedBox(height: _scale(12)),
-                              
+
                                 // Progress Bar
                                 Container(
                                   height: _responsiveValue(8, 12, 14),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFE9ECEF),
-                                    borderRadius: BorderRadius.circular(_responsiveValue(4, 6, 8)),
+                                    borderRadius: BorderRadius.circular(
+                                        _responsiveValue(4, 6, 8)),
                                   ),
                                   child: FractionallySizedBox(
                                     widthFactor: 0.0, // 0% progress
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF0072BC),
-                                        borderRadius: BorderRadius.circular(_responsiveValue(4, 6, 8)),
+                                        borderRadius: BorderRadius.circular(
+                                            _responsiveValue(4, 6, 8)),
                                       ),
                                     ),
                                   ),
                                 ),
                                 SizedBox(height: _scale(8)),
-                              
+
                                 // Progress Text
                                 Text(
                                   '0 of 30 questions answered',
@@ -586,7 +626,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                               bottom: 0,
                             ),
                             width: double.infinity,
-                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                            height: isDesktop ? 400 : (isTablet ? 320 : 250),
                             decoration: const BoxDecoration(
                               color: Colors.black,
                               image: DecorationImage(
@@ -598,7 +638,8 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                             ),
                             child: Center(
                               child: GestureDetector(
-                                onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
+                                onTap: () => _showUrlDialog(
+                                    'https://www.youtube.com/embed/L2zqTYgcpfg'),
                                 child: Container(
                                   width: 60,
                                   height: 60,
@@ -645,7 +686,8 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                     margin: EdgeInsets.all(_scale(20)),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(_responsiveValue(16, 20, 24)),
+                      borderRadius:
+                          BorderRadius.circular(_responsiveValue(16, 20, 24)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -675,7 +717,8 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => setState(() => _modalVisible = false),
+                                onPressed: () =>
+                                    setState(() => _modalVisible = false),
                                 icon: Icon(
                                   Icons.close,
                                   size: _scale(24),
@@ -690,7 +733,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                             ],
                           ),
                         ),
-                        
+
                         // Modal Body
                         Padding(
                           padding: EdgeInsets.all(_responsiveValue(20, 28, 32)),
@@ -703,7 +746,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                 color: const Color(0xFF0072BC),
                               ),
                               SizedBox(height: _scale(20)),
-                              
+
                               // Modal Message
                               Text(
                                 'Once you start, the timer will begin counting down from 45 minutes. Are you ready to begin the test?',
@@ -715,22 +758,27 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                 textAlign: TextAlign.center,
                               ),
                               SizedBox(height: _scale(24)),
-                              
+
                               // Modal Buttons
                               Row(
                                 children: [
                                   // Cancel Button
                                   Expanded(
                                     child: ElevatedButton(
-                                      onPressed: () => setState(() => _modalVisible = false),
+                                      onPressed: () =>
+                                          setState(() => _modalVisible = false),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFF8F9FA),
-                                        foregroundColor: const Color(0xFF666666),
+                                        backgroundColor:
+                                            const Color(0xFFF8F9FA),
+                                        foregroundColor:
+                                            const Color(0xFF666666),
                                         padding: EdgeInsets.symmetric(
-                                          vertical: _responsiveValue(14, 18, 22),
+                                          vertical:
+                                              _responsiveValue(14, 18, 22),
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(_responsiveValue(12, 16, 20)),
+                                          borderRadius: BorderRadius.circular(
+                                              _responsiveValue(12, 16, 20)),
                                           side: BorderSide(
                                             color: const Color(0xFFDEE2E6),
                                             width: 1,
@@ -740,24 +788,29 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                       child: Text(
                                         'Cancel',
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(16, 18, 20),
+                                          fontSize:
+                                              _responsiveValue(16, 18, 20),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                   ),
                                   SizedBox(width: _scale(12)),
-                                  
+
                                   // Confirm Button
                                   Expanded(
                                     child: Container(
                                       decoration: BoxDecoration(
                                         gradient: const LinearGradient(
-                                          colors: [Color(0xFF00B09B), Color(0xFF96C93D)],
+                                          colors: [
+                                            Color(0xFF00B09B),
+                                            Color(0xFF96C93D)
+                                          ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
-                                        borderRadius: BorderRadius.circular(_responsiveValue(12, 16, 20)),
+                                        borderRadius: BorderRadius.circular(
+                                            _responsiveValue(12, 16, 20)),
                                       ),
                                       child: ElevatedButton(
                                         onPressed: _startTest,
@@ -766,16 +819,19 @@ class _IQ2ScreenState extends State<IQ2Screen> {
                                           shadowColor: Colors.transparent,
                                           foregroundColor: Colors.white,
                                           padding: EdgeInsets.symmetric(
-                                            vertical: _responsiveValue(14, 18, 22),
+                                            vertical:
+                                                _responsiveValue(14, 18, 22),
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(_responsiveValue(12, 16, 20)),
+                                            borderRadius: BorderRadius.circular(
+                                                _responsiveValue(12, 16, 20)),
                                           ),
                                         ),
                                         child: Text(
                                           'Yes, Start Test',
                                           style: TextStyle(
-                                            fontSize: _responsiveValue(16, 18, 20),
+                                            fontSize:
+                                                _responsiveValue(16, 18, 20),
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -835,7 +891,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
             ),
           ),
           SizedBox(height: _scale(12)),
-          
+
           // Title
           Text(
             title,
@@ -847,7 +903,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
             textAlign: TextAlign.center,
           ),
           SizedBox(height: _scale(4)),
-          
+
           // Value
           Text(
             value,
@@ -858,7 +914,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
             ),
           ),
           SizedBox(height: _scale(2)),
-          
+
           // Label
           Text(
             label,
@@ -877,7 +933,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
   Widget _buildKeyPoint(String text, {String? highlightText}) {
     final List<TextSpan> textSpans = [];
     final words = text.split(' ');
-    
+
     for (final word in words) {
       if (highlightText != null && word.contains(highlightText.split(' ')[0])) {
         textSpans.add(TextSpan(
@@ -900,7 +956,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
         ));
       }
     }
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -915,7 +971,7 @@ class _IQ2ScreenState extends State<IQ2Screen> {
           ),
         ),
         SizedBox(width: _scale(4)),
-        
+
         // Text
         Expanded(
           child: RichText(

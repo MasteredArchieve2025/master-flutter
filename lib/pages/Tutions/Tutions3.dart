@@ -11,9 +11,6 @@ import '../../services/auth_token_manager.dart';
 import '../../Widgets/ImageGalleryPopup.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 
-
-
-
 class Tution3Screen extends StatefulWidget {
   final String instituteName;
   final Map<String, dynamic>? instituteData;
@@ -76,7 +73,7 @@ class _Tution3ScreenState extends State<Tution3Screen> {
 
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for tuitionspage3...');
-    
+
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=tuitionspage3'),
@@ -122,7 +119,7 @@ class _Tution3ScreenState extends State<Tution3Screen> {
           _adsLoaded = true;
           _apiCallFailed = true;
         });
-        
+
         // Show a snackbar to inform about missing backend data (optional)
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +144,8 @@ class _Tution3ScreenState extends State<Tution3Screen> {
         _apiCallFailed = true;
       });
     } finally {
-      debugPrint('✅ Using ${ads.length} images (${_adImages.isEmpty ? 'fallback' : 'API'})');
+      debugPrint(
+          '✅ Using ${ads.length} images (${_adImages.isEmpty ? 'fallback' : 'API'})');
       // Start auto-scroll after ads are loaded
       _startAdAutoScroll();
     }
@@ -472,10 +470,10 @@ class _Tution3ScreenState extends State<Tution3Screen> {
     final bool isDesktop = screenWidth >= 1024;
 
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double adHeight = isTablet ? 200 : 180;
+    final double adHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
     final double cardPadding = isTablet ? 20 : 16;
     final double cardMargin = isTablet ? 16 : 12;
-    final double videoHeight = isTablet ? 220 : 180;
+    final double videoHeight = isDesktop ? 400 : (isTablet ? 320 : 250);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
 
     double displayRating = _averageRating > 0
@@ -702,7 +700,8 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                             children: [
                               Row(
                                 children: [
-                                  if (widget.instituteData?['tuitionImage'] != null)
+                                  if (widget.instituteData?['tuitionImage'] !=
+                                      null)
                                     Container(
                                       width: isTablet ? 70 : 60,
                                       height: isTablet ? 70 : 60,
@@ -712,7 +711,8 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
+                                            color:
+                                                Colors.black.withOpacity(0.1),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -723,17 +723,25 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                                         child: Image.network(
                                           widget.instituteData!['tuitionImage'],
                                           fit: BoxFit.cover,
-                                          loadingBuilder: (context, child, loadingProgress) {
-                                            if (loadingProgress == null) return child;
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null)
+                                              return child;
                                             return const Center(
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2,
-                                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0B5ED7)),
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                            Color>(
+                                                        Color(0xFF0B5ED7)),
                                               ),
                                             );
                                           },
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              const Icon(Icons.school, size: 30, color: Colors.grey),
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(Icons.school,
+                                                      size: 30,
+                                                      color: Colors.grey),
                                         ),
                                       ),
                                     ),
@@ -966,10 +974,13 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                                     ),
                                     child: GestureDetector(
                                       onTap: () {
-                                        final galleryList = (widget.instituteData?['gallery'] as List)
-                                            .map((e) => e.toString())
-                                            .toList();
-                                        showImageGallery(context, galleryList, index);
+                                        final galleryList =
+                                            (widget.instituteData?['gallery']
+                                                    as List)
+                                                .map((e) => e.toString())
+                                                .toList();
+                                        showImageGallery(
+                                            context, galleryList, index);
                                       },
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
@@ -1392,12 +1403,12 @@ class _Tution3ScreenState extends State<Tution3Screen> {
                               CommonYoutubePlayer(
                                 youtubeUrl: _youtubeUrls[_currentVideoIndex],
                                 height: videoHeight,
-                                placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                                placeholderThumbnail: _getVideoThumbnail(
+                                    _youtubeUrls[_currentVideoIndex]),
                                 borderRadius: 0,
                               ),
                               if (_youtubeUrls.length > 1)
                                 Positioned(
-                                  bottom: 16,
                                   right: 16,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(

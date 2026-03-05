@@ -46,8 +46,16 @@ class _IQ3ScreenState extends State<IQ3Screen> {
         'question': "Sample question $i?",
         'options': ["Option A", "Option B", "Option C", "Option D"],
         'correctAnswer': 0,
-        'type': i % 3 == 0 ? "spatial" : i % 3 == 1 ? "numerical" : "verbal",
-        'difficulty': i % 3 == 0 ? "hard" : i % 3 == 1 ? "medium" : "easy",
+        'type': i % 3 == 0
+            ? "spatial"
+            : i % 3 == 1
+                ? "numerical"
+                : "verbal",
+        'difficulty': i % 3 == 0
+            ? "hard"
+            : i % 3 == 1
+                ? "medium"
+                : "easy",
       }
   ];
 
@@ -142,7 +150,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text("Time's Up!"),
-        content: const Text("Your test time has expired. Submitting your answers..."),
+        content: const Text(
+            "Your test time has expired. Submitting your answers..."),
         actions: [
           TextButton(
             onPressed: () {
@@ -196,7 +205,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
     // Calculate results
     final score = _calculateScore();
     final timeTaken = 45 * 60 - _timeLeft; // Total time - time left
-    
+
     // Cancel timer
     _timer?.cancel();
 
@@ -238,14 +247,14 @@ class _IQ3ScreenState extends State<IQ3Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    
+
     final currentQuestionData = _sampleQuestions[_currentQuestion];
 
     return Scaffold(
@@ -271,7 +280,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                   bottom: false,
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: _responsiveValue(64, 72, 80),
                     child: Row(
                       children: [
@@ -313,7 +323,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             ),
                           ),
                         ),
-                        
+
                         // Center Title
                         Expanded(
                           child: Center(
@@ -340,7 +350,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             ),
                           ),
                         ),
-                        
+
                         // Timer
                         Container(
                           padding: EdgeInsets.symmetric(
@@ -407,7 +417,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Progress Bar
                       Container(
                         height: 6,
@@ -457,7 +467,10 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                 ),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+                                    colors: [
+                                      Color(0xFFFF416C),
+                                      Color(0xFFFF4B2B)
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
@@ -473,7 +486,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                 ),
                               ),
                               SizedBox(width: _responsiveValue(12, 14, 16)),
-                              
+
                               // Difficulty Badge
                               Container(
                                 padding: EdgeInsets.symmetric(
@@ -481,29 +494,36 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                   vertical: _responsiveValue(6, 7, 8),
                                 ),
                                 decoration: BoxDecoration(
-                                  color: currentQuestionData['difficulty'] == 'easy'
+                                  color: currentQuestionData['difficulty'] ==
+                                          'easy'
                                       ? const Color(0xFFF0FFF4)
-                                      : currentQuestionData['difficulty'] == 'medium'
+                                      : currentQuestionData['difficulty'] ==
+                                              'medium'
                                           ? const Color(0xFFFFFAF0)
                                           : const Color(0xFFFFF5F5),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: currentQuestionData['difficulty'] == 'easy'
+                                    color: currentQuestionData['difficulty'] ==
+                                            'easy'
                                         ? const Color(0xFF48BB78)
-                                        : currentQuestionData['difficulty'] == 'medium'
+                                        : currentQuestionData['difficulty'] ==
+                                                'medium'
                                             ? const Color(0xFFED8936)
                                             : const Color(0xFFF56565),
                                     width: 1,
                                   ),
                                 ),
                                 child: Text(
-                                  (currentQuestionData['difficulty'] as String).toUpperCase(),
+                                  (currentQuestionData['difficulty'] as String)
+                                      .toUpperCase(),
                                   style: TextStyle(
                                     fontSize: _responsiveValue(12, 13, 14),
                                     fontWeight: FontWeight.w700,
-                                    color: currentQuestionData['difficulty'] == 'easy'
+                                    color: currentQuestionData['difficulty'] ==
+                                            'easy'
                                         ? const Color(0xFF48BB78)
-                                        : currentQuestionData['difficulty'] == 'medium'
+                                        : currentQuestionData['difficulty'] ==
+                                                'medium'
                                             ? const Color(0xFFED8936)
                                             : const Color(0xFFF56565),
                                   ),
@@ -516,7 +536,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                           // ===== QUESTION CARD =====
                           Container(
                             width: double.infinity,
-                            padding: EdgeInsets.all(_responsiveValue(20, 22, 24)),
+                            padding:
+                                EdgeInsets.all(_responsiveValue(20, 22, 24)),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
@@ -542,18 +563,21 @@ class _IQ3ScreenState extends State<IQ3Screen> {
 
                           // ===== OPTIONS LIST =====
                           Column(
-                            children: (currentQuestionData['options'] as List<String>)
-                                .asMap()
-                                .entries
-                                .map((entry) {
+                            children:
+                                (currentQuestionData['options'] as List<String>)
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
                               final index = entry.key;
                               final option = entry.value;
-                              
+
                               return GestureDetector(
                                 onTap: () => _handleAnswerSelect(index),
                                 child: Container(
-                                  margin: EdgeInsets.only(bottom: _responsiveValue(12, 13, 14)),
-                                  padding: EdgeInsets.all(_responsiveValue(16, 17, 18)),
+                                  margin: EdgeInsets.only(
+                                      bottom: _responsiveValue(12, 13, 14)),
+                                  padding: EdgeInsets.all(
+                                      _responsiveValue(16, 17, 18)),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
@@ -574,7 +598,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                           color: _selectedOption == index
                                               ? const Color(0xFF0072BC)
                                               : const Color(0xFFF8F9FA),
-                                          borderRadius: BorderRadius.circular(18),
+                                          borderRadius:
+                                              BorderRadius.circular(18),
                                           border: Border.all(
                                             color: _selectedOption == index
                                                 ? const Color(0xFF0072BC)
@@ -586,7 +611,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                           child: Text(
                                             String.fromCharCode(65 + index),
                                             style: TextStyle(
-                                              fontSize: _responsiveValue(16, 17, 18),
+                                              fontSize:
+                                                  _responsiveValue(16, 17, 18),
                                               fontWeight: FontWeight.w700,
                                               color: _selectedOption == index
                                                   ? Colors.white
@@ -595,14 +621,16 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(width: _responsiveValue(16, 17, 18)),
-                                      
+                                      SizedBox(
+                                          width: _responsiveValue(16, 17, 18)),
+
                                       // Option Text
                                       Expanded(
                                         child: Text(
                                           option,
                                           style: TextStyle(
-                                            fontSize: _responsiveValue(16, 17, 18),
+                                            fontSize:
+                                                _responsiveValue(16, 17, 18),
                                             color: _selectedOption == index
                                                 ? const Color(0xFF0052A2)
                                                 : const Color(0xFF333333),
@@ -612,7 +640,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                           ),
                                         ),
                                       ),
-                                      
+
                                       // Check Icon
                                       if (_selectedOption == index)
                                         Icon(
@@ -634,7 +662,9 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             children: [
                               // Previous Button
                               ElevatedButton(
-                                onPressed: _currentQuestion == 0 ? null : _handlePreviousQuestion,
+                                onPressed: _currentQuestion == 0
+                                    ? null
+                                    : _handlePreviousQuestion,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: const Color(0xFF0072BC),
@@ -668,21 +698,29 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                   ],
                                 ),
                               ),
-                              
+
                               // Next/Submit Button
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: _currentQuestion == _sampleQuestions.length - 1
-                                        ? [const Color(0xFFFF416C), const Color(0xFFFF4B2B)]
-                                        : [const Color(0xFF0072BC), const Color(0xFF0052A2)],
+                                    colors: _currentQuestion ==
+                                            _sampleQuestions.length - 1
+                                        ? [
+                                            const Color(0xFFFF416C),
+                                            const Color(0xFFFF4B2B)
+                                          ]
+                                        : [
+                                            const Color(0xFF0072BC),
+                                            const Color(0xFF0052A2)
+                                          ],
                                     begin: Alignment.centerLeft,
                                     end: Alignment.centerRight,
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: _currentQuestion == _sampleQuestions.length - 1
+                                  onPressed: _currentQuestion ==
+                                          _sampleQuestions.length - 1
                                       ? _handleSubmitTest
                                       : _handleNextQuestion,
                                   style: ElevatedButton.styleFrom(
@@ -700,21 +738,27 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                                   child: Row(
                                     children: [
                                       Text(
-                                        _currentQuestion == _sampleQuestions.length - 1
+                                        _currentQuestion ==
+                                                _sampleQuestions.length - 1
                                             ? 'Submit Test'
                                             : 'Next Question',
                                         style: TextStyle(
-                                          fontSize: _responsiveValue(16, 17, 18),
+                                          fontSize:
+                                              _responsiveValue(16, 17, 18),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      if (_currentQuestion != _sampleQuestions.length - 1)
+                                      if (_currentQuestion !=
+                                          _sampleQuestions.length - 1)
                                         Row(
                                           children: [
-                                            SizedBox(width: _responsiveValue(8, 9, 10)),
+                                            SizedBox(
+                                                width:
+                                                    _responsiveValue(8, 9, 10)),
                                             Icon(
                                               Icons.chevron_right,
-                                              size: _responsiveValue(20, 21, 22),
+                                              size:
+                                                  _responsiveValue(20, 21, 22),
                                               color: Colors.white,
                                             ),
                                           ],
@@ -726,7 +770,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             ],
                           ),
                           SizedBox(height: _responsiveValue(20, 24, 28)),
-                          
+
                           // ===== YOUTUBE VIDEO SECTION - UPDATED =====
                           Container(
                             margin: EdgeInsets.only(
@@ -734,7 +778,11 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                               bottom: 0, // Reduced bottom margin
                             ),
                             width: double.infinity,
-                            height: isDesktop ? 360 : (isTablet ? 280 : 220), // Same height as Exam1
+                            height: isDesktop
+                                ? 360
+                                : (isTablet
+                                    ? 320
+                                    : 220), // Same height as Exam1
                             decoration: const BoxDecoration(
                               color: Colors.black,
                               image: DecorationImage(
@@ -746,7 +794,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             ),
                             child: Center(
                               child: GestureDetector(
-                                onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
+                                onTap: () => _showUrlDialog(
+                                    'https://www.youtube.com/embed/L2zqTYgcpfg'),
                                 child: Container(
                                   width: 60,
                                   height: 60,
@@ -822,14 +871,16 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(10, (col) {
                               final index = row * 10 + col;
-                              if (index >= _sampleQuestions.length) return Container();
-                              
+                              if (index >= _sampleQuestions.length)
+                                return Container();
+
                               return GestureDetector(
                                 onTap: () => _handleQuestionSelect(index),
                                 child: Container(
                                   width: _responsiveValue(28, 30, 32),
                                   height: _responsiveValue(28, 30, 32),
-                                  margin: EdgeInsets.all(_responsiveValue(2, 2.5, 3)),
+                                  margin: EdgeInsets.all(
+                                      _responsiveValue(2, 2.5, 3)),
                                   decoration: BoxDecoration(
                                     color: _getButtonColor(index),
                                     borderRadius: BorderRadius.circular(16),
@@ -864,7 +915,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                             _buildLegend('Current', const Color(0xFF0072BC)),
                             _buildLegend('Answered', const Color(0xFF00B09B)),
                             _buildLegend('Visited', const Color(0xFFE6F2FF)),
-                            _buildLegend('Not Visited', const Color(0xFFF8F9FA)),
+                            _buildLegend(
+                                'Not Visited', const Color(0xFFF8F9FA)),
                           ],
                         ),
                       ],
@@ -874,7 +926,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
               ),
             ],
           ),
-          
+
           // Loading Overlay
           if (_loading)
             Container(
@@ -917,7 +969,7 @@ class _IQ3ScreenState extends State<IQ3Screen> {
   Widget _buildLegend(String text, Color color) {
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 768;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -928,8 +980,8 @@ class _IQ3ScreenState extends State<IQ3Screen> {
             color: color,
             borderRadius: BorderRadius.circular(7),
             border: Border.all(
-              color: color == const Color(0xFFF8F9FA) 
-                  ? const Color(0xFFE9ECEF) 
+              color: color == const Color(0xFFF8F9FA)
+                  ? const Color(0xFFE9ECEF)
                   : color,
               width: 1,
             ),

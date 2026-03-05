@@ -116,9 +116,7 @@ class _Course3ScreenState extends State<Course3Screen> {
   List<Map<String, dynamic>> get filteredCourses {
     return coursesData.where((course) {
       final matchesSearch = _searchQuery.isEmpty ||
-          course['name']!
-              .toLowerCase()
-              .contains(_searchQuery.toLowerCase()) ||
+          course['name']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           course['location']!
               .toLowerCase()
               .contains(_searchQuery.toLowerCase());
@@ -153,9 +151,9 @@ class _Course3ScreenState extends State<Course3Screen> {
 
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double bannerHeight = _responsiveValue(180, 200, 220);
+    final double bannerHeight = _responsiveValue(200, 300, 300);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
-    final double videoHeight = _responsiveValue(200, 280, 320);
+    final double videoHeight = _responsiveValue(250, 320, 400);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -387,7 +385,8 @@ class _Course3ScreenState extends State<Course3Screen> {
                               horizontalPadding,
                               _responsiveValue(16, 20, 24),
                             ),
-                            padding: EdgeInsets.all(_responsiveValue(16, 20, 24)),
+                            padding:
+                                EdgeInsets.all(_responsiveValue(16, 20, 24)),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(_scale(14)),
@@ -514,7 +513,8 @@ class _Course3ScreenState extends State<Course3Screen> {
                               horizontalPadding,
                               _responsiveValue(20, 30, 40),
                             ),
-                            padding: EdgeInsets.all(_responsiveValue(32, 40, 48)),
+                            padding:
+                                EdgeInsets.all(_responsiveValue(32, 40, 48)),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(_scale(16)),
@@ -625,7 +625,7 @@ class _Course3ScreenState extends State<Course3Screen> {
                         ),
 
                         // ===== MINIMAL SPACER =====
-                       // SizedBox(height: _responsiveValue(20, 30, 40)),
+                        // SizedBox(height: _responsiveValue(20, 30, 40)),
                       ],
                     ),
                   ),
@@ -732,9 +732,9 @@ class _Course3ScreenState extends State<Course3Screen> {
                 ),
               ),
             ),
-            
+
             SizedBox(width: _responsiveValue(14, 18, 22)),
-            
+
             // Course Details
             Expanded(
               child: Column(
@@ -755,7 +755,7 @@ class _Course3ScreenState extends State<Course3Screen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      
+
                       // Rating
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -787,9 +787,9 @@ class _Course3ScreenState extends State<Course3Screen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Location
                   Row(
                     children: [
@@ -808,9 +808,9 @@ class _Course3ScreenState extends State<Course3Screen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Tags
                   Container(
                     padding: EdgeInsets.symmetric(
@@ -833,9 +833,9 @@ class _Course3ScreenState extends State<Course3Screen> {
                 ],
               ),
             ),
-            
+
             SizedBox(width: _responsiveValue(12, 16, 20)),
-            
+
             // Chevron Icon - FIXED: Removed duplicate 'const' keyword
             const Icon(
               Icons.chevron_right,

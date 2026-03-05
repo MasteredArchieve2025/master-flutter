@@ -6,7 +6,7 @@ import 'Collegecourse4.dart';
 
 class Collegecourse3Screen extends StatefulWidget {
   final String? course; // Optional course parameter
-  
+
   const Collegecourse3Screen({
     super.key,
     this.course,
@@ -112,22 +112,21 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions using helper methods
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double bannerHeight = isDesktop ? 220 : (isTablet ? 300 : 180);
+    final double bannerHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
-    final double videoHeight = isDesktop ? 320 : (isTablet ? 260 : 200);
-    
+    final double videoHeight = isDesktop ? 400 : (isTablet ? 320 : 250);
+
     // Get visible institutes based on showAll state
-    final visibleInstitutes = _showAllInstitutes 
-        ? institutes 
-        : institutes.take(2).toList();
+    final visibleInstitutes =
+        _showAllInstitutes ? institutes : institutes.take(2).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -174,7 +173,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like Collegecourse2
                     Expanded(
                       child: Center(
@@ -188,7 +187,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like Collegecourse2
                     const SizedBox(width: 40),
                   ],
@@ -216,9 +215,8 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                             top: isDesktop ? 8 : 0,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: isDesktop
-                                ? BorderRadius.circular(12)
-                                : null,
+                            borderRadius:
+                                isDesktop ? BorderRadius.circular(12) : null,
                           ),
                           child: ClipRRect(
                             borderRadius: isDesktop
@@ -242,7 +240,8 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                                         width: screenWidth,
                                         color: const Color(0xFF4C73AC),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             const Icon(
                                               Icons.school,
@@ -272,7 +271,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                                       );
                                     },
                                   ),
-                                  
+
                                   // Overlay gradient
                                   Container(
                                     decoration: BoxDecoration(
@@ -304,9 +303,9 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeBannerIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeBannerIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -324,7 +323,8 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                           padding: EdgeInsets.all(isTablet ? 20 : 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4C73AC),
-                            borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
+                            borderRadius:
+                                BorderRadius.circular(isTablet ? 18 : 16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,8 +393,8 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Icon(
-                                    _showAllInstitutes 
-                                        ? Icons.expand_less 
+                                    _showAllInstitutes
+                                        ? Icons.expand_less
                                         : Icons.chevron_right,
                                     size: isTablet ? 18 : 16,
                                     color: const Color(0xFF0B5ED7),
@@ -419,7 +419,8 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                               Text(
                                 'Video',
                                 style: TextStyle(
-                                  fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
+                                  fontSize:
+                                      isDesktop ? 22 : (isTablet ? 20 : 18),
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -472,7 +473,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                         ),
 
                         // ===== SPACER FOR FOOTER =====
-                       // SizedBox(height: isDesktop ? 30 : (isTablet ? 20 : 16)),
+                        // SizedBox(height: isDesktop ? 30 : (isTablet ? 20 : 16)),
                       ],
                     ),
                   ),
@@ -548,14 +549,15 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                 borderRadius: BorderRadius.circular(isTablet ? 16 : 12),
                 color: const Color(0xFFE0E0E0),
                 image: const DecorationImage(
-                  image: NetworkImage('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f'),
+                  image: NetworkImage(
+                      'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f'),
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            
+
             SizedBox(width: isTablet ? 16 : 12),
-            
+
             // Institute Details
             Expanded(
               child: Column(
@@ -569,9 +571,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                       color: Colors.black,
                     ),
                   ),
-                  
                   SizedBox(height: isTablet ? 6 : 4),
-                  
                   Text(
                     institute['location'] as String,
                     style: TextStyle(
@@ -579,9 +579,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                       color: const Color(0xFF5F6F81),
                     ),
                   ),
-                  
                   SizedBox(height: isTablet ? 8 : 6),
-                  
                   Row(
                     children: [
                       // Rating
@@ -592,9 +590,9 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                           color: Colors.black,
                         ),
                       ),
-                      
+
                       SizedBox(width: isTablet ? 10 : 8),
-                      
+
                       // Subtitle
                       Text(
                         institute['subtitle'] as String,
@@ -609,7 +607,7 @@ class _Collegecourse3ScreenState extends State<Collegecourse3Screen> {
                 ],
               ),
             ),
-            
+
             // Chevron Icon
             Icon(
               Icons.chevron_right,

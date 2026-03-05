@@ -37,7 +37,7 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     super.initState();
     _fetchExamCategories();
     _fetchAdvertisements();
-    
+
     // Auto scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_adController.hasClients && mounted && adImages.isNotEmpty) {
@@ -80,7 +80,7 @@ class _Exam1ScreenState extends State<Exam1Screen> {
 
   Future<void> _fetchExamCategories() async {
     debugPrint('🔄 Loading exam categories...');
-    
+
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/exam-categories'),
@@ -89,7 +89,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         },
       );
 
-      debugPrint('📡 Exam Categories API Response Status: ${response.statusCode}');
+      debugPrint(
+          '📡 Exam Categories API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
@@ -109,7 +110,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
             return {
               'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
               'title': item['name'] ?? 'Unknown Exam',
-              'description': item['shortDescription'] ?? 'No description available',
+              'description':
+                  item['shortDescription'] ?? 'No description available',
               'image': imageUrl,
             };
           }).toList();
@@ -117,7 +119,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load exam categories. Status: ${response.statusCode}';
+          _errorMessage =
+              'Failed to load exam categories. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -218,17 +221,20 @@ class _Exam1ScreenState extends State<Exam1Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double adHeight = _responsiveValue(200, 300, 300);
     final int gridColumns = _getGridColumns();
-    final double cardWidth = (screenWidth - (horizontalPadding * 2) - (_responsiveValue(12, 16, 20) * (gridColumns - 1))) / gridColumns;
+    final double cardWidth = (screenWidth -
+            (horizontalPadding * 2) -
+            (_responsiveValue(12, 16, 20) * (gridColumns - 1))) /
+        gridColumns;
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
     // Calculate header height
@@ -256,7 +262,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: headerHeight,
                     child: Row(
                       children: [
@@ -335,230 +342,368 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                                 ],
                               ),
                             )
-                          : SingleChildScrollView(
-                              child: Center(
-                                child: Container(
-                                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // ===== ADVERTISEMENT BANNER =====
-                                      if (adImages.isNotEmpty)
-                                        Container(
-                                          width: screenWidth,
-                                          height: adHeight,
-                                          child: PageView.builder(
-                                            controller: _adController,
-                                            itemCount: adImages.length,
-                                            onPageChanged: (index) {
-                                              setState(() {
-                                                _activeAdIndex = index;
-                                              });
-                                            },
-                                            itemBuilder: (context, index) {
-                                              return Image.network(
-                                                adImages[index],
-                                                width: screenWidth,
-                                                height: adHeight,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) {
-                                                  return Container(
-                                                    width: screenWidth,
-                                                    height: adHeight,
-                                                    color: Colors.black12,
-                                                    child: const Center(
-                                                      child: Icon(Icons.broken_image, color: Colors.grey),
-                                                    ),
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      else if (_isAdsLoading)
-                                        Container(
-                                          width: screenWidth,
-                                          height: adHeight,
-                                          color: Colors.grey[200],
-                                          child: const Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        )
-                                      else
-                                        const SizedBox.shrink(),
-
-                                      // ===== PAGINATION DOTS =====
-                                      if (adImages.length > 1)
-                                        Container(
-                                          color: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: List.generate(adImages.length, (index) {
-                                              return AnimatedContainer(
-                                                duration: const Duration(milliseconds: 300),
-                                                width: _activeAdIndex == index ? _scale(20) : _scale(8),
-                                                height: _scale(8),
-                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                                decoration: BoxDecoration(
-                                                  color: _activeAdIndex == index 
-                                                    ? const Color(0xFF0B5ED7) 
-                                                    : const Color(0xFFCCCCCC),
-                                                  borderRadius: BorderRadius.circular(_scale(4)),
-                                                ),
-                                              );
-                                            }),
-                                          ),
-                                        ),
-
-                                      // ===== EXAM CATEGORIES SECTION =====
-                                      Container(
-                                        width: double.infinity,
-                                        color: Colors.white,
-                                        padding: EdgeInsets.fromLTRB(
-                                          horizontalPadding,
-                                          _responsiveValue(24, 28, 32),
-                                          horizontalPadding,
-                                          _responsiveValue(20, 24, 28),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Section Title
-                                            Text(
-                                              'Exam Categories',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(20, 22, 24),
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF003366),
-                                              ),
-                                            ),
-                                            SizedBox(height: _scale(8)),
-                                            
-                                            // Section Subtitle with count
-                                            Text(
-                                              examCategories.isNotEmpty
-                                                  ? '${examCategories.length} exam ${examCategories.length == 1 ? 'category' : 'categories'} available'
-                                                  : 'Browse exams by category and find the right preparation resources',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(14, 15, 16),
-                                                color: const Color(0xFF666666),
-                                                height: 1.5,
-                                              ),
-                                            ),
-                                            SizedBox(height: _responsiveValue(20, 24, 28)),
-
-                                            // Grid View - Fixed missing closing bracket
-                                            if (examCategories.isEmpty)
-                                              const Center(
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(20),
-                                                  child: Text('No exam categories available'),
-                                                ),
-                                              )
-                                            else
-                                              Wrap(
-                                                spacing: _responsiveValue(12, 16, 20),
-                                                runSpacing: _responsiveValue(12, 16, 20),
-                                                children: examCategories.map((exam) {
-                                                  return _buildExamCard(
-                                                    exam: exam,
-                                                    width: cardWidth,
-                                                  );
-                                                }).toList(),
-                                              ), // Added missing closing bracket
-                                          ],
-                                        ),
-                                      ),
-
-                                      // ===== BANNER SECTION =====
-                                      Container(
-                                        width: screenWidth,
-                                        margin: EdgeInsets.symmetric(
-                                          horizontal: horizontalPadding,
-                                          vertical: _responsiveValue(20, 24, 28),
-                                        ),
-                                        padding: EdgeInsets.all(_responsiveValue(20, 24, 28)),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4C73AC),
-                                          borderRadius: BorderRadius.circular(_scale(12)),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
-                                              blurRadius: _scale(6),
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Comprehensive Exam Resources',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(18, 20, 22),
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            SizedBox(height: _scale(10)),
-                                            Text(
-                                              'Get syllabus, previous papers, mock tests, and preparation tips',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(14, 15, 16),
-                                                color: const Color(0xFFDCE8FF),
-                                                height: 1.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // ===== YOUTUBE VIDEO SECTION =====
-                                      if (youtubeUrls.isNotEmpty) ...[
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: horizontalPadding,
-                                            vertical: _responsiveValue(16, 20, 24),
-                                          ),
-                                          child: Row(
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Center(
+                                        child: Container(
+                                          constraints: BoxConstraints(
+                                              maxWidth: maxContentWidth),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              const Icon(Icons.play_circle_fill, color: Colors.red),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Video Tutorials',
-                                                style: TextStyle(
-                                                  fontSize: _responsiveValue(18, 20, 22),
-                                                  fontWeight: FontWeight.w700,
-                                                  color: const Color(0xFF003366),
-                                                ),
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // ===== ADVERTISEMENT BANNER =====
+                                                  if (adImages.isNotEmpty)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      child: PageView.builder(
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
+                                                        onPageChanged: (index) {
+                                                          setState(() {
+                                                            _activeAdIndex =
+                                                                index;
+                                                          });
+                                                        },
+                                                        itemBuilder:
+                                                            (context, index) {
+                                                          return Image.network(
+                                                            adImages[index],
+                                                            width: screenWidth,
+                                                            height: adHeight,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error,
+                                                                    stackTrace) {
+                                                              return Container(
+                                                                width:
+                                                                    screenWidth,
+                                                                height:
+                                                                    adHeight,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        },
+                                                      ),
+                                                    )
+                                                  else if (_isAdsLoading)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
+                                                    )
+                                                  else
+                                                    const SizedBox.shrink(),
+
+                                                  // ===== PAGINATION DOTS =====
+                                                  if (adImages.length > 1)
+                                                    Container(
+                                                      color: Colors.white,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: List.generate(
+                                                            adImages.length,
+                                                            (index) {
+                                                          return AnimatedContainer(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(20)
+                                                                    : _scale(8),
+                                                            height: _scale(8),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
+                                                            ),
+                                                          );
+                                                        }),
+                                                      ),
+                                                    ),
+
+                                                  // ===== EXAM CATEGORIES SECTION =====
+                                                  Container(
+                                                    width: double.infinity,
+                                                    color: Colors.white,
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          24, 28, 32),
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          20, 24, 28),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Section Title
+                                                        Text(
+                                                          'Exam Categories',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    20, 22, 24),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: const Color(
+                                                                0xFF003366),
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _scale(8)),
+
+                                                        // Section Subtitle with count
+                                                        Text(
+                                                          examCategories
+                                                                  .isNotEmpty
+                                                              ? '${examCategories.length} exam ${examCategories.length == 1 ? 'category' : 'categories'} available'
+                                                              : 'Browse exams by category and find the right preparation resources',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFF666666),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height:
+                                                                _responsiveValue(
+                                                                    20,
+                                                                    24,
+                                                                    28)),
+
+                                                        // Grid View - Fixed missing closing bracket
+                                                        if (examCategories
+                                                            .isEmpty)
+                                                          const Center(
+                                                            child: Padding(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(20),
+                                                              child: Text(
+                                                                  'No exam categories available'),
+                                                            ),
+                                                          )
+                                                        else
+                                                          Wrap(
+                                                            spacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            runSpacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            children:
+                                                                examCategories
+                                                                    .map(
+                                                                        (exam) {
+                                                              return _buildExamCard(
+                                                                exam: exam,
+                                                                width:
+                                                                    cardWidth,
+                                                              );
+                                                            }).toList(),
+                                                          ), // Added missing closing bracket
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  // ===== BANNER SECTION =====
+                                                  Container(
+                                                    width: screenWidth,
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              20, 24, 28),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFF4C73AC),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              _scale(12)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
+                                                          blurRadius: _scale(6),
+                                                          offset: const Offset(
+                                                              0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Comprehensive Exam Resources',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _scale(10)),
+                                                        Text(
+                                                          'Get syllabus, previous papers, mock tests, and preparation tips',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFFDCE8FF),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
+                                              // ===== YOUTUBE VIDEO SECTION =====
+                                              if (youtubeUrls.isNotEmpty)
+                                                Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                16, 20, 24),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color:
+                                                                  Colors.red),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Text(
+                                                            'Video Tutorials',
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    ...youtubeUrls
+                                                        .map((url) => Container(
+                                                              width:
+                                                                  screenWidth,
+                                                              margin: EdgeInsets
+                                                                  .only(),
+                                                              child:
+                                                                  CommonYoutubePlayer(
+                                                                youtubeUrl: url,
+                                                                height: isDesktop
+                                                                    ? 360
+                                                                    : (isTablet
+                                                                        ? 320
+                                                                        : 220),
+                                                                placeholderThumbnail:
+                                                                    _getYoutubeThumbnail(
+                                                                        url),
+                                                                borderRadius: 0,
+                                                              ),
+                                                            ))
+                                                        .toList(),
+                                                  ],
+                                                ),
                                             ],
                                           ),
                                         ),
-                                        ...youtubeUrls.map((url) => Container(
-                                          width: screenWidth,
-                                          margin: EdgeInsets.only(
-                                            bottom: _responsiveValue(16, 20, 24),
-                                          ),
-                                          child: CommonYoutubePlayer(
-                                            youtubeUrl: url,
-                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                            placeholderThumbnail: _getYoutubeThumbnail(url),
-                                            borderRadius: 0,
-                                          ),
-                                        )).toList(),
-                                      ],
-                                    ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                 ),
               ],
             ),
           ),
-          
+
           // Full screen loader for initial loading
           if (_isLoading && examCategories.isEmpty)
             const GlassLoader(
@@ -574,8 +719,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     required double width,
   }) {
     // Check if we have an image from API and it's valid
-    bool hasValidImage = exam['image'] != null && 
-                         exam['image'].toString().isNotEmpty;
+    bool hasValidImage =
+        exam['image'] != null && exam['image'].toString().isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -590,9 +735,11 @@ class _Exam1ScreenState extends State<Exam1Screen> {
         );
       },
       child: Container(
-        width: width*0.9,
-         margin: EdgeInsets.symmetric(horizontal: width * 0.05), // Center the smaller card
-        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
+        width: width * 0.9,
+        margin: EdgeInsets.symmetric(
+            horizontal: width * 0.05), // Center the smaller card
+        padding:
+            EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -609,10 +756,13 @@ class _Exam1ScreenState extends State<Exam1Screen> {
           children: [
             // Logo Container - Bigger size
             Container(
-              width: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
-              height: _responsiveValue(70, 80, 90), // Increased from 40/50/60 to 80/100/120
+              width: _responsiveValue(
+                  70, 80, 90), // Increased from 40/50/60 to 80/100/120
+              height: _responsiveValue(
+                  70, 80, 90), // Increased from 40/50/60 to 80/100/120
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_scale(16)), // Slightly larger border radius
+                borderRadius: BorderRadius.circular(
+                    _scale(16)), // Slightly larger border radius
                 image: hasValidImage
                     ? DecorationImage(
                         image: NetworkImage(exam['image']),
@@ -626,7 +776,8 @@ class _Exam1ScreenState extends State<Exam1Screen> {
                   ? Center(
                       child: Icon(
                         Icons.image,
-                        size: _responsiveValue(25, 30, 35), // Increased from 22/26/30 to 40/50/60
+                        size: _responsiveValue(
+                            25, 30, 35), // Increased from 22/26/30 to 40/50/60
                         color: const Color(0xFF0052A2).withOpacity(0.5),
                       ),
                     )

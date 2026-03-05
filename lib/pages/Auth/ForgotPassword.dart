@@ -13,7 +13,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String selectedCountryCode = "+91";
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool loading = false;
   bool obscureNewPassword = true;
@@ -99,7 +100,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F8FF),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
@@ -140,7 +141,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
               // Form content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -161,7 +163,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-
                     InputField(
                       icon: Icons.phone,
                       placeholder: "Phone Number",
@@ -171,18 +172,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0F7FF),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFF0066BE).withOpacity(0.2)),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFF0066BE).withOpacity(0.2)),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedCountryCode,
                                 isDense: true,
-                                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0066BE)),
-                                items: ["+91", "+1", "+44", "+971"].map((String value) {
+                                icon: const Icon(Icons.arrow_drop_down,
+                                    color: Color(0xFF0066BE)),
+                                items: ["+91", "+1", "+44", "+971"]
+                                    .map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
                                     child: Text(
@@ -215,7 +221,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                       maxLength: 10,
                     ),
-
                     InputField(
                       icon: Icons.lock,
                       placeholder: "New Password",
@@ -228,7 +233,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         });
                       },
                     ),
-
                     InputField(
                       icon: Icons.lock_clock,
                       placeholder: "Confirm Password",
@@ -241,9 +245,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         });
                       },
                     ),
-
                     const SizedBox(height: 25),
-
                     GestureDetector(
                       onTap: loading ? null : handleResetPassword,
                       child: Container(
@@ -274,9 +276,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     Center(
                       child: GestureDetector(
                         onTap: () => Navigator.pop(context),
@@ -412,11 +412,7 @@ class SemicircleTopClipper extends CustomClipper<Path> {
     double h = size.height;
 
     // Semicircle sitting on top, flat top
-    path.addArc(
-      Rect.fromLTWH(-w * 0.1, -h, w * 1.2, h * 2), 
-      3.14, 
-      -3.14
-    );
+    path.addArc(Rect.fromLTWH(-w * 0.1, -h, w * 1.2, h * 2), 3.14, -3.14);
     path.close();
     return path;
   }
@@ -433,11 +429,7 @@ class SemicircleBottomClipper extends CustomClipper<Path> {
     double h = size.height;
 
     // Semicircle sitting at bottom, flat bottom
-    path.addArc(
-      Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 
-      3.14, 
-      3.14
-    );
+    path.addArc(Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 3.14, 3.14);
     path.close();
     return path;
   }

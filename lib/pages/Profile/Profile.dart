@@ -17,17 +17,17 @@ class _ProfileScreenState extends State<ProfileScreen>
   String? _token;
   bool _isEditing = false;
   bool _isLoading = true;
-  
+
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  
+
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _scaleController;
   late AnimationController _progressController;
-  
+
   // Animations
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
@@ -37,45 +37,45 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation controllers
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    
+
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    
+
     _progressController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     // Initialize animations
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
     );
-    
+
     _slideAnimation = Tween<double>(begin: 50, end: 0).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.easeOutBack),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
-    
+
     _progressAnimation = Tween<double>(begin: 0, end: 0.65).animate(
       CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
     );
-    
+
     // Load user data from SharedPreferences
     _loadUserData();
   }
@@ -106,8 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         // No stored data — use safe defaults
         _user = {
           'username': 'User',
-          'email':    '',
-          'phone':    '',
+          'email': '',
+          'phone': '',
         };
       }
 
@@ -128,12 +128,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       // On error, use safe defaults and still show the screen
       _user = {
         'username': 'User',
-        'email':    '',
-        'phone':    '',
+        'email': '',
+        'phone': '',
       };
       _usernameController.text = 'User';
-      _emailController.text    = '';
-      _phoneController.text    = '';
+      _emailController.text = '';
+      _phoneController.text = '';
       _startAnimations();
     } finally {
       if (mounted) {
@@ -159,13 +159,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
       final updatedUser = {
         ..._user!,
-        'username':  _usernameController.text,
-        'name':      _usernameController.text,
+        'username': _usernameController.text,
+        'name': _usernameController.text,
         'full_name': _usernameController.text,
-        'email':     _emailController.text,
-        'phone':     _phoneController.text,
-        'mobile':    _phoneController.text,
-        'contact':   _phoneController.text,
+        'email': _emailController.text,
+        'phone': _phoneController.text,
+        'mobile': _phoneController.text,
+        'contact': _phoneController.text,
       };
 
       // Save updated profile securely
@@ -249,13 +249,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // Get user initials for avatar
   String _getUserInitials() {
-    String name = _user?['username']?.toString() ?? 
-                  _user?['name']?.toString() ?? 
-                  _user?['full_name']?.toString() ?? 
-                  'User';
-    
+    String name = _user?['username']?.toString() ??
+        _user?['name']?.toString() ??
+        _user?['full_name']?.toString() ??
+        'User';
+
     if (name.isEmpty) return 'U';
-    
+
     List<String> nameParts = name.split(' ');
     if (nameParts.length > 1) {
       return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
@@ -383,7 +383,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           child: Text(
                                             _getUserInitials(),
                                             style: TextStyle(
-                                              fontSize: _responsiveValue(32, 36, 40),
+                                              fontSize:
+                                                  _responsiveValue(32, 36, 40),
                                               fontWeight: FontWeight.bold,
                                               color: const Color(0xFF0B5394),
                                             ),
@@ -397,10 +398,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                               const SizedBox(height: 15),
                               // Display Username - Fixed: Extract string value
                               Text(
-                                _user?['username']?.toString() ?? 
-                                _user?['name']?.toString() ?? 
-                                _user?['full_name']?.toString() ?? 
-                                'User',
+                                _user?['username']?.toString() ??
+                                    _user?['name']?.toString() ??
+                                    _user?['full_name']?.toString() ??
+                                    'User',
                                 style: TextStyle(
                                   fontSize: _responsiveValue(24, 26, 28),
                                   fontWeight: FontWeight.w800,
@@ -487,17 +488,17 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildPersonalInfoCard() {
     // Extract values properly - FIXED: Don't show the whole object
-    String displayName = _user?['username']?.toString() ?? 
-                         _user?['name']?.toString() ?? 
-                         _user?['full_name']?.toString() ?? 
-                         'User';
-    
+    String displayName = _user?['username']?.toString() ??
+        _user?['name']?.toString() ??
+        _user?['full_name']?.toString() ??
+        'User';
+
     String displayEmail = _user?['email']?.toString() ?? 'user@example.com';
-    
-    String displayPhone = _user?['phone']?.toString() ?? 
-                          _user?['mobile']?.toString() ?? 
-                          _user?['contact']?.toString() ?? 
-                          '+1 234 567 8900';
+
+    String displayPhone = _user?['phone']?.toString() ??
+        _user?['mobile']?.toString() ??
+        _user?['contact']?.toString() ??
+        '+1 234 567 8900';
 
     return Container(
       width: double.infinity,
@@ -691,7 +692,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
         SizedBox(width: _responsiveValue(12, 14, 16)),
-        
+
         // Content
         Expanded(
           child: Column(
@@ -1054,7 +1055,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           SizedBox(width: _responsiveValue(12, 14, 16)),
-          
+
           // Title
           Expanded(
             child: Text(
@@ -1066,7 +1067,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           ),
-          
+
           // Arrow
           if (showArrow)
             Icon(

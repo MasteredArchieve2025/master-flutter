@@ -212,25 +212,27 @@ class _Course1ScreenState extends State<Course1Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(12, 16, 24);
-    final double bannerHeight = _responsiveValue(190, 300, 260);
+    final double bannerHeight = _responsiveValue(200, 300, 300);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    final double videoHeight = _responsiveValue(200, 280, 300);
-    
+    final double videoHeight = _responsiveValue(250, 320, 400);
+
     // Calculate columns based on screen size
     final int columns = isDesktop ? 4 : (isTablet ? 3 : 2);
     final double gap = _responsiveValue(8, 12, 16);
-    final double cardWidth = (screenWidth - (horizontalPadding * 2) - (gap * (columns - 1))) / columns;
+    final double cardWidth =
+        (screenWidth - (horizontalPadding * 2) - (gap * (columns - 1))) /
+            columns;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F8FF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0052A2),
         leading: IconButton(
@@ -288,7 +290,8 @@ class _Course1ScreenState extends State<Course1Screen> {
                                       width: screenWidth,
                                       color: const Color(0xFF4C73AC),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           const Icon(
                                             Icons.school,
@@ -325,9 +328,9 @@ class _Course1ScreenState extends State<Course1Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeBannerIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeBannerIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -424,14 +427,14 @@ class _Course1ScreenState extends State<Course1Screen> {
                         ),
 
                         // ===== BOTTOM PADDING FOR FOOTER =====
-                      //  SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
+                        //  SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            
+
             // ===== FOOTER (FIXED AT BOTTOM) =====
             Footer(
               currentIndex: _footerIndex,
@@ -464,7 +467,7 @@ class _Course1ScreenState extends State<Course1Screen> {
             ),
           ),
         );
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Navigate to ${activity['title']}'),
@@ -507,9 +510,9 @@ class _Course1ScreenState extends State<Course1Screen> {
                 color: Colors.white,
               ),
             ),
-            
+
             SizedBox(height: _scale(10)),
-            
+
             // Title - Fixed textAlign issue
             Text(
               activity['title'] as String,
@@ -522,9 +525,9 @@ class _Course1ScreenState extends State<Course1Screen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
+
             SizedBox(height: _scale(6)),
-            
+
             // Description - Fixed textAlign issue
             Text(
               'Explore courses and skill development programs',

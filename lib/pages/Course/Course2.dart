@@ -1,12 +1,11 @@
 // lib/pages/Course/Course2.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
- import 'Course3.dart';
-
+import 'Course3.dart';
 
 class Course2Screen extends StatefulWidget {
   final List<dynamic> sections;
-  
+
   const Course2Screen({
     super.key,
     required this.sections,
@@ -216,25 +215,27 @@ class _Course2ScreenState extends State<Course2Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double bannerHeight = _responsiveValue(190, 300, 260);
+    final double bannerHeight = _responsiveValue(200, 300, 300);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    final double videoHeight = _responsiveValue(200, 280, 300);
-    
+    final double videoHeight = _responsiveValue(250, 320, 400);
+
     // Calculate columns based on screen size
     final int columns = isDesktop ? 3 : (isTablet ? 2 : 2);
     final double gap = _responsiveValue(12, 16, 20);
-    final double cardWidth = (screenWidth - (horizontalPadding * 2) - (gap * (columns - 1))) / columns;
+    final double cardWidth =
+        (screenWidth - (horizontalPadding * 2) - (gap * (columns - 1))) /
+            columns;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F8FF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0052A2),
         leading: IconButton(
@@ -291,7 +292,8 @@ class _Course2ScreenState extends State<Course2Screen> {
                                       width: screenWidth,
                                       color: const Color(0xFF4C73AC),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           const Icon(
                                             Icons.school,
@@ -328,9 +330,9 @@ class _Course2ScreenState extends State<Course2Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeBannerIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeBannerIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -415,7 +417,7 @@ class _Course2ScreenState extends State<Course2Screen> {
                         ),
 
                         // ===== MINIMAL SPACER =====
-                      //  SizedBox(height: _responsiveValue(20, 30, 40)),
+                        //  SizedBox(height: _responsiveValue(20, 30, 40)),
                       ],
                     ),
                   ),
@@ -436,7 +438,8 @@ class _Course2ScreenState extends State<Course2Screen> {
     required double gap,
     required int columns,
   }) {
-    final List<String> items = (section['items'] as List<dynamic>?)?.cast<String>() ?? [];
+    final List<String> items =
+        (section['items'] as List<dynamic>?)?.cast<String>() ?? [];
 
     return Column(
       children: [
@@ -444,9 +447,9 @@ class _Course2ScreenState extends State<Course2Screen> {
         Container(
           margin: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: index == 0 
-              ? _responsiveValue(16, 20, 24)
-              : _responsiveValue(24, 28, 32),
+            vertical: index == 0
+                ? _responsiveValue(16, 20, 24)
+                : _responsiveValue(24, 28, 32),
           ),
           padding: EdgeInsets.symmetric(
             vertical: _responsiveValue(14, 16, 18),
@@ -483,10 +486,11 @@ class _Course2ScreenState extends State<Course2Screen> {
             runSpacing: _responsiveValue(12, 16, 20),
             alignment: WrapAlignment.start,
             children: items.map((item) {
-              final meta = courseMeta[item] ?? {
-                "icon": "menu_book",
-                "desc": "Explore this professional course",
-              };
+              final meta = courseMeta[item] ??
+                  {
+                    "icon": "menu_book",
+                    "desc": "Explore this professional course",
+                  };
 
               return SizedBox(
                 width: cardWidth,
@@ -512,42 +516,78 @@ class _Course2ScreenState extends State<Course2Screen> {
     // Get appropriate icon
     IconData getIcon(String iconName) {
       switch (iconName) {
-        case "web": return Icons.web;
-        case "code": return Icons.code;
-        case "show_chart": return Icons.show_chart;
-        case "security": return Icons.security;
-        case "cloud": return Icons.cloud;
-        case "medical_services": return Icons.medical_services;
-        case "local_hospital": return Icons.local_hospital;
-        case "restaurant": return Icons.restaurant;
-        case "medical_information": return Icons.medical_information;
-        case "favorite": return Icons.favorite;
-        case "campaign": return Icons.campaign;
-        case "bar_chart": return Icons.bar_chart;
-        case "checklist": return Icons.checklist;
-        case "attach_money": return Icons.attach_money;
-        case "lightbulb": return Icons.lightbulb;
-        case "edit": return Icons.edit;
-        case "mic": return Icons.mic;
-        case "email": return Icons.email;
-        case "translate": return Icons.translate;
-        case "menu_book": return Icons.menu_book;
-        case "settings": return Icons.settings;
-        case "bolt": return Icons.bolt;
-        case "architecture": return Icons.architecture;
-        case "smart_toy": return Icons.smart_toy;
-        case "precision_manufacturing": return Icons.precision_manufacturing;
-        case "palette": return Icons.palette;
-        case "brush": return Icons.brush;
-        case "movie": return Icons.movie;
-        case "camera_alt": return Icons.camera_alt;
-        case "chair": return Icons.chair;
-        case "schedule": return Icons.schedule;
-        case "self_improvement": return Icons.self_improvement;
-        case "fitness_center": return Icons.fitness_center;
-        case "account_balance_wallet": return Icons.account_balance_wallet;
-        case "target": return Icons.flag;
-        default: return Icons.menu_book;
+        case "web":
+          return Icons.web;
+        case "code":
+          return Icons.code;
+        case "show_chart":
+          return Icons.show_chart;
+        case "security":
+          return Icons.security;
+        case "cloud":
+          return Icons.cloud;
+        case "medical_services":
+          return Icons.medical_services;
+        case "local_hospital":
+          return Icons.local_hospital;
+        case "restaurant":
+          return Icons.restaurant;
+        case "medical_information":
+          return Icons.medical_information;
+        case "favorite":
+          return Icons.favorite;
+        case "campaign":
+          return Icons.campaign;
+        case "bar_chart":
+          return Icons.bar_chart;
+        case "checklist":
+          return Icons.checklist;
+        case "attach_money":
+          return Icons.attach_money;
+        case "lightbulb":
+          return Icons.lightbulb;
+        case "edit":
+          return Icons.edit;
+        case "mic":
+          return Icons.mic;
+        case "email":
+          return Icons.email;
+        case "translate":
+          return Icons.translate;
+        case "menu_book":
+          return Icons.menu_book;
+        case "settings":
+          return Icons.settings;
+        case "bolt":
+          return Icons.bolt;
+        case "architecture":
+          return Icons.architecture;
+        case "smart_toy":
+          return Icons.smart_toy;
+        case "precision_manufacturing":
+          return Icons.precision_manufacturing;
+        case "palette":
+          return Icons.palette;
+        case "brush":
+          return Icons.brush;
+        case "movie":
+          return Icons.movie;
+        case "camera_alt":
+          return Icons.camera_alt;
+        case "chair":
+          return Icons.chair;
+        case "schedule":
+          return Icons.schedule;
+        case "self_improvement":
+          return Icons.self_improvement;
+        case "fitness_center":
+          return Icons.fitness_center;
+        case "account_balance_wallet":
+          return Icons.account_balance_wallet;
+        case "target":
+          return Icons.flag;
+        default:
+          return Icons.menu_book;
       }
     }
 
@@ -605,9 +645,9 @@ class _Course2ScreenState extends State<Course2Screen> {
                 color: Colors.white,
               ),
             ),
-            
+
             SizedBox(height: _scale(10)),
-            
+
             // Title
             Text(
               title,
@@ -620,9 +660,9 @@ class _Course2ScreenState extends State<Course2Screen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
+
             SizedBox(height: _scale(4)),
-            
+
             // Description
             Text(
               meta["desc"] ?? "Explore this professional course",

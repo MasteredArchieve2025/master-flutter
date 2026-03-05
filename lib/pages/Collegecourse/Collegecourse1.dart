@@ -1,7 +1,8 @@
 // lib/pages/College/Collegecourse1.dart
 import 'package:flutter/material.dart';
 import '../../Widgets/Footer.dart';
-import 'Collegecourse2.dart'; 
+import 'Collegecourse2.dart';
+
 class Collegecourse1Screen extends StatefulWidget {
   const Collegecourse1Screen({super.key});
 
@@ -14,12 +15,12 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
 
   // Departments Data
   final List<Map<String, dynamic>> departments = [
-    { 'id': '1', 'title': 'Computer Science', 'icon': Icons.laptop },
-    { 'id': '2', 'title': 'Mechanical Engineering', 'icon': Icons.settings },
-    { 'id': '3', 'title': 'Electrical & Electronics', 'icon': Icons.flash_on },
-    { 'id': '4', 'title': 'Business Administration', 'icon': Icons.business },
-    { 'id': '5', 'title': 'Biotechnology', 'icon': Icons.science },
-    { 'id': '6', 'title': 'Civil Engineering', 'icon': Icons.engineering },
+    {'id': '1', 'title': 'Computer Science', 'icon': Icons.laptop},
+    {'id': '2', 'title': 'Mechanical Engineering', 'icon': Icons.settings},
+    {'id': '3', 'title': 'Electrical & Electronics', 'icon': Icons.flash_on},
+    {'id': '4', 'title': 'Business Administration', 'icon': Icons.business},
+    {'id': '5', 'title': 'Biotechnology', 'icon': Icons.science},
+    {'id': '6', 'title': 'Civil Engineering', 'icon': Icons.engineering},
   ];
 
   // Responsive header height like IQ1
@@ -50,12 +51,12 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions
     final double horizontalPadding = _getHorizontalPadding(context);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
@@ -106,7 +107,7 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
@@ -120,7 +121,7 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
@@ -142,7 +143,9 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                         // ===== TITLE SECTION =====
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: isDesktop ? horizontalPadding : horizontalPadding,
+                            horizontal: isDesktop
+                                ? horizontalPadding
+                                : horizontalPadding,
                             vertical: isTablet ? 20 : 12,
                           ),
                           child: Column(
@@ -151,18 +154,18 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                               Text(
                                 'Skill Courses',
                                 style: TextStyle(
-                                  fontSize: isDesktop ? 26 : (isTablet ? 24 : 20),
+                                  fontSize:
+                                      isDesktop ? 26 : (isTablet ? 24 : 20),
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
                               ),
-                              
                               const SizedBox(height: 4),
-                              
                               Text(
                                 'Choose a department to explore certifications',
                                 style: TextStyle(
-                                  fontSize: isDesktop ? 16 : (isTablet ? 15 : 13),
+                                  fontSize:
+                                      isDesktop ? 16 : (isTablet ? 15 : 13),
                                   color: const Color(0xFF666666),
                                 ),
                               ),
@@ -171,20 +174,28 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                         ),
 
                         // ===== GRID =====
-                       Padding(
-  padding: EdgeInsets.only(
-    left: isDesktop ? horizontalPadding : horizontalPadding,
-    right: isDesktop ? horizontalPadding : horizontalPadding,
-    bottom: isTablet ? 40 : 30,
-  ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: isDesktop
+                                ? horizontalPadding
+                                : horizontalPadding,
+                            right: isDesktop
+                                ? horizontalPadding
+                                : horizontalPadding,
+                            bottom: isTablet ? 40 : 30,
+                          ),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final double availableWidth = constraints.maxWidth;
+                              final double availableWidth =
+                                  constraints.maxWidth;
                               final double spacing = isTablet ? 18 : 14;
                               final double runSpacing = isTablet ? 18 : 14;
-                              final double totalSpacing = spacing * (crossAxisCount - 1);
-                              final double itemWidth = (availableWidth - totalSpacing) / crossAxisCount;
-                              
+                              final double totalSpacing =
+                                  spacing * (crossAxisCount - 1);
+                              final double itemWidth =
+                                  (availableWidth - totalSpacing) /
+                                      crossAxisCount;
+
                               return Wrap(
                                 spacing: spacing,
                                 runSpacing: runSpacing,
@@ -236,13 +247,13 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
     return GestureDetector(
       onTap: () {
         Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => Collegecourse2Screen(
-        department: department['title'],
-      ),
-    ),
-  );
+          context,
+          MaterialPageRoute(
+            builder: (context) => Collegecourse2Screen(
+              department: department['title'],
+            ),
+          ),
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Selected: ${department['title']}'),
@@ -255,7 +266,8 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
         padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 20 : 16)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(isDesktop ? 22 : (isTablet ? 20 : 18)),
+          borderRadius:
+              BorderRadius.circular(isDesktop ? 22 : (isTablet ? 20 : 18)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -281,9 +293,9 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                 color: const Color(0xFF0B5ED7),
               ),
             ),
-            
+
             SizedBox(height: isDesktop ? 12 : (isTablet ? 12 : 10)),
-            
+
             // Title
             Text(
               department['title'] as String,
@@ -296,9 +308,9 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
+
             SizedBox(height: isDesktop ? 10 : (isTablet ? 10 : 8)),
-            
+
             // Badge
             Row(
               children: [
@@ -307,9 +319,7 @@ class _Collegecourse1ScreenState extends State<Collegecourse1Screen> {
                   size: isDesktop ? 16 : (isTablet ? 16 : 14),
                   color: const Color(0xFF0B5ED7),
                 ),
-                
                 SizedBox(width: 4),
-                
                 Flexible(
                   child: Text(
                     'Extra Skill Courses Available',

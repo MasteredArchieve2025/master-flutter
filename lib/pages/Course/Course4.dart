@@ -4,7 +4,7 @@ import 'dart:async';
 
 class Course4Screen extends StatefulWidget {
   final Map<String, dynamic>? course; // Optional course parameter
-  
+
   const Course4Screen({
     super.key,
     this.course,
@@ -163,7 +163,8 @@ class _Course4ScreenState extends State<Course4Screen> {
   }
 
   // Star Widget
-  Widget _buildStarRating(int rating, int activeStars, double size, Function(int)? onTap) {
+  Widget _buildStarRating(
+      int rating, int activeStars, double size, Function(int)? onTap) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(rating, (index) {
@@ -182,16 +183,16 @@ class _Course4ScreenState extends State<Course4Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double bannerHeight = _responsiveValue(180, 220, 260);
-    final double videoHeight = _responsiveValue(200, 280, 320);
+    final double bannerHeight = _responsiveValue(200, 300, 300);
+    final double videoHeight = _responsiveValue(250, 320, 400);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -271,9 +272,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      color: _activeBannerIndex == index 
-                        ? const Color(0xFF0B5ED7) 
-                        : const Color(0xFFCCCCCC),
+                      color: _activeBannerIndex == index
+                          ? const Color(0xFF0B5ED7)
+                          : const Color(0xFFCCCCCC),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -316,9 +317,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Course Name
                     Text(
                       widget.course?['name'] ?? 'AK Technologies',
@@ -329,9 +330,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Tagline
                     Text(
                       'IT Training & Placement Support',
@@ -340,9 +341,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                         color: const Color(0xFFDCE8FF),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Rating
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -363,9 +364,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Location
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -385,9 +386,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Website
                     GestureDetector(
                       onTap: () => _showUrlDialog('www.ak.com'),
@@ -472,9 +473,9 @@ class _Course4ScreenState extends State<Course4Screen> {
                   children: [
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: isMobile 
-                        ? MainAxisAlignment.center 
-                        : MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: isMobile
+                          ? MainAxisAlignment.center
+                          : MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: _buildModeCard(
@@ -558,13 +559,14 @@ class _Course4ScreenState extends State<Course4Screen> {
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(width: _responsiveValue(12, 16, 20)),
-                    
+
                     // WhatsApp Button
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => _showUrlDialog('https://wa.me/919384152923'),
+                        onPressed: () =>
+                            _showUrlDialog('https://wa.me/919384152923'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF25D366),
                           foregroundColor: Colors.white,
@@ -603,14 +605,15 @@ class _Course4ScreenState extends State<Course4Screen> {
                 content: Column(
                   children: [
                     // Star Rating
-                    _buildStarRating(5, _rating, _responsiveValue(28, 32, 36), (stars) {
+                    _buildStarRating(5, _rating, _responsiveValue(28, 32, 36),
+                        (stars) {
                       setState(() {
                         _rating = stars;
                       });
                     }),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Review Input
                     TextField(
                       controller: _reviewController,
@@ -620,20 +623,23 @@ class _Course4ScreenState extends State<Course4Screen> {
                         hintStyle: const TextStyle(color: Color(0xFF888888)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(_scale(12)),
-                          borderSide: const BorderSide(color: Color(0xFFE8F0FF)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFE8F0FF)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(_scale(12)),
-                          borderSide: const BorderSide(color: Color(0xFF0B5ED7)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF0B5ED7)),
                         ),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFF),
-                        contentPadding: EdgeInsets.all(_responsiveValue(12, 14, 16)),
+                        contentPadding:
+                            EdgeInsets.all(_responsiveValue(12, 14, 16)),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Submit Review Button
                     ElevatedButton(
                       onPressed: _submitReview,
@@ -702,7 +708,8 @@ class _Course4ScreenState extends State<Course4Screen> {
                                   color: const Color(0xFF004780),
                                 ),
                               ),
-                              _buildStarRating(5, review['rating'] as int, _scale(14), null),
+                              _buildStarRating(
+                                  5, review['rating'] as int, _scale(14), null),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -766,7 +773,8 @@ class _Course4ScreenState extends State<Course4Screen> {
                 ),
                 child: Center(
                   child: GestureDetector(
-                    onTap: () => _showUrlDialog('https://www.youtube.com/embed/NONufn3jgXI'),
+                    onTap: () => _showUrlDialog(
+                        'https://www.youtube.com/embed/NONufn3jgXI'),
                     child: Container(
                       width: 60,
                       height: 60,

@@ -10,7 +10,7 @@ import '../../Widgets/CommonYoutubePlayer.dart';
 
 class ExamDetailsFullScreen extends StatefulWidget {
   final Map<String, dynamic>? examData;
-  
+
   const ExamDetailsFullScreen({
     super.key,
     this.examData,
@@ -45,7 +45,14 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
     'year': '2025',
     'duration': '3 Hours',
     'totalMarks': 600,
-    'subjects': ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'Computer Science'],
+    'subjects': [
+      'Mathematics',
+      'Physics',
+      'Chemistry',
+      'Biology',
+      'English',
+      'Computer Science'
+    ],
     'detailedSyllabus': 'Full detailed syllabus will be available soon...',
     'examPattern': {
       'duration': '3 Hours',
@@ -53,7 +60,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
       'passingMark': 210,
     },
     'questionTypes': ['MCQ (20%)', 'Short Answer (30%)', 'Long Answer (50%)'],
-    'importantDates': 'Application: Jan 2025, Exam: Mar 2025, Results: Jun 2025',
+    'importantDates':
+        'Application: Jan 2025, Exam: Mar 2025, Results: Jun 2025',
     'image': null,
   };
 
@@ -91,7 +99,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
           if (mounted) {
             setState(() {
               adImages = List<String>.from(data['data']['images'] ?? []);
-              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              youtubeUrls =
+                  List<String>.from(data['data']['youtube_urls'] ?? []);
               _isLoadingAds = false;
             });
             debugPrint('✅ Loaded ${adImages.length} ad images for examdetails');
@@ -143,10 +152,10 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
 
   Future<void> _fetchExamDetails() async {
     debugPrint('🔄 Loading exam details...');
-    
+
     // Get typeId from examData if available
     final typeId = widget.examData?['id'];
-    
+
     try {
       String apiUrl;
       if (typeId != null) {
@@ -156,9 +165,9 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
         // Fetch all and take first (fallback)
         apiUrl = '${BaseUrl.baseUrl}/api/exam-details';
       }
-      
+
       debugPrint('📡 Fetching exam details from: $apiUrl');
-      
+
       final response = await http.get(
         Uri.parse(apiUrl),
         headers: {
@@ -175,7 +184,7 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
         if (data.isNotEmpty) {
           // If we have typeId, find matching record, otherwise use first
           Map<String, dynamic> selectedDetail;
-          
+
           if (typeId != null) {
             // Try to find exact match
             try {
@@ -189,7 +198,7 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
           } else {
             selectedDetail = data.first;
           }
-          
+
           setState(() {
             examDetails = _mapApiDataToModel(selectedDetail);
             _isLoading = false;
@@ -203,7 +212,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = 'Failed to load exam details. Status: ${response.statusCode}';
+          _errorMessage =
+              'Failed to load exam details. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -243,7 +253,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
     List<String> questionTypes = [];
     if (apiData['questionTypes'] is String) {
       try {
-        questionTypes = List<String>.from(json.decode(apiData['questionTypes']));
+        questionTypes =
+            List<String>.from(json.decode(apiData['questionTypes']));
       } catch (e) {
         questionTypes = ['MCQ', 'Descriptive'];
       }
@@ -278,7 +289,7 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
           .map((s) => s.trim())
           .toList();
     }
-    
+
     if (syllabus.isEmpty) {
       syllabus = ['Complete syllabus will be updated soon'];
     }
@@ -286,7 +297,9 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
     return {
       'id': apiData['id'] ?? DateTime.now().millisecondsSinceEpoch,
       'title': apiData['name'] ?? widget.examData?['title'] ?? 'Exam Details',
-      'description': apiData['shortDescription'] ?? widget.examData?['description'] ?? 'Complete exam information',
+      'description': apiData['shortDescription'] ??
+          widget.examData?['description'] ??
+          'Complete exam information',
       'board': apiData['board'] ?? 'Board',
       'year': apiData['year'] ?? '2025',
       'duration': apiData['duration'] ?? '3 Hours',
@@ -297,7 +310,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
       'detailedSyllabus': detailedSyllabus,
       'examPattern': examPattern,
       'questionTypes': questionTypes,
-      'importantDates': apiData['importantDates'] ?? 'Dates will be announced soon',
+      'importantDates':
+          apiData['importantDates'] ?? 'Dates will be announced soon',
       'image': apiData['image'],
     };
   }
@@ -332,12 +346,12 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
@@ -367,7 +381,8 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: _responsiveValue(52, 72, 80),
                     child: Row(
                       children: [
@@ -448,395 +463,647 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                 ],
                               ),
                             )
-                          : SingleChildScrollView(
-                              child: Center(
-                                child: Container(
-                                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // ===== ADVERTISEMENT BANNER =====
-                                      if (adImages.isNotEmpty)
-                                        Container(
-                                          width: screenWidth,
-                                          height: _responsiveValue(180, 220, 260),
-                                          child: PageView.builder(
-                                            controller: _adController,
-                                            itemCount: adImages.length,
-                                            onPageChanged: (index) {
-                                              setState(() {
-                                                _activeAdIndex = index;
-                                              });
-                                            },
-                                            itemBuilder: (context, index) {
-                                              return Image.network(
-                                                adImages[index],
-                                                width: screenWidth,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) {
-                                                  return Container(
-                                                    width: screenWidth,
-                                                    color: Colors.black12,
-                                                    child: const Center(
-                                                      child: Icon(Icons.broken_image, color: Colors.grey),
-                                                    ),
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      else if (_isLoadingAds)
-                                        Container(
-                                          width: screenWidth,
-                                          height: _responsiveValue(180, 220, 260),
-                                          color: Colors.grey[200],
-                                          child: const Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        ),
-
-                                      // ===== PAGINATION DOTS =====
-                                      if (adImages.length > 1)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: List.generate(adImages.length, (index) {
-                                              return AnimatedContainer(
-                                                duration: const Duration(milliseconds: 300),
-                                                width: _activeAdIndex == index ? _scale(16) : _scale(8),
-                                                height: _scale(8),
-                                                margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                                decoration: BoxDecoration(
-                                                  color: _activeAdIndex == index 
-                                                    ? const Color(0xFF0B5ED7) 
-                                                    : const Color(0xFFCCCCCC),
-                                                  borderRadius: BorderRadius.circular(_scale(4)),
-                                                ),
-                                              );
-                                            }),
-                                          ),
-                                        ),
-
-                                      SizedBox(height: _responsiveValue(16, 20, 24)),
-
-                                      // ===== EXAM OVERVIEW CARD =====
-                                      Container(
-                                        margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(_scale(16)),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.08),
-                                              blurRadius: _scale(8),
-                                              offset: Offset(0, _scale(2)),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Padding(
-                                          padding: EdgeInsets.all(_responsiveValue(16, 20, 24)),
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Center(
+                                        child: Container(
+                                          constraints: BoxConstraints(
+                                              maxWidth: maxContentWidth),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              // Overview Header with Image if available
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Container(
-                                                    width: _scale(50),
-                                                    height: _scale(50),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFF4A90E2).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(_scale(12)),
-                                                      image: displayData['image'] != null
-                                                          ? DecorationImage(
-                                                              image: NetworkImage(displayData['image']),
-                                                              fit: BoxFit.cover,
-                                                              onError: (exception, stackTrace) {},
-                                                            )
-                                                          : null,
+                                                  // ===== ADVERTISEMENT BANNER =====
+                                                  if (adImages.isNotEmpty)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: _responsiveValue(
+                                                          180, 220, 260),
+                                                      child: PageView.builder(
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
+                                                        onPageChanged: (index) {
+                                                          setState(() {
+                                                            _activeAdIndex =
+                                                                index;
+                                                          });
+                                                        },
+                                                        itemBuilder:
+                                                            (context, index) {
+                                                          return Image.network(
+                                                            adImages[index],
+                                                            width: screenWidth,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error,
+                                                                    stackTrace) {
+                                                              return Container(
+                                                                width:
+                                                                    screenWidth,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        },
+                                                      ),
+                                                    )
+                                                  else if (_isLoadingAds)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: _responsiveValue(
+                                                          180, 220, 260),
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
                                                     ),
-                                                    child: displayData['image'] == null
-                                                        ? Icon(
-                                                            Icons.school,
-                                                            size: _scale(30),
-                                                            color: const Color(0xFF4A90E2),
-                                                          )
-                                                        : null,
+
+                                                  // ===== PAGINATION DOTS =====
+                                                  if (adImages.length > 1)
+                                                    Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: List.generate(
+                                                            adImages.length,
+                                                            (index) {
+                                                          return AnimatedContainer(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(16)
+                                                                    : _scale(8),
+                                                            height: _scale(8),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
+                                                            ),
+                                                          );
+                                                        }),
+                                                      ),
+                                                    ),
+
+                                                  SizedBox(
+                                                      height: _responsiveValue(
+                                                          16, 20, 24)),
+
+                                                  // ===== EXAM OVERVIEW CARD =====
+                                                  Container(
+                                                    margin: EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              _scale(16)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(
+                                                                  0.08),
+                                                          blurRadius: _scale(8),
+                                                          offset: Offset(
+                                                              0, _scale(2)),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Padding(
+                                                      padding: EdgeInsets.all(
+                                                          _responsiveValue(
+                                                              16, 20, 24)),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          // Overview Header with Image if available
+                                                          Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Container(
+                                                                width:
+                                                                    _scale(50),
+                                                                height:
+                                                                    _scale(50),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: const Color(
+                                                                          0xFF4A90E2)
+                                                                      .withOpacity(
+                                                                          0.1),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              _scale(12)),
+                                                                  image: displayData[
+                                                                              'image'] !=
+                                                                          null
+                                                                      ? DecorationImage(
+                                                                          image:
+                                                                              NetworkImage(displayData['image']),
+                                                                          fit: BoxFit
+                                                                              .cover,
+                                                                          onError:
+                                                                              (exception, stackTrace) {},
+                                                                        )
+                                                                      : null,
+                                                                ),
+                                                                child: displayData[
+                                                                            'image'] ==
+                                                                        null
+                                                                    ? Icon(
+                                                                        Icons
+                                                                            .school,
+                                                                        size: _scale(
+                                                                            30),
+                                                                        color: const Color(
+                                                                            0xFF4A90E2),
+                                                                      )
+                                                                    : null,
+                                                              ),
+                                                              SizedBox(
+                                                                  width: _scale(
+                                                                      16)),
+                                                              Expanded(
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Text(
+                                                                      displayData[
+                                                                              'title']
+                                                                          as String,
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontSize: _responsiveValue(
+                                                                            18,
+                                                                            20,
+                                                                            22),
+                                                                        fontWeight:
+                                                                            FontWeight.w700,
+                                                                        color: const Color(
+                                                                            0xFF003366),
+                                                                      ),
+                                                                    ),
+                                                                    SizedBox(
+                                                                        height:
+                                                                            _scale(4)),
+                                                                    Text(
+                                                                      displayData[
+                                                                              'description']
+                                                                          as String,
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontSize: _responsiveValue(
+                                                                            13,
+                                                                            14,
+                                                                            15),
+                                                                        color: const Color(
+                                                                            0xFF666666),
+                                                                        height:
+                                                                            1.4,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+
+                                                          SizedBox(
+                                                              height:
+                                                                  _scale(16)),
+
+                                                          // Divider
+                                                          Container(
+                                                            height: 1,
+                                                            color: const Color(
+                                                                0xFFE0E0E0),
+                                                          ),
+
+                                                          SizedBox(
+                                                              height:
+                                                                  _scale(16)),
+
+                                                          // Quick Stats Grid
+                                                          Wrap(
+                                                            spacing: _scale(12),
+                                                            runSpacing:
+                                                                _scale(12),
+                                                            children: [
+                                                              _buildStatItem(
+                                                                icon: Icons
+                                                                    .business,
+                                                                label: 'Board',
+                                                                value: displayData[
+                                                                        'board']
+                                                                    as String,
+                                                              ),
+                                                              _buildStatItem(
+                                                                icon: Icons
+                                                                    .calendar_today,
+                                                                label: 'Year',
+                                                                value: displayData[
+                                                                        'year']
+                                                                    as String,
+                                                              ),
+                                                              _buildStatItem(
+                                                                icon:
+                                                                    Icons.timer,
+                                                                label:
+                                                                    'Duration',
+                                                                value: displayData[
+                                                                        'duration']
+                                                                    as String,
+                                                              ),
+                                                              _buildStatItem(
+                                                                icon:
+                                                                    Icons.score,
+                                                                label:
+                                                                    'Total Marks',
+                                                                value: displayData[
+                                                                        'totalMarks']
+                                                                    .toString(),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
                                                   ),
-                                                  SizedBox(width: _scale(16)),
-                                                  Expanded(
+
+                                                  SizedBox(
+                                                      height: _responsiveValue(
+                                                          16, 20, 24)),
+
+                                                  // ===== SUBJECTS SECTION =====
+                                                  _buildSectionCard(
+                                                    icon: Icons.subject,
+                                                    title: 'Subjects',
+                                                    child: Wrap(
+                                                      spacing: _scale(12),
+                                                      runSpacing: _scale(12),
+                                                      children: (displayData[
+                                                                  'subjects']
+                                                              as List)
+                                                          .map<Widget>(
+                                                              (subject) {
+                                                        return Container(
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                            horizontal:
+                                                                _scale(16),
+                                                            vertical:
+                                                                _scale(12),
+                                                          ),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: const Color(
+                                                                0xFFF0F7FF),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        _scale(
+                                                                            10)),
+                                                          ),
+                                                          child: Text(
+                                                            subject,
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      13,
+                                                                      14,
+                                                                      15),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: const Color(
+                                                                  0xFF4A90E2),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+
+                                                  // ===== SYLLABUS SECTION =====
+                                                  _buildSectionCard(
+                                                    icon: Icons.book,
+                                                    title: 'Detailed Syllabus',
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: (displayData[
+                                                                  'syllabus']
+                                                              as List)
+                                                          .map<Widget>((item) {
+                                                        return Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  bottom:
+                                                                      _scale(
+                                                                          12)),
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Padding(
+                                                                padding: EdgeInsets
+                                                                    .only(
+                                                                        top: _scale(
+                                                                            8)),
+                                                                child:
+                                                                    Container(
+                                                                  width:
+                                                                      _scale(6),
+                                                                  height:
+                                                                      _scale(6),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: const Color(
+                                                                        0xFF4A90E2),
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            _scale(3)),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  width: _scale(
+                                                                      12)),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  item,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize:
+                                                                        _responsiveValue(
+                                                                            13,
+                                                                            14,
+                                                                            15),
+                                                                    color: const Color(
+                                                                        0xFF444444),
+                                                                    height: 1.5,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+
+                                                  // ===== EXAM PATTERN SECTION =====
+                                                  _buildSectionCard(
+                                                    icon: Icons.pattern,
+                                                    title: 'Exam Pattern',
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
+                                                        // Pattern Grid
+                                                        Wrap(
+                                                          spacing: _scale(12),
+                                                          runSpacing:
+                                                              _scale(12),
+                                                          children: [
+                                                            _buildPatternItem(
+                                                              label: 'Duration',
+                                                              value: displayData[
+                                                                      'duration']
+                                                                  as String,
+                                                            ),
+                                                            _buildPatternItem(
+                                                              label:
+                                                                  'Total Marks',
+                                                              value: displayData[
+                                                                      'totalMarks']
+                                                                  .toString(),
+                                                            ),
+                                                            _buildPatternItem(
+                                                              label:
+                                                                  'Passing Marks',
+                                                              value: displayData[
+                                                                      'passingMarks']
+                                                                  .toString(),
+                                                            ),
+                                                          ],
+                                                        ),
+
+                                                        SizedBox(
+                                                            height: _scale(20)),
+
+                                                        // Question Types
                                                         Text(
-                                                          displayData['title'] as String,
+                                                          'Question Types:',
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(18, 20, 22),
-                                                            fontWeight: FontWeight.w700,
-                                                            color: const Color(0xFF003366),
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 16, 18),
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: const Color(
+                                                                0xFF003366),
                                                           ),
                                                         ),
-                                                        SizedBox(height: _scale(4)),
-                                                        Text(
-                                                          displayData['description'] as String,
-                                                          style: TextStyle(
-                                                            fontSize: _responsiveValue(13, 14, 15),
-                                                            color: const Color(0xFF666666),
-                                                            height: 1.4,
-                                                          ),
+
+                                                        SizedBox(
+                                                            height: _scale(12)),
+
+                                                        Wrap(
+                                                          spacing: _scale(8),
+                                                          runSpacing: _scale(8),
+                                                          children: (displayData[
+                                                                      'questionTypes']
+                                                                  as List)
+                                                              .map<Widget>(
+                                                                  (type) {
+                                                            return Container(
+                                                              padding: EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal:
+                                                                    _scale(16),
+                                                                vertical:
+                                                                    _scale(8),
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color(
+                                                                    0xFFE8F4FF),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            _scale(20)),
+                                                              ),
+                                                              child: Text(
+                                                                type,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      _responsiveValue(
+                                                                          12,
+                                                                          13,
+                                                                          14),
+                                                                  color: const Color(
+                                                                      0xFF4A90E2),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }).toList(),
                                                         ),
                                                       ],
                                                     ),
                                                   ),
-                                                ],
-                                              ),
 
-                                              SizedBox(height: _scale(16)),
-
-                                              // Divider
-                                              Container(
-                                                height: 1,
-                                                color: const Color(0xFFE0E0E0),
-                                              ),
-
-                                              SizedBox(height: _scale(16)),
-
-                                              // Quick Stats Grid
-                                              Wrap(
-                                                spacing: _scale(12),
-                                                runSpacing: _scale(12),
-                                                children: [
-                                                  _buildStatItem(
-                                                    icon: Icons.business,
-                                                    label: 'Board',
-                                                    value: displayData['board'] as String,
-                                                  ),
-                                                  _buildStatItem(
-                                                    icon: Icons.calendar_today,
-                                                    label: 'Year',
-                                                    value: displayData['year'] as String,
-                                                  ),
-                                                  _buildStatItem(
-                                                    icon: Icons.timer,
-                                                    label: 'Duration',
-                                                    value: displayData['duration'] as String,
-                                                  ),
-                                                  _buildStatItem(
-                                                    icon: Icons.score,
-                                                    label: 'Total Marks',
-                                                    value: displayData['totalMarks'].toString(),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-
-                                      SizedBox(height: _responsiveValue(16, 20, 24)),
-
-                                      // ===== SUBJECTS SECTION =====
-                                      _buildSectionCard(
-                                        icon: Icons.subject,
-                                        title: 'Subjects',
-                                        child: Wrap(
-                                          spacing: _scale(12),
-                                          runSpacing: _scale(12),
-                                          children: (displayData['subjects'] as List).map<Widget>((subject) {
-                                            return Container(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: _scale(16),
-                                                vertical: _scale(12),
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF0F7FF),
-                                                borderRadius: BorderRadius.circular(_scale(10)),
-                                              ),
-                                              child: Text(
-                                                subject,
-                                                style: TextStyle(
-                                                  fontSize: _responsiveValue(13, 14, 15),
-                                                  fontWeight: FontWeight.w600,
-                                                  color: const Color(0xFF4A90E2),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-
-                                      // ===== SYLLABUS SECTION =====
-                                      _buildSectionCard(
-                                        icon: Icons.book,
-                                        title: 'Detailed Syllabus',
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: (displayData['syllabus'] as List).map<Widget>((item) {
-                                            return Padding(
-                                              padding: EdgeInsets.only(bottom: _scale(12)),
-                                              child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding: EdgeInsets.only(top: _scale(8)),
-                                                    child: Container(
-                                                      width: _scale(6),
-                                                      height: _scale(6),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(0xFF4A90E2),
-                                                        borderRadius: BorderRadius.circular(_scale(3)),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  SizedBox(width: _scale(12)),
-                                                  Expanded(
+                                                  // ===== IMPORTANT DATES SECTION =====
+                                                  _buildSectionCard(
+                                                    icon: Icons.calendar_month,
+                                                    title: 'Important Dates',
                                                     child: Text(
-                                                      item,
+                                                      displayData[
+                                                              'importantDates']
+                                                          as String,
                                                       style: TextStyle(
-                                                        fontSize: _responsiveValue(13, 14, 15),
-                                                        color: const Color(0xFF444444),
+                                                        fontSize:
+                                                            _responsiveValue(
+                                                                13, 14, 15),
+                                                        color: const Color(
+                                                            0xFF444444),
                                                         height: 1.5,
                                                       ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-
-                                      // ===== EXAM PATTERN SECTION =====
-                                      _buildSectionCard(
-                                        icon: Icons.pattern,
-                                        title: 'Exam Pattern',
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Pattern Grid
-                                            Wrap(
-                                              spacing: _scale(12),
-                                              runSpacing: _scale(12),
-                                              children: [
-                                                _buildPatternItem(
-                                                  label: 'Duration',
-                                                  value: displayData['duration'] as String,
-                                                ),
-                                                _buildPatternItem(
-                                                  label: 'Total Marks',
-                                                  value: displayData['totalMarks'].toString(),
-                                                ),
-                                                _buildPatternItem(
-                                                  label: 'Passing Marks',
-                                                  value: displayData['passingMarks'].toString(),
-                                                ),
-                                              ],
-                                            ),
-
-                                            SizedBox(height: _scale(20)),
-
-                                            // Question Types
-                                            Text(
-                                              'Question Types:',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(14, 16, 18),
-                                                fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF003366),
-                                              ),
-                                            ),
-
-                                            SizedBox(height: _scale(12)),
-
-                                            Wrap(
-                                              spacing: _scale(8),
-                                              runSpacing: _scale(8),
-                                              children: (displayData['questionTypes'] as List).map<Widget>((type) {
-                                                return Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: _scale(16),
-                                                    vertical: _scale(8),
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFFE8F4FF),
-                                                    borderRadius: BorderRadius.circular(_scale(20)),
-                                                  ),
-                                                  child: Text(
-                                                    type,
-                                                    style: TextStyle(
-                                                      fontSize: _responsiveValue(12, 13, 14),
-                                                      color: const Color(0xFF4A90E2),
-                                                      fontWeight: FontWeight.w500,
+                                              // ===== YOUTUBE VIDEO SECTION =====
+                                              if (youtubeUrls.isNotEmpty)
+                                                Column(children: [
+                                                  Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              16, 20, 24),
+                                                    ),
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(
+                                                            Icons
+                                                                .play_circle_fill,
+                                                            color: Colors.red),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Text(
+                                                          'Preparation Guides',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: const Color(
+                                                                0xFF003366),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                );
-                                              }).toList(),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // ===== IMPORTANT DATES SECTION =====
-                                      _buildSectionCard(
-                                        icon: Icons.calendar_month,
-                                        title: 'Important Dates',
-                                        child: Text(
-                                          displayData['importantDates'] as String,
-                                          style: TextStyle(
-                                            fontSize: _responsiveValue(13, 14, 15),
-                                            color: const Color(0xFF444444),
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                      ),
-
-                                      // ===== YOUTUBE VIDEO SECTION =====
-                                      if (youtubeUrls.isNotEmpty) ...[
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: horizontalPadding,
-                                            vertical: _responsiveValue(16, 20, 24),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.play_circle_fill, color: Colors.red),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Preparation Guides',
-                                                style: TextStyle(
-                                                  fontSize: _responsiveValue(18, 20, 22),
-                                                  fontWeight: FontWeight.w700,
-                                                  color: const Color(0xFF003366),
-                                                ),
-                                              ),
+                                                  ...youtubeUrls
+                                                      .map((url) => Container(
+                                                            width: screenWidth,
+                                                            margin: EdgeInsets
+                                                                .only(),
+                                                            child:
+                                                                CommonYoutubePlayer(
+                                                              youtubeUrl: url,
+                                                              height: isDesktop
+                                                                  ? 360
+                                                                  : (isTablet
+                                                                      ? 320
+                                                                      : 220),
+                                                              placeholderThumbnail:
+                                                                  _getYoutubeThumbnail(
+                                                                      url),
+                                                              borderRadius: 0,
+                                                            ),
+                                                          ))
+                                                      .toList(),
+                                                ])
+                                              else
+                                                const SizedBox.shrink(),
                                             ],
                                           ),
                                         ),
-                                        ...youtubeUrls.map((url) => Container(
-                                          width: screenWidth,
-                                          margin: EdgeInsets.only(
-                                            bottom: _responsiveValue(16, 20, 24),
-                                          ),
-                                          child: CommonYoutubePlayer(
-                                            youtubeUrl: url,
-                                            height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                                            placeholderThumbnail: _getYoutubeThumbnail(url),
-                                            borderRadius: 0,
-                                          ),
-                                        )).toList(),
-                                      ],
-                                    ],
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                 ),
               ],
             ),
           ),
-          
+
           // Full screen loader for initial loading
           if (_isLoading && examDetails == null)
             const GlassLoader(

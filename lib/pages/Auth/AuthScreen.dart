@@ -54,7 +54,8 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> handleAuth() async {
     try {
       if (mode == "login") {
-        if (phoneController.text.trim().isEmpty || passwordController.text.isEmpty) {
+        if (phoneController.text.trim().isEmpty ||
+            passwordController.text.isEmpty) {
           _showAlert("Error", "Phone number and password are required");
           return;
         }
@@ -167,7 +168,7 @@ class _AuthScreenState extends State<AuthScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF4F8FF),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
@@ -256,7 +257,8 @@ class _AuthScreenState extends State<AuthScreen>
 
               // Form content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                 child: Column(
                   children: [
                     if (mode == "register")
@@ -265,7 +267,6 @@ class _AuthScreenState extends State<AuthScreen>
                         placeholder: "User Name",
                         controller: usernameController,
                       ),
-
                     InputField(
                       icon: Icons.phone,
                       placeholder: "Phone Number",
@@ -275,17 +276,21 @@ class _AuthScreenState extends State<AuthScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0F7FF),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFF0066BE).withOpacity(0.2)),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFF0066BE).withOpacity(0.2)),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedCountryCode,
                                 isDense: true,
-                                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF0066BE)),
+                                icon: const Icon(Icons.arrow_drop_down,
+                                    color: Color(0xFF0066BE)),
                                 items: ["+91"].map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
@@ -319,7 +324,6 @@ class _AuthScreenState extends State<AuthScreen>
                       ),
                       maxLength: 10,
                     ),
-
                     if (mode == "register") ...[
                       InputField(
                         icon: Icons.email,
@@ -328,7 +332,6 @@ class _AuthScreenState extends State<AuthScreen>
                         keyboardType: TextInputType.emailAddress,
                       ),
                     ],
-
                     InputField(
                       icon: Icons.lock,
                       placeholder: "Password",
@@ -341,9 +344,7 @@ class _AuthScreenState extends State<AuthScreen>
                         });
                       },
                     ),
-
                     const SizedBox(height: 25),
-
                     GestureDetector(
                       onTap: loading ? null : handleAuth,
                       child: Container(
@@ -374,9 +375,7 @@ class _AuthScreenState extends State<AuthScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     if (mode == "login") ...[
                       GestureDetector(
                         onTap: () {
@@ -542,20 +541,12 @@ class TopWaveClipper extends CustomClipper<Path> {
     // Semicircle with flat top, curving below
     if (value < 0.5) {
       // Login mode: Semicircle on the right (covers REGISTER)
-      path.addArc(
-        Rect.fromLTWH(w * 0.4, -h, w * 1.2, h * 2), 
-        3.14, 
-        -3.14
-      );
+      path.addArc(Rect.fromLTWH(w * 0.4, -h, w * 1.2, h * 2), 3.14, -3.14);
     } else {
       // Register mode: Semicircle on the left (covers LOGIN)
-      path.addArc(
-        Rect.fromLTWH(-w * 0.6, -h, w * 1.2, h * 2), 
-        0, 
-        3.14
-      );
+      path.addArc(Rect.fromLTWH(-w * 0.6, -h, w * 1.2, h * 2), 0, 3.14);
     }
-    
+
     path.close();
     return path;
   }
@@ -575,11 +566,7 @@ class BottomWaveClipper extends CustomClipper<Path> {
     double h = size.height;
 
     // Semicircle with flat bottom, curving above
-    path.addArc(
-      Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 
-      3.14, 
-      3.14
-    );
+    path.addArc(Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 3.14, 3.14);
     path.close();
 
     return path;
@@ -588,4 +575,3 @@ class BottomWaveClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(BottomWaveClipper oldClipper) => oldClipper.value != value;
 }
-

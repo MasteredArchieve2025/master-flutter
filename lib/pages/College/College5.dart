@@ -7,10 +7,9 @@ import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
 import '../../Api/School/Colleges/College_service.dart';
 
-
 class College5Screen extends StatefulWidget {
   final Map<String, dynamic> college;
-  
+
   const College5Screen({
     super.key,
     required this.college,
@@ -36,7 +35,8 @@ class _College5ScreenState extends State<College5Screen> {
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  List<String> get bannerAds => _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
@@ -53,7 +53,15 @@ class _College5ScreenState extends State<College5Screen> {
   ];
 
   // Tabs Data
-  final List<String> tabs = ["All", "Dept", "Placement", "Academic", "Facilities", "Admission", "About"];
+  final List<String> tabs = [
+    "All",
+    "Dept",
+    "Placement",
+    "Academic",
+    "Facilities",
+    "Admission",
+    "About"
+  ];
 
   @override
   void initState() {
@@ -77,7 +85,8 @@ class _College5ScreenState extends State<College5Screen> {
     debugPrint('🔄 Loading advertisements for collegepage5...');
     try {
       final response = await http.get(
-        Uri.parse('https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage5'),
+        Uri.parse(
+            'https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage5'),
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -87,7 +96,8 @@ class _College5ScreenState extends State<College5Screen> {
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
             _isLoadingAds = false;
@@ -109,7 +119,8 @@ class _College5ScreenState extends State<College5Screen> {
   void _previousVideo() {
     if (_youtubeUrls.isEmpty) return;
     setState(() {
-      _currentVideoIndex = (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
     });
   }
 
@@ -164,7 +175,8 @@ class _College5ScreenState extends State<College5Screen> {
   }
 
   void _openMap() {
-    _launchURL('https://www.google.com/maps/search/?api=1&query=Arunachala+College+of+Engineering');
+    _launchURL(
+        'https://www.google.com/maps/search/?api=1&query=Arunachala+College+of+Engineering');
   }
 
   void _callNow() {
@@ -195,7 +207,7 @@ class _College5ScreenState extends State<College5Screen> {
       _rating = 0;
       _reviewController.clear();
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Review submitted successfully!'),
@@ -209,24 +221,34 @@ class _College5ScreenState extends State<College5Screen> {
     String contentText = 'Details not available.';
 
     if (fullData != null) {
-      String aboutContent = fullData.aboutCollege.isEmpty ? 'Details not available.' : fullData.aboutCollege;
+      String aboutContent = fullData.aboutCollege.isEmpty
+          ? 'Details not available.'
+          : fullData.aboutCollege;
       switch (_activeTab) {
         case 'About':
           contentText = aboutContent;
           break;
         case 'Academic':
-          contentText = fullData.academics.isEmpty ? 'Details not available.' : fullData.academics;
+          contentText = fullData.academics.isEmpty
+              ? 'Details not available.'
+              : fullData.academics;
           break;
         case 'Facilities':
-          contentText = fullData.facilities.isNotEmpty ? fullData.facilities.join(', ') : 'Details not available.';
+          contentText = fullData.facilities.isNotEmpty
+              ? fullData.facilities.join(', ')
+              : 'Details not available.';
           break;
         case 'Admission':
-          contentText = fullData.admissionInfo.isEmpty ? 'Details not available.' : fullData.admissionInfo;
+          contentText = fullData.admissionInfo.isEmpty
+              ? 'Details not available.'
+              : fullData.admissionInfo;
           break;
       }
     }
 
-    if (_activeTab != "Placement" && _activeTab != "Dept" && _activeTab != "All") {
+    if (_activeTab != "Placement" &&
+        _activeTab != "Dept" &&
+        _activeTab != "All") {
       return _buildSectionCard(
         title: _activeTab,
         child: Text(
@@ -239,7 +261,7 @@ class _College5ScreenState extends State<College5Screen> {
         ),
       );
     }
-    
+
     if (_activeTab == "All") {
       return _buildSectionCard(
         title: 'Overview',
@@ -258,8 +280,8 @@ class _College5ScreenState extends State<College5Screen> {
       return _buildSectionCard(
         title: 'Departments',
         child: Text(
-          fullData?.departments.isNotEmpty == true 
-              ? fullData!.departments.map((d) => '• $d').join('\n') 
+          fullData?.departments.isNotEmpty == true
+              ? fullData!.departments.map((d) => '• $d').join('\n')
               : 'No departments listed.',
           style: TextStyle(
             fontSize: _isTablet ? 15 : 13,
@@ -296,14 +318,14 @@ class _College5ScreenState extends State<College5Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     _isTablet = screenWidth >= 768;
     _isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions
     _horizontalPadding = _getHorizontalPadding(context);
-    _bannerHeight = _isDesktop ? 220 : (_isTablet ? 300 : 180);
+    _bannerHeight = _isDesktop ? 300 : (_isTablet ? 300 : 200);
     _maxContentWidth = _isDesktop ? 1200 : double.infinity;
 
     return Scaffold(
@@ -351,7 +373,7 @@ class _College5ScreenState extends State<College5Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
@@ -365,7 +387,7 @@ class _College5ScreenState extends State<College5Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
@@ -390,9 +412,8 @@ class _College5ScreenState extends State<College5Screen> {
                             top: _isDesktop ? 8 : 0,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: _isDesktop
-                                ? BorderRadius.circular(12)
-                                : null,
+                            borderRadius:
+                                _isDesktop ? BorderRadius.circular(12) : null,
                           ),
                           child: ClipRRect(
                             borderRadius: _isDesktop
@@ -415,16 +436,21 @@ class _College5ScreenState extends State<College5Screen> {
                                     child: Image.network(
                                       bannerAds[index],
                                       fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
                                         return const Center(
-                                          child: CircularProgressIndicator(color: Color(0xFF0B5ED7)),
+                                          child: CircularProgressIndicator(
+                                              color: Color(0xFF0B5ED7)),
                                         );
                                       },
-                                      errorBuilder: (context, error, stackTrace) {
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
                                         return Center(
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Icon(
                                                 Icons.image,
@@ -463,9 +489,9 @@ class _College5ScreenState extends State<College5Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 6),
                               decoration: BoxDecoration(
-                                color: _activeAd == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeAd == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -483,7 +509,8 @@ class _College5ScreenState extends State<College5Screen> {
                           padding: EdgeInsets.all(_isTablet ? 20 : 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4C73AC),
-                            borderRadius: BorderRadius.circular(_isTablet ? 20 : 18),
+                            borderRadius:
+                                BorderRadius.circular(_isTablet ? 20 : 18),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,13 +519,14 @@ class _College5ScreenState extends State<College5Screen> {
                                 widget.college['name'] ?? 'College Name',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: _isDesktop ? 26 : (_isTablet ? 24 : 20),
+                                  fontSize:
+                                      _isDesktop ? 26 : (_isTablet ? 24 : 20),
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              
+
                               const SizedBox(height: 4),
-                              
+
                               Text(
                                 '${widget.college['category'] ?? ''} · ${(widget.college['type'] ?? '').toString().replaceAll('Govt', 'Government')} Institution',
                                 style: TextStyle(
@@ -506,9 +534,9 @@ class _College5ScreenState extends State<College5Screen> {
                                   fontSize: _isTablet ? 14 : 12,
                                 ),
                               ),
-                              
+
                               const SizedBox(height: 10),
-                              
+
                               // Info Rows
                               Row(
                                 children: [
@@ -527,9 +555,9 @@ class _College5ScreenState extends State<College5Screen> {
                                   ),
                                 ],
                               ),
-                              
+
                               const SizedBox(height: 8),
-                              
+
                               Row(
                                 children: [
                                   Icon(
@@ -575,20 +603,25 @@ class _College5ScreenState extends State<College5Screen> {
                                   ),
                                   margin: EdgeInsets.only(
                                     left: index == 0 ? _horizontalPadding : 0,
-                                    right: index == tabs.length - 1 ? _horizontalPadding : 10,
+                                    right: index == tabs.length - 1
+                                        ? _horizontalPadding
+                                        : 10,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _activeTab == tab 
-                                      ? const Color(0xFF0B5ED7) 
-                                      : const Color(0xFFE8F0FF),
-                                    borderRadius: BorderRadius.circular(_isTablet ? 22 : 20),
+                                    color: _activeTab == tab
+                                        ? const Color(0xFF0B5ED7)
+                                        : const Color(0xFFE8F0FF),
+                                    borderRadius: BorderRadius.circular(
+                                        _isTablet ? 22 : 20),
                                   ),
                                   child: Center(
                                     child: Text(
                                       tab,
                                       style: TextStyle(
                                         fontSize: _isTablet ? 15 : 14,
-                                        color: _activeTab == tab ? Colors.white : const Color(0xFF0B5ED7),
+                                        color: _activeTab == tab
+                                            ? Colors.white
+                                            : const Color(0xFF0B5ED7),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -661,7 +694,8 @@ class _College5ScreenState extends State<College5Screen> {
                                     backgroundColor: const Color(0xFFE53E3E),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(_isTablet ? 16 : 14),
+                                      borderRadius: BorderRadius.circular(
+                                          _isTablet ? 16 : 14),
                                     ),
                                     padding: EdgeInsets.symmetric(
                                       vertical: _isTablet ? 16 : 14,
@@ -687,9 +721,7 @@ class _College5ScreenState extends State<College5Screen> {
                                   ),
                                 ),
                               ),
-                              
                               SizedBox(width: _isTablet ? 12 : 8),
-                              
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: _openWhatsApp,
@@ -697,7 +729,8 @@ class _College5ScreenState extends State<College5Screen> {
                                     backgroundColor: const Color(0xFF25D366),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(_isTablet ? 16 : 14),
+                                      borderRadius: BorderRadius.circular(
+                                          _isTablet ? 16 : 14),
                                     ),
                                     padding: EdgeInsets.symmetric(
                                       vertical: _isTablet ? 16 : 14,
@@ -743,16 +776,18 @@ class _College5ScreenState extends State<College5Screen> {
                                       });
                                     },
                                     icon: Icon(
-                                      index < _rating ? Icons.star : Icons.star_border,
+                                      index < _rating
+                                          ? Icons.star
+                                          : Icons.star_border,
                                       size: _isTablet ? 32 : 28,
                                       color: const Color(0xFFFFD700),
                                     ),
                                   );
                                 }),
                               ),
-                              
+
                               const SizedBox(height: 16),
-                              
+
                               // Review Input
                               TextField(
                                 controller: _reviewController,
@@ -766,15 +801,17 @@ class _College5ScreenState extends State<College5Screen> {
                                   filled: true,
                                   fillColor: const Color(0xFFF8FAFF),
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(_isTablet ? 12 : 10),
+                                    borderRadius: BorderRadius.circular(
+                                        _isTablet ? 12 : 10),
                                     borderSide: BorderSide.none,
                                   ),
-                                  contentPadding: EdgeInsets.all(_isTablet ? 16 : 12),
+                                  contentPadding:
+                                      EdgeInsets.all(_isTablet ? 16 : 12),
                                 ),
                               ),
-                              
+
                               const SizedBox(height: 16),
-                              
+
                               // Submit Button
                               ElevatedButton(
                                 onPressed: _submitReview,
@@ -831,7 +868,8 @@ class _College5ScreenState extends State<College5Screen> {
                                 vertical: _isTablet ? 16 : 12,
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Videos',
@@ -845,7 +883,8 @@ class _College5ScreenState extends State<College5Screen> {
                                     children: [
                                       IconButton(
                                         onPressed: _previousVideo,
-                                        icon: const Icon(Icons.chevron_left, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_left,
+                                            color: Color(0xFF0B5ED7)),
                                       ),
                                       Text(
                                         '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
@@ -856,7 +895,8 @@ class _College5ScreenState extends State<College5Screen> {
                                       ),
                                       IconButton(
                                         onPressed: _nextVideo,
-                                        icon: const Icon(Icons.chevron_right, color: Color(0xFF0B5ED7)),
+                                        icon: const Icon(Icons.chevron_right,
+                                            color: Color(0xFF0B5ED7)),
                                       ),
                                     ],
                                   ),
@@ -865,12 +905,16 @@ class _College5ScreenState extends State<College5Screen> {
                             ),
                           Padding(
                             padding: EdgeInsets.only(
-                              top: _youtubeUrls.length > 1 ? 0 : (_isTablet ? 40 : 32),
+                              top: _youtubeUrls.length > 1
+                                  ? 0
+                                  : (_isTablet ? 40 : 32),
                             ),
                             child: CommonYoutubePlayer(
                               youtubeUrl: _youtubeUrls[_currentVideoIndex],
-                              height: _isDesktop ? 400 : (_isTablet ? 320 : 250),
-                              placeholderThumbnail: _getVideoThumbnail(_youtubeUrls[_currentVideoIndex]),
+                              height:
+                                  _isDesktop ? 400 : (_isTablet ? 320 : 250),
+                              placeholderThumbnail: _getVideoThumbnail(
+                                  _youtubeUrls[_currentVideoIndex]),
                               borderRadius: 0,
                             ),
                           ),
@@ -881,15 +925,18 @@ class _College5ScreenState extends State<College5Screen> {
                               top: _isTablet ? 40 : 32,
                             ),
                             child: CommonYoutubePlayer(
-                              youtubeUrl: 'https://www.youtube.com/embed/NONufn3jgXI',
-                              height: _isDesktop ? 360 : (_isTablet ? 280 : 220),
-                              placeholderThumbnail: 'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                              youtubeUrl:
+                                  'https://www.youtube.com/embed/NONufn3jgXI',
+                              height:
+                                  _isDesktop ? 400 : (_isTablet ? 320 : 250),
+                              placeholderThumbnail:
+                                  'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
                               borderRadius: 0,
                             ),
                           ),
 
                         // ===== MINIMAL SPACER =====
-                       // SizedBox(height: _isTablet ? 30 : 20), // Minimal space for footer
+                        // SizedBox(height: _isTablet ? 30 : 20), // Minimal space for footer
                       ],
                     ),
                   ),

@@ -5,7 +5,7 @@ import '../../Widgets/Footer.dart';
 
 class Collegecourse4Screen extends StatefulWidget {
   final String? institute; // Optional institute parameter
-  
+
   const Collegecourse4Screen({
     super.key,
     this.institute,
@@ -138,7 +138,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
   }
 
   // Star Widget
-  Widget _buildStarRating(int rating, int activeStars, double size, Function(int)? onTap) {
+  Widget _buildStarRating(
+      int rating, int activeStars, double size, Function(int)? onTap) {
     return Row(
       children: List.generate(rating, (index) {
         return GestureDetector(
@@ -157,17 +158,17 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints - Updated to match Collegecourse2
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions using helper methods
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double bannerHeight = isDesktop ? 220 : (isTablet ? 300 : 180);
+    final double bannerHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
     final double maxContentWidth = isDesktop ? 800 : double.infinity;
-    final double videoHeight = isDesktop ? 320 : (isTablet ? 260 : 200);
+    final double videoHeight = isDesktop ? 400 : (isTablet ? 320 : 250);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
@@ -214,7 +215,7 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like Collegecourse2
                     Expanded(
                       child: Center(
@@ -228,14 +229,15 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Share Button - Keep it but with consistent styling
                     SizedBox(
                       width: 40,
                       child: IconButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Share feature coming soon')),
+                            const SnackBar(
+                                content: Text('Share feature coming soon')),
                           );
                         },
                         icon: Icon(
@@ -269,9 +271,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                             top: isDesktop ? 8 : 0,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: isDesktop
-                                ? BorderRadius.circular(12)
-                                : null,
+                            borderRadius:
+                                isDesktop ? BorderRadius.circular(12) : null,
                           ),
                           child: ClipRRect(
                             borderRadius: isDesktop
@@ -295,7 +296,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                         width: screenWidth,
                                         color: const Color(0xFF4C73AC),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             const Icon(
                                               Icons.school,
@@ -333,9 +335,9 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeBannerIndex == index 
-                                  ? const Color(0xFF2563EB) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeBannerIndex == index
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -353,7 +355,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                           padding: EdgeInsets.all(isTablet ? 20 : 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4C73AC),
-                            borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
+                            borderRadius:
+                                BorderRadius.circular(isTablet ? 18 : 16),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +374,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                 'Advanced UI/UX Design Systems',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: isTablet ? (isDesktop ? 32 : 28) : 20,
+                                  fontSize:
+                                      isTablet ? (isDesktop ? 32 : 28) : 20,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -398,7 +402,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                               Text(
                                 'Skills You Will Gain',
                                 style: TextStyle(
-                                  fontSize: isTablet ? (isDesktop ? 22 : 20) : 16,
+                                  fontSize:
+                                      isTablet ? (isDesktop ? 22 : 20) : 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -457,7 +462,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                     ],
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
                                         Icons.access_time_outlined,
@@ -494,7 +500,7 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                   ),
                                 ),
                               ),
-                              
+
                               // Eligibility Card
                               Expanded(
                                 child: Container(
@@ -512,7 +518,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                     ],
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
                                         Icons.verified_outlined,
@@ -604,7 +611,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                               Text(
                                 'Career Benefits',
                                 style: TextStyle(
-                                  fontSize: isTablet ? (isDesktop ? 22 : 20) : 16,
+                                  fontSize:
+                                      isTablet ? (isDesktop ? 22 : 20) : 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -615,7 +623,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 10),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Icon(
                                           Icons.check_circle,
@@ -671,7 +680,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                       elevation: 0,
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         const Icon(Icons.call_outlined),
                                         const SizedBox(width: 6),
@@ -687,7 +697,7 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                   ),
                                 ),
                               ),
-                              
+
                               // WhatsApp Button
                               Expanded(
                                 child: Container(
@@ -709,7 +719,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                       elevation: 0,
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         // Using an icon that looks similar to WhatsApp
                                         const Icon(Icons.chat_outlined),
@@ -742,23 +753,25 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                               Text(
                                 'Rate & Review',
                                 style: TextStyle(
-                                  fontSize: isTablet ? (isDesktop ? 22 : 20) : 16,
+                                  fontSize:
+                                      isTablet ? (isDesktop ? 22 : 20) : 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              
+
                               // Star Rating
                               Center(
-                                child: _buildStarRating(5, _rating, isTablet ? 32 : 28, (stars) {
+                                child: _buildStarRating(
+                                    5, _rating, isTablet ? 32 : 28, (stars) {
                                   setState(() {
                                     _rating = stars;
                                   });
                                 }),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Review Input
                               TextField(
                                 controller: _reviewController,
@@ -767,11 +780,13 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                   hintText: 'Write your review...',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFF2563EB)),
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
@@ -779,7 +794,7 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              
+
                               // Submit Review Button
                               ElevatedButton(
                                 onPressed: _submitReview,
@@ -827,13 +842,15 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0xFFF3F4F6)),
+                                  border: Border.all(
+                                      color: const Color(0xFFF3F4F6)),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           review['name'] as String,
@@ -843,7 +860,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                                             color: Color(0xFF1E3A8A),
                                           ),
                                         ),
-                                        _buildStarRating(5, review['rating'] as int, 14, null),
+                                        _buildStarRating(5,
+                                            review['rating'] as int, 14, null),
                                       ],
                                     ),
                                     const SizedBox(height: 6),
@@ -875,7 +893,8 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                               Text(
                                 'Video',
                                 style: TextStyle(
-                                  fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
+                                  fontSize:
+                                      isDesktop ? 22 : (isTablet ? 20 : 18),
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -928,7 +947,7 @@ class _Collegecourse4ScreenState extends State<Collegecourse4Screen> {
                         ),
 
                         // ===== SPACER FOR FOOTER =====
-                      //  SizedBox(height: isDesktop ? 30 : (isTablet ? 20 : 16)),
+                        //  SizedBox(height: isDesktop ? 30 : (isTablet ? 20 : 16)),
                       ],
                     ),
                   ),

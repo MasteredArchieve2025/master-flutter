@@ -35,7 +35,6 @@ class CustomHeader extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(height: MediaQuery.of(context).padding.top),
-          
           Container(
             height: isIOS ? 52 : 60,
             decoration: const BoxDecoration(
@@ -51,7 +50,6 @@ class CustomHeader extends StatelessWidget {
               children: [
                 const SizedBox(width: 16),
                 const SizedBox(width: 24),
-                
                 Expanded(
                   child: Center(
                     child: Text(
@@ -67,7 +65,6 @@ class CustomHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                
                 Container(
                   padding: const EdgeInsets.only(right: 16),
                   child: Row(
@@ -79,15 +76,12 @@ class CustomHeader extends StatelessWidget {
                           size: 22,
                           onPressed: onSearchPressed,
                         ),
-                        
                         const SizedBox(width: 14),
-                        
                         _buildIconButton(
                           icon: Icons.notifications_outlined,
                           size: 22,
                           onPressed: onNotificationPressed,
                         ),
-                        
                         const SizedBox(width: 14),
                       ] else ...[
                         _buildIconButton(
@@ -95,16 +89,13 @@ class CustomHeader extends StatelessWidget {
                           size: 20,
                           onPressed: onSearchPressed,
                         ),
-                        
                         const SizedBox(width: 10),
-                        
                         _buildIconButton(
                           icon: Icons.person_outline,
                           size: 24,
                           onPressed: onProfilePressed,
                         ),
                       ],
-                      
                       if (!isSmallScreen)
                         _buildIconButton(
                           icon: Icons.person_outline,
@@ -189,11 +180,21 @@ class _HomeScreenState extends State<HomeScreen> {
   // Choices list
   final List<Map<String, dynamic>> choices = [
     {"id": 1, "title": "School", "icon": Icons.school, "screen": "/school1"},
-    {"id": 2, "title": "College", "icon": Icons.account_balance, "screen": "/college1"},
+    {
+      "id": 2,
+      "title": "College",
+      "icon": Icons.account_balance,
+      "screen": "/college1"
+    },
     {"id": 3, "title": "Course", "icon": Icons.laptop, "screen": "/course1"},
     {"id": 4, "title": "Exam", "icon": Icons.edit_document, "screen": "/exam1"},
     {"id": 5, "title": "IQ", "icon": Icons.psychology, "screen": "/iq1"},
-    {"id": 6, "title": "Extra-Skills", "icon": Icons.music_note, "screen": "/extraskills1"},
+    {
+      "id": 6,
+      "title": "Extra-Skills",
+      "icon": Icons.music_note,
+      "screen": "/extraskills1"
+    },
   ];
 
   // Blog Data
@@ -271,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for homepage...');
-    
+
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=homepage'),
@@ -340,12 +341,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_bannerController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
         if (nextPage >= displayBanners.length) nextPage = 0;
-        
-        _bannerController.animateToPage(
+
+        _bannerController
+            .animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        ).then((_) {
+        )
+            .then((_) {
           if (mounted) _autoScrollNext();
         }).catchError((e) {
           _isAutoScrollStarted = false;
@@ -431,7 +434,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
+                            Icon(Icons.info_outline,
+                                color: Colors.orange[700], size: 16),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -464,7 +468,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const JobCategoriesScreen(),
+                                builder: (context) =>
+                                    const JobCategoriesScreen(),
                               ),
                             );
                           },
@@ -555,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               itemBuilder: (context, index) {
                 final item = displayBanners[index];
-                
+
                 if (useApiImages && item.containsKey('imageUrl')) {
                   // Show API image
                   return Container(
@@ -612,7 +617,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Center(
                             child: CircularProgressIndicator(
-                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
                               value: loadingProgress.expectedTotalBytes != null
                                   ? loadingProgress.cumulativeBytesLoaded /
                                       loadingProgress.expectedTotalBytes!
@@ -656,7 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                             ),
                           ),
-                          
+
                           // Text Content
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,7 +714,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          
+
           // Pagination Dots
           const SizedBox(height: 10),
           Row(
@@ -719,9 +725,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 8,
                 margin: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
-                  color: _currentBannerIndex == index 
-                    ? const Color(0xFF014B85) 
-                    : const Color(0xFFB0CFEA),
+                  color: _currentBannerIndex == index
+                      ? const Color(0xFF014B85)
+                      : const Color(0xFFB0CFEA),
                   borderRadius: BorderRadius.circular(4),
                 ),
               );
@@ -796,7 +802,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: ribbonWidth,
                     height: ribbonHeight,
                     decoration: BoxDecoration(
-                      color: isEven ? const Color(0xFFE8F5E8) : const Color(0xFFF0F7FF),
+                      color: isEven
+                          ? const Color(0xFFE8F5E8)
+                          : const Color(0xFFF0F7FF),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
@@ -809,7 +817,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            
             Container(
               height: cardHeight,
               margin: EdgeInsets.only(
@@ -840,7 +847,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           )
                         : null,
                   ),
-                  
                   Expanded(
                     child: Text(
                       choice["title"] as String,
@@ -852,7 +858,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  
                   SizedBox(
                     width: isLargeScreen ? 50 : 40,
                     child: isEven
@@ -922,14 +927,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
           if (_isBlogsLoading && blogsData.isEmpty)
             Center(
               child: Container(
                 height: 150,
                 child: const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF003366)),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF003366)),
                   ),
                 ),
               ),
@@ -971,7 +976,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Container(
                     width: 200,
                     margin: EdgeInsets.only(
-                      right: index < (blogsData.length > 5 ? 4 : blogsData.length - 1) ? 16 : 0,
+                      right: index <
+                              (blogsData.length > 5 ? 4 : blogsData.length - 1)
+                          ? 16
+                          : 0,
                     ),
                     child: _buildBlogCard(blogsData[index]),
                   );
@@ -1041,7 +1049,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -1056,9 +1063,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: blog.type == "NEWS" 
-                            ? const Color(0xFFF0F7FF) 
-                            : const Color(0xFFE8F5E8),
+                          color: blog.type == "NEWS"
+                              ? const Color(0xFFF0F7FF)
+                              : const Color(0xFFE8F5E8),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -1066,13 +1073,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: isLargeScreen ? 12 : 10,
                             fontWeight: FontWeight.w600,
-                            color: blog.type == "NEWS" 
-                              ? const Color(0xFF0072BC) 
-                              : const Color(0xFF2E7D32),
+                            color: blog.type == "NEWS"
+                                ? const Color(0xFF0072BC)
+                                : const Color(0xFF2E7D32),
                           ),
                         ),
                       ),
-                      
                       Text(
                         blog.time,
                         style: TextStyle(
@@ -1082,9 +1088,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 8),
-                  
                   Text(
                     blog.title,
                     style: TextStyle(
@@ -1096,9 +1100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
                   const SizedBox(height: 8),
-                  
                   Row(
                     children: [
                       Icon(
@@ -1126,9 +1128,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTopCollegesSection() {
-    final topColleges = isLargeScreen 
-      ? collegesData.take(4).toList()
-      : collegesData.take(3).toList();
+    final topColleges = isLargeScreen
+        ? collegesData.take(4).toList()
+        : collegesData.take(3).toList();
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -1172,9 +1174,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          
           const SizedBox(height: 16),
-          
           if (isLargeScreen)
             Wrap(
               spacing: 16,
@@ -1188,7 +1188,9 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           else
             Column(
-              children: topColleges.map((college) => _buildCollegeItem(college)).toList(),
+              children: topColleges
+                  .map((college) => _buildCollegeItem(college))
+                  .toList(),
             ),
         ],
       ),
@@ -1242,7 +1244,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          
           Expanded(
             child: Container(
               padding: EdgeInsets.all(isLargeScreen ? 16 : 12),
@@ -1271,7 +1272,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  
                   Column(
                     children: [
                       Text(

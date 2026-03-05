@@ -10,7 +10,6 @@ import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
 
-
 // Advertisement data
 class Ad {
   final String id;
@@ -33,21 +32,24 @@ final List<Ad> ads = [
     id: "1",
     title: "Study Abroad Scholarships",
     description: "Get up to 50% scholarship on international programs",
-    image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=300&fit=crop",
     url: "https://example.com/scholarship",
   ),
   Ad(
     id: "2",
     title: "Online Learning Platform",
     description: "Access 1000+ courses for free this month",
-    image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=300&fit=crop",
     url: "https://example.com/study-abroad",
   ),
   Ad(
     id: "3",
     title: "Career Development Program",
     description: "Boost your career with our certified programs",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=300&fit=crop",
     url: "https://example.com/courses",
   ),
 ];
@@ -121,7 +123,8 @@ class _BlogsScreenState extends State<BlogsScreen> {
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load blogs. Status: ${response.statusCode}';
+          _errorMessage =
+              'Failed to load blogs. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -167,15 +170,13 @@ class _BlogsScreenState extends State<BlogsScreen> {
   }
 
   Color getTypeColor(String type) {
-    return type == "NEWS" 
+    return type == "NEWS"
         ? const Color(0xFF003366).withOpacity(0.1)
         : const Color(0xFF4CAF50).withOpacity(0.1);
   }
 
   Color getTypeTextColor(String type) {
-    return type == "NEWS" 
-        ? const Color(0xFF003366)
-        : const Color(0xFF2E7D32);
+    return type == "NEWS" ? const Color(0xFF003366) : const Color(0xFF2E7D32);
   }
 
   // Responsive font sizes
@@ -222,7 +223,7 @@ class _BlogsScreenState extends State<BlogsScreen> {
     final screenSize = MediaQuery.of(context).size;
     isTablet = screenSize.width >= 768;
     isWeb = screenSize.width >= 1024;
-    final adHeight = screenSize.height * 0.3 > 250 ? 250.0 : screenSize.height * 0.3;
+    final adHeight = isWeb ? 300.0 : (isTablet ? 300.0 : 200.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -261,9 +262,11 @@ class _BlogsScreenState extends State<BlogsScreen> {
                               ? SliverFillRemaining(
                                   child: Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                        const Icon(Icons.error_outline,
+                                            size: 48, color: Colors.red),
                                         const SizedBox(height: 16),
                                         Text(_errorMessage!),
                                         ElevatedButton(
@@ -276,14 +279,16 @@ class _BlogsScreenState extends State<BlogsScreen> {
                                 )
                               : blogsData.isEmpty
                                   ? const SliverFillRemaining(
-                                      child: Center(child: Text("No blogs found")),
+                                      child:
+                                          Center(child: Text("No blogs found")),
                                     )
                                   : SliverList(
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) {
                                           final blogs = getFilteredBlogs();
                                           return Padding(
-                                            padding: const EdgeInsets.only(bottom: 12),
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
                                             child: _buildBlogCard(blogs[index]),
                                           );
                                         },
@@ -375,7 +380,6 @@ class _BlogsScreenState extends State<BlogsScreen> {
                 constraints: const BoxConstraints(),
               ),
             ),
-            
             Expanded(
               child: Center(
                 child: Text(
@@ -388,7 +392,6 @@ class _BlogsScreenState extends State<BlogsScreen> {
                 ),
               ),
             ),
-            
             const SizedBox(width: 40),
           ],
         ),
@@ -555,7 +558,8 @@ class _BlogsScreenState extends State<BlogsScreen> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: isActive ? const Color(0xFF0B5ED7) : Colors.transparent,
+                    color:
+                        isActive ? const Color(0xFF0B5ED7) : Colors.transparent,
                     width: 2,
                   ),
                 ),
@@ -564,10 +568,15 @@ class _BlogsScreenState extends State<BlogsScreen> {
                 tab.label,
                 style: TextStyle(
                   fontSize: getTabFontSize(),
-                  fontWeight: isActive 
-                      ? (kIsWeb ? FontWeight.w700 : (isIOS ? FontWeight.w600 : FontWeight.w700))
-                      : (kIsWeb ? FontWeight.w600 : (isIOS ? FontWeight.w500 : FontWeight.w600)),
-                  color: isActive ? const Color(0xFF0B5ED7) : Colors.grey.shade600,
+                  fontWeight: isActive
+                      ? (kIsWeb
+                          ? FontWeight.w700
+                          : (isIOS ? FontWeight.w600 : FontWeight.w700))
+                      : (kIsWeb
+                          ? FontWeight.w600
+                          : (isIOS ? FontWeight.w500 : FontWeight.w600)),
+                  color:
+                      isActive ? const Color(0xFF0B5ED7) : Colors.grey.shade600,
                   fontFamily: _getFontFamily(),
                 ),
               ),
@@ -821,12 +830,13 @@ class _BlogsScreenState extends State<BlogsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Video Container - Full width, no horizontal padding
           CommonYoutubePlayer(
             youtubeUrl: 'https://www.youtube.com/watch?v=qYapc_bkfxw',
-            height: isTablet ? 280 : 220,
-            placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+            height: isTablet ? 320 : 250,
+            placeholderThumbnail:
+                'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
             borderRadius: 0,
           ),
         ],

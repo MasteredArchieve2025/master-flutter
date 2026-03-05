@@ -83,8 +83,18 @@ class Blog {
 
   static String _getMonth(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return months[month - 1];
   }
@@ -136,21 +146,24 @@ final List<Ad> ads = [
     id: "1",
     title: "Study Abroad Scholarships",
     description: "Get up to 50% scholarship on international programs",
-    image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&h=300&fit=crop",
     url: "https://example.com/scholarship",
   ),
   Ad(
     id: "2",
     title: "Online Learning Platform",
     description: "Access 1000+ courses for free this month",
-    image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&h=300&fit=crop",
     url: "https://example.com/study-abroad",
   ),
   Ad(
     id: "3",
     title: "Career Development Program",
     description: "Boost your career with our certified programs",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=300&fit=crop",
+    image:
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=300&fit=crop",
     url: "https://example.com/courses",
   ),
 ];
@@ -305,7 +318,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
     final screenSize = MediaQuery.of(context).size;
     isTablet = screenSize.width >= 768;
     isWeb = screenSize.width >= 1024;
-    final adHeight = screenSize.height * 0.25 > 200 ? 200.0 : screenSize.height * 0.25;
+    final adHeight = isWeb ? 300.0 : (isTablet ? 300.0 : 200.0);
     final blog = widget.blog;
 
     return Scaffold(
@@ -328,17 +341,17 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                     SliverToBoxAdapter(
                       child: _buildAdBanner(context, adHeight),
                     ),
-                    
+
                     // Blog Content
                     SliverToBoxAdapter(
                       child: _buildBlogContent(context, blog),
                     ),
-                    
+
                     // YouTube Video Section
                     SliverToBoxAdapter(
                       child: _buildVideoSection(isTablet),
                     ),
-                    
+
                     // No extra SizedBox - video directly above footer
                   ],
                 ),
@@ -413,7 +426,6 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                 constraints: const BoxConstraints(),
               ),
             ),
-            
             Expanded(
               child: Center(
                 child: Text(
@@ -426,7 +438,6 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
                 ),
               ),
             ),
-            
             const SizedBox(width: 40),
           ],
         ),
@@ -541,7 +552,6 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               }).toList(),
             ),
           ),
-
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -578,7 +588,8 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: getTypeColor(blog.type),
                   borderRadius: BorderRadius.circular(6),
@@ -605,7 +616,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ),
             ],
           ),
-          
+
           // Title
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -620,7 +631,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ),
             ),
           ),
-          
+
           // Author info
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,7 +678,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ),
             ],
           ),
-          
+
           // Blog image
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -690,9 +701,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ),
             ),
           ),
-          
+
           const Divider(color: Color(0xFFE0E0E0), height: 1, thickness: 1),
-          
+
           // Blog content
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -706,7 +717,7 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ),
             ),
           ),
-          
+
           // Author bio section
           Container(
             padding: const EdgeInsets.all(16),
@@ -756,9 +767,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Related updates section
           Text(
             'Related Updates',
@@ -769,70 +780,72 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
               fontFamily: _getFontFamily(),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Related updates list
-          ...relatedUpdates.map((update) => GestureDetector(
-                onTap: () => _fetchBlogDetails(update.id),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE0E0E0)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: getTypeColor(update.type),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          update.type,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: getTypeTextColor(update.type),
+          ...relatedUpdates
+              .map((update) => GestureDetector(
+                    onTap: () => _fetchBlogDetails(update.id),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: getTypeColor(update.type),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              update.type,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: getTypeTextColor(update.type),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              update.title,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF003366),
-                                fontFamily: _getFontFamily(),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  update.title,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF003366),
+                                    fontFamily: _getFontFamily(),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  update.date,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                    fontFamily: _getFontFamily(),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              update.date,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
-                                fontFamily: _getFontFamily(),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              )).toList(),
+                    ),
+                  ))
+              .toList(),
         ],
       ),
     );
@@ -883,8 +896,9 @@ class _BlogDetailScreenState extends State<BlogDetailScreen> {
           // Video Container - Full width, edge to edge
           CommonYoutubePlayer(
             youtubeUrl: 'https://www.youtube.com/watch?v=qYapc_bkfxw',
-            height: isTablet ? 280 : 220,
-            placeholderThumbnail: 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+            height: isTablet ? 320 : 250,
+            placeholderThumbnail:
+                'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
             borderRadius: 0,
           ),
         ],

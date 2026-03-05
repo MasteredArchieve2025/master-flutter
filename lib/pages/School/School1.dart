@@ -7,7 +7,6 @@ import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 
-
 // ==================== SCHOOL SCREEN ====================
 class School1Screen extends StatefulWidget {
   const School1Screen({super.key});
@@ -76,23 +75,24 @@ class _School1ScreenState extends State<School1Screen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             _pageName = apiData['page_name'];
-            
+
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
-            
+
             _isLoading = false;
           });
         }
@@ -121,14 +121,17 @@ class _School1ScreenState extends State<School1Screen> {
       if (!mounted) return;
       if (_bannerController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
-        int itemCount = _adImages.isNotEmpty ? _adImages.length : bannerData.length;
+        int itemCount =
+            _adImages.isNotEmpty ? _adImages.length : bannerData.length;
         if (nextPage >= itemCount) nextPage = 0;
-        
-        _bannerController.animateToPage(
+
+        _bannerController
+            .animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        ).then((_) {
+        )
+            .then((_) {
           if (mounted) _autoScrollNext();
         }).catchError((e) {
           _isAutoScrollStarted = false;
@@ -163,12 +166,12 @@ class _School1ScreenState extends State<School1Screen> {
                 bottom: false,
                 child: _buildHeader(context),
               ),
-              
+
               // Main Content
               Expanded(
                 child: _buildContent(context, size),
               ),
-              
+
               // Footer
               Footer(
                 currentIndex: _footerIndex,
@@ -183,7 +186,7 @@ class _School1ScreenState extends State<School1Screen> {
               ),
             ],
           ),
-          
+
           // Glass Loader
           if (_isLoading)
             const GlassLoader(
@@ -335,13 +338,13 @@ class _School1ScreenState extends State<School1Screen> {
         children: [
           // Banner Slider with API images
           _buildBannerSlider(size.width),
-          
+
           // 2 Column Grid
           _buildGridSection(),
 
           // Browse by Category Section
           _buildBrowseByCategorySection(),
-          
+
           // YouTube Video Placeholder with API URL
           _buildVideoPlaceholder(),
         ],
@@ -418,9 +421,11 @@ class _School1ScreenState extends State<School1Screen> {
                           color: const Color(0xFF0052A2),
                           child: Center(
                             child: CircularProgressIndicator(
-                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
                               value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
                                   : null,
                             ),
                           ),
@@ -449,7 +454,7 @@ class _School1ScreenState extends State<School1Screen> {
                             );
                           },
                         ),
-                        
+
                         // Overlay
                         Container(
                           width: bannerWidth,
@@ -505,7 +510,7 @@ class _School1ScreenState extends State<School1Screen> {
               },
             ),
           ),
-          
+
           // Pagination Dots
           const SizedBox(height: 10),
           Row(
@@ -516,9 +521,9 @@ class _School1ScreenState extends State<School1Screen> {
                 height: 8,
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
-                  color: _currentBannerIndex == index 
-                    ? const Color(0xFF0B5ED7) 
-                    : const Color(0xFFCCCCCC),
+                  color: _currentBannerIndex == index
+                      ? const Color(0xFF0B5ED7)
+                      : const Color(0xFFCCCCCC),
                   borderRadius: BorderRadius.circular(4),
                 ),
               );
@@ -557,7 +562,7 @@ class _School1ScreenState extends State<School1Screen> {
               ),
             ),
           ),
-          
+
           // View Tuitions Card
           Expanded(
             child: GestureDetector(
@@ -634,11 +639,31 @@ class _School1ScreenState extends State<School1Screen> {
 
   Widget _buildBrowseByCategorySection() {
     final List<Map<String, dynamic>> schoolCategories = [
-      {"title": "CBSE", "icon": Icons.account_balance, "color": const Color(0xFF4F46E5)},
-      {"title": "STATE BOARD", "icon": Icons.school, "color": const Color(0xFF059669)},
-      {"title": "MATRICULATION", "icon": Icons.workspace_premium, "color": const Color(0xFFDC2626)},
-      {"title": "PLAY SCHOOL", "icon": Icons.child_care, "color": const Color(0xFFEA580C)},
-      {"title": "ICSE", "icon": Icons.menu_book, "color": const Color(0xFF2563EB)},
+      {
+        "title": "CBSE",
+        "icon": Icons.account_balance,
+        "color": const Color(0xFF4F46E5)
+      },
+      {
+        "title": "STATE BOARD",
+        "icon": Icons.school,
+        "color": const Color(0xFF059669)
+      },
+      {
+        "title": "MATRICULATION",
+        "icon": Icons.workspace_premium,
+        "color": const Color(0xFFDC2626)
+      },
+      {
+        "title": "PLAY SCHOOL",
+        "icon": Icons.child_care,
+        "color": const Color(0xFFEA580C)
+      },
+      {
+        "title": "ICSE",
+        "icon": Icons.menu_book,
+        "color": const Color(0xFF2563EB)
+      },
     ];
 
     return Container(
@@ -726,10 +751,10 @@ class _School1ScreenState extends State<School1Screen> {
 
   Widget _buildVideoPlaceholder() {
     // Use first YouTube URL from API if available
-    String videoUrl = _youtubeUrls.isNotEmpty 
-        ? _youtubeUrls.first 
+    String videoUrl = _youtubeUrls.isNotEmpty
+        ? _youtubeUrls.first
         : 'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg';
-    
+
     // Extract video ID for thumbnail
     String thumbnailUrl = videoUrl;
     if (videoUrl.contains('youtube.com/embed/')) {
@@ -737,8 +762,10 @@ class _School1ScreenState extends State<School1Screen> {
       thumbnailUrl = 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
     }
 
-    final String currentVideoUrl = _youtubeUrls.isNotEmpty ? _youtubeUrls.first : 'https://www.youtube.com/embed/qYapc_bkfxw';
-    
+    final String currentVideoUrl = _youtubeUrls.isNotEmpty
+        ? _youtubeUrls.first
+        : 'https://www.youtube.com/embed/qYapc_bkfxw';
+
     return Container(
       margin: EdgeInsets.only(
         top: isTablet ? 70 : 55,

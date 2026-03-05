@@ -25,13 +25,13 @@ class JobDetailsScreen extends StatefulWidget {
 class _JobDetailsScreenState extends State<JobDetailsScreen> {
   late bool isTablet;
   late bool isWeb;
-  
+
   // ── Ad Banner ──
   int currentAdIndex = 0;
   late PageController _pageController;
   Timer? _adTimer;
   bool _isAutoScrollStarted = false;
-  
+
   // Advertisement API Data
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
@@ -87,23 +87,24 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             _pageName = apiData['page_name'];
-            
+
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
-            
+
             _isLoadingAds = false;
           });
         }
@@ -129,14 +130,17 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       if (!mounted) return;
       if (_pageController.hasClients) {
         int nextPage = currentAdIndex + 1;
-        int itemCount = _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
+        int itemCount =
+            _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
         if (nextPage >= itemCount) nextPage = 0;
-        
-        _pageController.animateToPage(
+
+        _pageController
+            .animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        ).then((_) {
+        )
+            .then((_) {
           if (mounted) _autoScrollNext();
         }).catchError((e) {
           _isAutoScrollStarted = false;
@@ -154,8 +158,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     try {
       final dt = DateTime.parse(raw);
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
       ];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
@@ -212,7 +226,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     final screenSize = MediaQuery.of(context).size;
     isTablet = screenSize.width >= 768;
     isWeb = screenSize.width >= 1024;
-    final adHeight = screenSize.height * 0.25 > 200 ? 200.0 : screenSize.height * 0.25;
+    final adHeight = isWeb ? 300.0 : (isTablet ? 300.0 : 200.0);
 
     final job = widget.job;
     final deadlinePassed = _isDeadlinePassed(job.applicationDeadline);
@@ -259,7 +273,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                     color: const Color(0xFFEFF6FF),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                        color: const Color(0xFF0052A2).withOpacity(0.15)),
+                                        color: const Color(0xFF0052A2)
+                                            .withOpacity(0.15)),
                                   ),
                                   child: const Icon(
                                     Icons.business,
@@ -270,14 +285,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         job.companyName,
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF1E293B).withOpacity(0.7),
+                                          color: const Color(0xFF1E293B)
+                                              .withOpacity(0.7),
                                           fontFamily: _getFontFamily(),
                                         ),
                                       ),
@@ -299,8 +316,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
                             // ── Location ──
                             if (job.location.isNotEmpty) ...[
-                              _infoRow(
-                                  Icons.location_on_outlined, job.location, Colors.grey.shade600),
+                              _infoRow(Icons.location_on_outlined, job.location,
+                                  Colors.grey.shade600),
                               const SizedBox(height: 10),
                             ],
 
@@ -320,8 +337,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
                             // ── Posted time ──
                             if (job.postedTimeLabel.isNotEmpty)
-                              _infoRow(Icons.access_time,
-                                  job.postedTimeLabel, Colors.grey.shade500),
+                              _infoRow(Icons.access_time, job.postedTimeLabel,
+                                  Colors.grey.shade500),
 
                             const SizedBox(height: 24),
                             _divider(),
@@ -338,8 +355,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                         : '—',
                                     sub: 'Per annum',
                                     bgColor: const Color(0xFFEFF6FF),
-                                    borderColor:
-                                        const Color(0xFF0052A2).withOpacity(0.12),
+                                    borderColor: const Color(0xFF0052A2)
+                                        .withOpacity(0.12),
                                     labelColor: const Color(0xFF0052A2),
                                   ),
                                 ),
@@ -347,7 +364,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                 Expanded(
                                   child: _infoBox(
                                     label: 'DEADLINE',
-                                    value: _formatDeadline(job.applicationDeadline),
+                                    value: _formatDeadline(
+                                        job.applicationDeadline),
                                     sub: deadlinePassed
                                         ? 'Applications closed'
                                         : 'Applications close',
@@ -400,7 +418,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                             _labeledCard(
                               label: 'EXPERIENCE',
                               labelColor: const Color(0xFF0052A2),
-                              body: job.experience.isNotEmpty ? job.experience : '—',
+                              body: job.experience.isNotEmpty
+                                  ? job.experience
+                                  : '—',
                             ),
                             const SizedBox(height: 24),
 
@@ -418,16 +438,19 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFEFF6FF),
                                       borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: Colors.grey.shade200),
+                                      border: Border.all(
+                                          color: Colors.grey.shade200),
                                     ),
                                     child: Center(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(
                                             Icons.map_outlined,
                                             size: 40,
-                                            color: const Color(0xFF0052A2).withOpacity(0.5),
+                                            color: const Color(0xFF0052A2)
+                                                .withOpacity(0.5),
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
@@ -450,10 +473,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                     GestureDetector(
                                       onTap: () => _launch(job.mapLink),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           const Icon(Icons.open_in_new,
-                                              size: 16, color: Color(0xFF0052A2)),
+                                              size: 16,
+                                              color: Color(0xFF0052A2)),
                                           const SizedBox(width: 6),
                                           const Text(
                                             'View on Map',
@@ -483,7 +508,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   backgroundColor: const Color(0xFF0052A2),
                                   disabledBackgroundColor: Colors.grey.shade400,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   ),
@@ -493,7 +519,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      deadlinePassed ? 'Applications Closed' : 'Apply Now',
+                                      deadlinePassed
+                                          ? 'Applications Closed'
+                                          : 'Apply Now',
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
@@ -563,7 +591,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   return GestureDetector(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening advertisement ${index + 1}')),
+                        SnackBar(
+                            content:
+                                Text('Opening advertisement ${index + 1}')),
                       );
                     },
                     child: Stack(
@@ -603,9 +633,13 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                               color: const Color(0xFF0052A2),
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
                                       : null,
                                 ),
                               ),
@@ -753,10 +787,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   Widget _buildVideoPlayer() {
     // Use first YouTube URL from API if available, otherwise use default
-    String videoUrl = _youtubeUrls.isNotEmpty 
-        ? _youtubeUrls.first 
+    String videoUrl = _youtubeUrls.isNotEmpty
+        ? _youtubeUrls.first
         : 'https://www.youtube.com/embed/qYapc_bkfxw';
-    
+
     // Extract video ID for thumbnail
     String thumbnailUrl = '';
     if (videoUrl.contains('youtube.com/embed/')) {
@@ -767,7 +801,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(top: 16, bottom: 16),
+      margin: const EdgeInsets.only(top: 16),
       width: double.infinity,
       child: CommonYoutubePlayer(
         youtubeUrl: videoUrl,
@@ -798,8 +832,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         ],
       ),
       child: Container(
-        constraints:
-            BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+        constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
         padding: EdgeInsets.symmetric(horizontal: hPad),
         height: headerHeight,
         child: Row(
@@ -808,8 +841,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               width: 40,
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back,
-                    size: 24, color: Colors.white),
+                icon:
+                    const Icon(Icons.arrow_back, size: 24, color: Colors.white),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -854,8 +887,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
 
-  Widget _tagChip(String label,
-      {required Color bg, required Color color}) {
+  Widget _tagChip(String label, {required Color bg, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(

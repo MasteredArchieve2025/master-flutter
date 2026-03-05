@@ -62,7 +62,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
   List<JobCategory> _categories = [];
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   // Advertisement API Data
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
@@ -186,20 +186,21 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          
+
           setState(() {
             _pageName = apiData['page_name'];
-            
+
             // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
             }
-            
+
             // Parse youtube URLs
-            if (apiData['youtube_urls'] != null && apiData['youtube_urls'] is List) {
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
             }
           });
@@ -224,14 +225,17 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
       if (!mounted) return;
       if (_pageController.hasClients) {
         int nextPage = currentAdIndex + 1;
-        int itemCount = _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
+        int itemCount =
+            _adImages.isNotEmpty ? _adImages.length : fallbackAds.length;
         if (nextPage >= itemCount) nextPage = 0;
-        
-        _pageController.animateToPage(
+
+        _pageController
+            .animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-        ).then((_) {
+        )
+            .then((_) {
           if (mounted) _autoScrollNext();
         }).catchError((e) {
           _isAutoScrollStarted = false;
@@ -254,7 +258,8 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
       return Icons.attach_money;
     } else if (n.contains('edu') || n.contains('teach')) {
       return Icons.school;
-    } else if (n.contains('health') || n.contains('medical') ||
+    } else if (n.contains('health') ||
+        n.contains('medical') ||
         n.contains('pharma')) {
       return Icons.local_hospital;
     } else if (n.contains('market') || n.contains('sales')) {
@@ -263,8 +268,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
       return Icons.business_center;
     } else if (n.contains('engineer')) {
       return Icons.engineering;
-    } else if (n.contains('design') || n.contains('ui') ||
-        n.contains('ux')) {
+    } else if (n.contains('design') || n.contains('ui') || n.contains('ux')) {
       return Icons.brush;
     } else {
       return Icons.work_outline;
@@ -304,8 +308,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
     final screenSize = MediaQuery.of(context).size;
     isTablet = screenSize.width >= 768;
     isWeb = screenSize.width >= 1024;
-    final adHeight =
-        screenSize.height * 0.25 > 200 ? 200.0 : screenSize.height * 0.25;
+    final adHeight = isWeb ? 300.0 : (isTablet ? 300.0 : 200.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -406,7 +409,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
               const Footer(),
             ],
           ),
-          
+
           // Glass Loader
           if (_isLoading)
             const GlassLoader(
@@ -432,8 +435,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline,
-                  size: 48, color: Colors.red.shade300),
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
@@ -470,8 +472,7 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off,
-                  size: 48, color: Colors.grey.shade300),
+              Icon(Icons.search_off, size: 48, color: Colors.grey.shade300),
               const SizedBox(height: 12),
               Text(
                 'No categories found.',
@@ -558,8 +559,8 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
               width: 40,
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back,
-                    size: 24, color: Colors.white),
+                icon:
+                    const Icon(Icons.arrow_back, size: 24, color: Colors.white),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -610,7 +611,9 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
                   return GestureDetector(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening advertisement ${index + 1}')),
+                        SnackBar(
+                            content:
+                                Text('Opening advertisement ${index + 1}')),
                       );
                     },
                     child: Stack(
@@ -656,9 +659,13 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
                               color: const Color(0xFF0052A2),
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
                                       : null,
                                 ),
                               ),
@@ -711,7 +718,8 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
                               height: adHeight,
                               color: Colors.grey[300],
                               child: const Center(
-                                child: Icon(Icons.image_not_supported, size: 50),
+                                child:
+                                    Icon(Icons.image_not_supported, size: 50),
                               ),
                             );
                           },
@@ -866,10 +874,10 @@ class _JobCategoriesScreenState extends State<JobCategoriesScreen> {
 
   Widget _buildVideoPlayer() {
     // Use first YouTube URL from API if available, otherwise use default
-    String videoUrl = _youtubeUrls.isNotEmpty 
-        ? _youtubeUrls.first 
+    String videoUrl = _youtubeUrls.isNotEmpty
+        ? _youtubeUrls.first
         : 'https://www.youtube.com/embed/qYapc_bkfxw';
-    
+
     // Extract video ID for thumbnail
     String thumbnailUrl = '';
     if (videoUrl.contains('youtube.com/embed/')) {

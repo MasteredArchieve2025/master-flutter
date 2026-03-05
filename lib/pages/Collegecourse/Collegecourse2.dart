@@ -6,7 +6,7 @@ import 'Collegecourse3.dart';
 
 class Collegecourse2Screen extends StatefulWidget {
   final String? department; // Optional department parameter
-  
+
   const Collegecourse2Screen({
     super.key,
     this.department,
@@ -117,17 +117,17 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive dimensions
     final double horizontalPadding = _getHorizontalPadding(context);
-    final double bannerHeight = isDesktop ? 220 : (isTablet ? 300 : 180);
+    final double bannerHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
-    final double videoHeight = isDesktop ? 320 : (isTablet ? 260 : 200);
+    final double videoHeight = isDesktop ? 400 : (isTablet ? 320 : 250);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
@@ -174,7 +174,7 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                         constraints: const BoxConstraints(),
                       ),
                     ),
-                    
+
                     // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
@@ -188,7 +188,7 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                         ),
                       ),
                     ),
-                    
+
                     // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
@@ -213,9 +213,8 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                             top: isDesktop ? 8 : 0,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: isDesktop
-                                ? BorderRadius.circular(12)
-                                : null,
+                            borderRadius:
+                                isDesktop ? BorderRadius.circular(12) : null,
                           ),
                           child: ClipRRect(
                             borderRadius: isDesktop
@@ -239,7 +238,8 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                                         width: screenWidth,
                                         color: const Color(0xFF4C73AC),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             const Icon(
                                               Icons.school,
@@ -269,7 +269,7 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                                       );
                                     },
                                   ),
-                                  
+
                                   // Overlay gradient for better text readability
                                   Container(
                                     decoration: BoxDecoration(
@@ -301,9 +301,9 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                               height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: _activeBannerIndex == index 
-                                  ? const Color(0xFF0B5ED7) 
-                                  : const Color(0xFFCCCCCC),
+                                color: _activeBannerIndex == index
+                                    ? const Color(0xFF0B5ED7)
+                                    : const Color(0xFFCCCCCC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -318,12 +318,17 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                           ),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final double availableWidth = constraints.maxWidth;
+                              final double availableWidth =
+                                  constraints.maxWidth;
                               final int crossAxisCount = isDesktop ? 3 : 2;
                               final double spacing = isTablet ? 20 : 16;
-                              final double totalSpacing = spacing * (crossAxisCount - 1);
-                              final double itemWidth = (availableWidth - totalSpacing - (horizontalPadding * 2)) / crossAxisCount;
-                              
+                              final double totalSpacing =
+                                  spacing * (crossAxisCount - 1);
+                              final double itemWidth = (availableWidth -
+                                      totalSpacing -
+                                      (horizontalPadding * 2)) /
+                                  crossAxisCount;
+
                               return Wrap(
                                 spacing: spacing,
                                 runSpacing: isTablet ? 18 : 14,
@@ -357,7 +362,8 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                               Text(
                                 'Video',
                                 style: TextStyle(
-                                  fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
+                                  fontSize:
+                                      isDesktop ? 22 : (isTablet ? 20 : 18),
                                   fontWeight: FontWeight.w700,
                                   color: Colors.black,
                                 ),
@@ -459,7 +465,8 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
         padding: EdgeInsets.all(isDesktop ? 20 : (isTablet ? 18 : 14)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(isDesktop ? 22 : (isTablet ? 20 : 18)),
+          borderRadius:
+              BorderRadius.circular(isDesktop ? 22 : (isTablet ? 20 : 18)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -490,9 +497,9 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                 ),
               ),
             ),
-            
+
             SizedBox(height: isDesktop ? 10 : (isTablet ? 10 : 8)),
-            
+
             // Title
             Text(
               course['title'] as String,
@@ -505,9 +512,9 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
+
             SizedBox(height: isDesktop ? 10 : (isTablet ? 10 : 8)),
-            
+
             // Industry Skill Row
             Row(
               children: [
@@ -526,9 +533,9 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                 ),
               ],
             ),
-            
+
             SizedBox(height: isTablet ? 6 : 4),
-            
+
             // Duration Row
             Row(
               children: [
@@ -547,9 +554,9 @@ class _Collegecourse2ScreenState extends State<Collegecourse2Screen> {
                 ),
               ],
             ),
-            
+
             SizedBox(height: isDesktop ? 10 : (isTablet ? 10 : 8)),
-            
+
             // Enroll Now Button
             ElevatedButton(
               onPressed: () {

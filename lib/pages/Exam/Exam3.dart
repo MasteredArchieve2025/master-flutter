@@ -12,7 +12,7 @@ import '../../components/glass_loader.dart';
 
 class Exam3Screen extends StatefulWidget {
   final Map<String, dynamic>? examData;
-  
+
   const Exam3Screen({
     super.key,
     this.examData,
@@ -57,7 +57,7 @@ class _Exam3ScreenState extends State<Exam3Screen> {
   void initState() {
     super.initState();
     _fetchAdvertisements();
-    
+
     // Auto scroll banners
     _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_bannerController.hasClients && mounted && adImages.isNotEmpty) {
@@ -86,7 +86,8 @@ class _Exam3ScreenState extends State<Exam3Screen> {
           if (mounted) {
             setState(() {
               adImages = List<String>.from(data['data']['images'] ?? []);
-              youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+              youtubeUrls =
+                  List<String>.from(data['data']['youtube_urls'] ?? []);
               _isLoadingAds = false;
             });
             debugPrint('✅ Loaded ${adImages.length} images from API');
@@ -181,15 +182,15 @@ class _Exam3ScreenState extends State<Exam3Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double bannerHeight = _responsiveValue(200, 260, 300);
+    final double bannerHeight = _responsiveValue(200, 300, 300);
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
     return Scaffold(
@@ -247,220 +248,300 @@ class _Exam3ScreenState extends State<Exam3Screen> {
 
             // ===== MAIN CONTENT =====
             Expanded(
-              child: SingleChildScrollView(
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // ===== BANNER SLIDER =====
-                        if (adImages.isNotEmpty)
-                          SizedBox(
-                            width: screenWidth,
-                            height: bannerHeight,
-                            child: PageView.builder(
-                              controller: _bannerController,
-                              itemCount: adImages.length,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _activeBannerIndex = index;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                return Image.network(
-                                  adImages[index],
-                                  width: screenWidth,
-                                  height: bannerHeight,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: screenWidth,
-                                      height: bannerHeight,
-                                      color: Colors.black12,
-                                      child: const Center(
-                                        child: Icon(Icons.broken_image, color: Colors.grey),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          )
-                        else if (_isLoadingAds)
-                          Container(
-                            width: screenWidth,
-                            height: bannerHeight,
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        else
-                          const SizedBox.shrink(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Center(
+                          child: Container(
+                            constraints:
+                                BoxConstraints(maxWidth: maxContentWidth),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // ===== BANNER SLIDER =====
+                                    if (adImages.isNotEmpty)
+                                      SizedBox(
+                                        width: screenWidth,
+                                        height: bannerHeight,
+                                        child: PageView.builder(
+                                          controller: _bannerController,
+                                          itemCount: adImages.length,
+                                          onPageChanged: (index) {
+                                            setState(() {
+                                              _activeBannerIndex = index;
+                                            });
+                                          },
+                                          itemBuilder: (context, index) {
+                                            return Image.network(
+                                              adImages[index],
+                                              width: screenWidth,
+                                              height: bannerHeight,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Container(
+                                                  width: screenWidth,
+                                                  height: bannerHeight,
+                                                  color: Colors.black12,
+                                                  child: const Center(
+                                                    child: Icon(
+                                                        Icons.broken_image,
+                                                        color: Colors.grey),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    else if (_isLoadingAds)
+                                      Container(
+                                        width: screenWidth,
+                                        height: bannerHeight,
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )
+                                    else
+                                      const SizedBox.shrink(),
 
-                        // ===== PAGINATION DOTS =====
-                        if (adImages.length > 1)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF4F8FF),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: _scale(12)),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(adImages.length, (index) {
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: _activeBannerIndex == index ? _scale(16) : _scale(8),
-                                  height: _scale(8),
-                                  margin: EdgeInsets.symmetric(horizontal: _scale(4)),
-                                  decoration: BoxDecoration(
-                                    color: _activeBannerIndex == index 
-                                      ? const Color(0xFF0B5ED7) 
-                                      : const Color(0xFFCCCCCC),
-                                    borderRadius: BorderRadius.circular(_scale(4)),
-                                  ),
-                                );
-                              }),
-                            ),
-                          ),
-
-                        // ===== 2 COLUMN GRID =====
-                        SizedBox(height: _responsiveValue(16, 24, 32)),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: gridItems.map((item) {
-                              return Expanded(
-                                child: Container(
-                                  margin: EdgeInsets.only(
-                                    right: item == gridItems.first 
-                                      ? _scale(8) 
-                                      : 0,
-                                    left: item == gridItems.last 
-                                      ? _scale(8) 
-                                      : 0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (item['route'] == 'ExamDetailsFull') {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ExamDetailsFullScreen(
-                                              examData: widget.examData,
-                                            ),
-                                          ),
-                                        );
-                                      } else if (item['route'] == 'InstitutionsList') {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => InstitutionsListScreen(),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(_scale(22)),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.08),
-                                            blurRadius: _scale(8),
-                                            offset: Offset(0, _scale(4)),
-                                          ),
-                                        ],
+                                    // ===== PAGINATION DOTS =====
+                                    if (adImages.length > 1)
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF4F8FF),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: _scale(12)),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: List.generate(
+                                              adImages.length, (index) {
+                                            return AnimatedContainer(
+                                              duration: const Duration(
+                                                  milliseconds: 300),
+                                              width: _activeBannerIndex == index
+                                                  ? _scale(16)
+                                                  : _scale(8),
+                                              height: _scale(8),
+                                              margin: EdgeInsets.symmetric(
+                                                  horizontal: _scale(4)),
+                                              decoration: BoxDecoration(
+                                                color: _activeBannerIndex ==
+                                                        index
+                                                    ? const Color(0xFF0B5ED7)
+                                                    : const Color(0xFFCCCCCC),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        _scale(4)),
+                                              ),
+                                            );
+                                          }),
+                                        ),
                                       ),
-                                      padding: EdgeInsets.all(_responsiveValue(20, 24, 28)),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Container(
-                                            width: _scale(50),
-                                            height: _scale(50),
-                                            decoration: BoxDecoration(
-                                              color: (item['color'] as Color).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(_scale(12)),
+
+                                    // ===== 2 COLUMN GRID =====
+                                    SizedBox(
+                                        height: _responsiveValue(16, 24, 32)),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: horizontalPadding),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: gridItems.map((item) {
+                                          return Expanded(
+                                            child: Container(
+                                              margin: EdgeInsets.only(
+                                                right: item == gridItems.first
+                                                    ? _scale(8)
+                                                    : 0,
+                                                left: item == gridItems.last
+                                                    ? _scale(8)
+                                                    : 0,
+                                              ),
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  if (item['route'] ==
+                                                      'ExamDetailsFull') {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            ExamDetailsFullScreen(
+                                                          examData:
+                                                              widget.examData,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  } else if (item['route'] ==
+                                                      'InstitutionsList') {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            InstitutionsListScreen(),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            _scale(22)),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.08),
+                                                        blurRadius: _scale(8),
+                                                        offset: Offset(
+                                                            0, _scale(4)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  padding: EdgeInsets.all(
+                                                      _responsiveValue(
+                                                          20, 24, 28)),
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Container(
+                                                        width: _scale(50),
+                                                        height: _scale(50),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: (item['color']
+                                                                  as Color)
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          12)),
+                                                        ),
+                                                        child: Icon(
+                                                          item['icon']
+                                                              as IconData,
+                                                          size: _scale(30),
+                                                          color: item['color']
+                                                              as Color,
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                          height: _scale(12)),
+                                                      Text(
+                                                        item['title'] as String,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              _responsiveValue(
+                                                                  14, 16, 18),
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: const Color(
+                                                              0xFF003366),
+                                                          height: 1.2,
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                          height: _scale(6)),
+                                                      Text(
+                                                        item['subtitle']
+                                                            as String,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              _responsiveValue(
+                                                                  11, 12, 13),
+                                                          color: const Color(
+                                                              0xFF666666),
+                                                          height: 1.4,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                            child: Icon(
-                                              item['icon'] as IconData,
-                                              size: _scale(30),
-                                              color: item['color'] as Color,
-                                            ),
-                                          ),
-                                          SizedBox(height: _scale(12)),
-                                          Text(
-                                            item['title'] as String,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: _responsiveValue(14, 16, 18),
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF003366),
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                          SizedBox(height: _scale(6)),
-                                          Text(
-                                            item['subtitle'] as String,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: _responsiveValue(11, 12, 13),
-                                              color: const Color(0xFF666666),
-                                              height: 1.4,
-                                            ),
-                                          ),
-                                        ],
+                                          );
+                                        }).toList(),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
 
-                        // ===== YOUTUBE VIDEO SECTION =====
-                        if (youtubeUrls.isNotEmpty) ...[
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                              vertical: _responsiveValue(16, 20, 24),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.play_circle_fill, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Video Tutorials',
-                                  style: TextStyle(
-                                    fontSize: _responsiveValue(18, 20, 22),
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF003366),
-                                  ),
-                                ),
+                                // ===== YOUTUBE VIDEO SECTION =====
+                                if (youtubeUrls.isNotEmpty)
+                                  Column(
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: horizontalPadding,
+                                          vertical:
+                                              _responsiveValue(16, 20, 24),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.play_circle_fill,
+                                                color: Colors.red),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Video Tutorials',
+                                              style: TextStyle(
+                                                fontSize: _responsiveValue(
+                                                    18, 20, 22),
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF003366),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      ...youtubeUrls
+                                          .map((url) => Container(
+                                                width: screenWidth,
+                                                margin: EdgeInsets.only(),
+                                                child: CommonYoutubePlayer(
+                                                  youtubeUrl: url,
+                                                  height: isDesktop
+                                                      ? 400
+                                                      : (isTablet ? 320 : 250),
+                                                  placeholderThumbnail:
+                                                      _getYoutubeThumbnail(url),
+                                                  borderRadius: 0,
+                                                ),
+                                              ))
+                                          .toList(),
+                                    ],
+                                  )
+                                else
+                                  const SizedBox.shrink(),
                               ],
                             ),
                           ),
-                          ...youtubeUrls.map((url) => Container(
-                            width: screenWidth,
-                            margin: EdgeInsets.only(
-                              bottom: _responsiveValue(16, 20, 24),
-                            ),
-                            child: CommonYoutubePlayer(
-                              youtubeUrl: url,
-                              height: isDesktop ? 360 : (isTablet ? 280 : 220),
-                              placeholderThumbnail: _getYoutubeThumbnail(url),
-                              borderRadius: 0,
-                            ),
-                          )).toList(),
-                        ],
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],

@@ -106,17 +106,17 @@ class _IQ1ScreenState extends State<IQ1Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
-    
+
     // Calculate card size for 2-column grid
     final double cardMargin = _responsiveValue(15, 20, 25);
     final double cardWidth = (screenWidth - cardMargin * 3) / 2;
     final double cardHeight = cardWidth; // Square cards
-    
+
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
     final double maxContentWidth = isDesktop ? 1200 : double.infinity;
@@ -203,7 +203,8 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                             borderRadius: BorderRadius.circular(_scale(12)),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF0072BC).withOpacity(0.25),
+                                color:
+                                    const Color(0xFF0072BC).withOpacity(0.25),
                                 blurRadius: _scale(6),
                                 offset: Offset(0, _scale(2)),
                               ),
@@ -268,28 +269,30 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                           child: Wrap(
                             spacing: cardMargin,
                             runSpacing: cardMargin,
-                            children: testCategories.asMap().entries.map((entry) {
+                            children:
+                                testCategories.asMap().entries.map((entry) {
                               final int index = entry.key;
                               final Map<String, dynamic> category = entry.value;
                               final imageIndex = index % cardImages.length;
-                              
+
                               return GestureDetector(
                                 onTap: () {
                                   if (category['title'] == 'Brain IQ test') {
                                     // Navigate to IQ2 screen
-                                     Navigator.push(
-                                       context,
-                                       MaterialPageRoute(
-                                         builder: (context) => IQ2Screen(),
-                                       ),
-                                     );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => IQ2Screen(),
+                                      ),
+                                    );
                                   }
                                 },
                                 child: Container(
                                   width: cardWidth,
                                   height: cardHeight,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(_scale(16)),
+                                    borderRadius:
+                                        BorderRadius.circular(_scale(16)),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.25),
@@ -302,33 +305,39 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                     children: [
                                       // Card Image
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(_scale(16)),
+                                        borderRadius:
+                                            BorderRadius.circular(_scale(16)),
                                         child: Image.network(
                                           cardImages[imageIndex],
                                           width: cardWidth,
                                           height: cardHeight,
                                           fit: BoxFit.cover,
-                                          loadingBuilder: (context, child, loadingProgress) {
-                                            if (loadingProgress == null) return child;
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null)
+                                              return child;
                                             return Container(
                                               width: cardWidth,
                                               height: cardHeight,
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
-                                                  colors: (category['color'] as List<Color>),
+                                                  colors: (category['color']
+                                                      as List<Color>),
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
                                                 ),
                                               ),
                                             );
                                           },
-                                          errorBuilder: (context, error, stackTrace) {
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
                                             return Container(
                                               width: cardWidth,
                                               height: cardHeight,
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
-                                                  colors: (category['color'] as List<Color>),
+                                                  colors: (category['color']
+                                                      as List<Color>),
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
                                                 ),
@@ -337,11 +346,12 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                           },
                                         ),
                                       ),
-                                      
+
                                       // Dark Overlay Gradient
                                       Container(
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(_scale(16)),
+                                          borderRadius:
+                                              BorderRadius.circular(_scale(16)),
                                           gradient: LinearGradient(
                                             colors: [
                                               Colors.transparent,
@@ -353,7 +363,7 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                           ),
                                         ),
                                       ),
-                                      
+
                                       // Card Title
                                       Positioned(
                                         bottom: _scale(12),
@@ -362,13 +372,15 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                         child: Text(
                                           category['title'],
                                           style: TextStyle(
-                                            fontSize: _responsiveValue(16, 17, 18),
+                                            fontSize:
+                                                _responsiveValue(16, 17, 18),
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white,
                                             height: 1.2,
                                             shadows: [
                                               Shadow(
-                                                color: Colors.black.withOpacity(0.75),
+                                                color: Colors.black
+                                                    .withOpacity(0.75),
                                                 blurRadius: 3,
                                                 offset: const Offset(0, 1),
                                               ),
@@ -378,7 +390,7 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      
+
                                       // Card Badge
                                       Positioned(
                                         top: _scale(12),
@@ -387,10 +399,13 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                           width: _scale(28),
                                           height: _scale(28),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF0052A2).withOpacity(0.9),
-                                            borderRadius: BorderRadius.circular(_scale(14)),
+                                            color: const Color(0xFF0052A2)
+                                                .withOpacity(0.9),
+                                            borderRadius: BorderRadius.circular(
+                                                _scale(14)),
                                             border: Border.all(
-                                              color: Colors.white.withOpacity(0.3),
+                                              color:
+                                                  Colors.white.withOpacity(0.3),
                                               width: _scale(1.5),
                                             ),
                                           ),
@@ -433,7 +448,8 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                             children: [
                               // Progress Header
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Your Progress',
@@ -454,26 +470,28 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                                 ],
                               ),
                               SizedBox(height: _scale(12)),
-                              
+
                               // Progress Bar
                               Container(
                                 height: _scale(8),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE9ECEF),
-                                  borderRadius: BorderRadius.circular(_scale(4)),
+                                  borderRadius:
+                                      BorderRadius.circular(_scale(4)),
                                 ),
                                 child: FractionallySizedBox(
                                   widthFactor: 0.0, // 0% progress initially
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF0072BC),
-                                      borderRadius: BorderRadius.circular(_scale(4)),
+                                      borderRadius:
+                                          BorderRadius.circular(_scale(4)),
                                     ),
                                   ),
                                 ),
                               ),
                               SizedBox(height: _scale(8)),
-                              
+
                               // Progress Text
                               Text(
                                 '0 of 6 tests completed',
@@ -493,7 +511,7 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                             bottom: 0,
                           ),
                           width: double.infinity,
-                          height: isDesktop ? 360 : (isTablet ? 280 : 220),
+                          height: isDesktop ? 400 : (isTablet ? 320 : 250),
                           decoration: const BoxDecoration(
                             color: Colors.black,
                             image: DecorationImage(
@@ -505,7 +523,8 @@ class _IQ1ScreenState extends State<IQ1Screen> {
                           ),
                           child: Center(
                             child: GestureDetector(
-                              onTap: () => _showUrlDialog('https://www.youtube.com/embed/L2zqTYgcpfg'),
+                              onTap: () => _showUrlDialog(
+                                  'https://www.youtube.com/embed/L2zqTYgcpfg'),
                               child: Container(
                                 width: 60,
                                 height: 60,
