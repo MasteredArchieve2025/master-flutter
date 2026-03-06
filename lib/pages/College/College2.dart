@@ -573,6 +573,8 @@ class _College2ScreenState extends State<College2Screen> {
                                   top: _youtubeUrls.length > 1
                                       ? 0
                                       : (isTablet ? 40 : 30),
+                                  // Remove bottom padding
+                                  bottom: 0,
                                 ),
                                 child: CommonYoutubePlayer(
                                   youtubeUrl: _youtubeUrls[_currentVideoIndex],
@@ -588,6 +590,8 @@ class _College2ScreenState extends State<College2Screen> {
                               Padding(
                                 padding: EdgeInsets.only(
                                   top: isTablet ? 40 : 30,
+                                  // Remove bottom padding
+                                  bottom: 0,
                                 ),
                                 child: CommonYoutubePlayer(
                                   youtubeUrl:
@@ -600,8 +604,8 @@ class _College2ScreenState extends State<College2Screen> {
                                 ),
                               ),
 
-                            // Spacer for Footer
-                            //SizedBox(height: isDesktop ? 80 : 120),
+                            // Removed spacer to eliminate gap
+                            // SizedBox(height: isDesktop ? 80 : 120),
                           ],
                         ),
                       ),

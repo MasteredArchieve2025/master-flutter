@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'Splash_Screen/splash_screen.dart';
 import 'pages/Home/Homepage.dart';
 import 'pages/School/School1.dart';
 import 'pages/School/School2.dart';
@@ -80,8 +81,10 @@ class MyEducationApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/loading',
+      initialRoute: '/splash',
       routes: {
+        // Splash Route
+        '/splash': (context) => const SplashScreen(),
         // Auth Routes
         '/loading': (context) => const AuthLoadingScreen(),
         '/auth': (context) => const AuthScreen(),

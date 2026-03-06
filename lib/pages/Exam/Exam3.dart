@@ -214,7 +214,7 @@ class _Exam3ScreenState extends State<Exam3Screen> {
               child: Container(
                 constraints: BoxConstraints(maxWidth: maxContentWidth),
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                height: _responsiveValue(52, 72, 80),
+                height: _responsiveValue(52, 58, 80),
                 child: Row(
                   children: [
                     // Back Button
@@ -352,139 +352,153 @@ class _Exam3ScreenState extends State<Exam3Screen> {
                                         ),
                                       ),
 
-                                    // ===== 2 COLUMN GRID =====
+                                    // ===== BREATHING SPACE AFTER BANNER =====
                                     SizedBox(
-                                        height: _responsiveValue(16, 24, 32)),
+                                        height: _responsiveValue(24, 130, 40)),
+                                    
+                                    // ===== 2 COLUMN GRID =====
+                                    // Center the grid section
                                     Padding(
                                       padding: EdgeInsets.symmetric(
                                           horizontal: horizontalPadding),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: gridItems.map((item) {
-                                          return Expanded(
-                                            child: Container(
-                                              margin: EdgeInsets.only(
-                                                right: item == gridItems.first
-                                                    ? _scale(8)
-                                                    : 0,
-                                                left: item == gridItems.last
-                                                    ? _scale(8)
-                                                    : 0,
-                                              ),
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  if (item['route'] ==
-                                                      'ExamDetailsFull') {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            ExamDetailsFullScreen(
-                                                          examData:
-                                                              widget.examData,
+                                      child: Center(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: gridItems.map((item) {
+                                            return Expanded(
+                                              child: Container(
+                                                margin: EdgeInsets.only(
+                                                  right: item == gridItems.first
+                                                      ? _scale(12)
+                                                      : 0,
+                                                  left: item == gridItems.last
+                                                      ? _scale(12)
+                                                      : 0,
+                                                ),
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    if (item['route'] ==
+                                                        'ExamDetailsFull') {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              ExamDetailsFullScreen(
+                                                            examData:
+                                                                widget.examData,
+                                                          ),
                                                         ),
-                                                      ),
-                                                    );
-                                                  } else if (item['route'] ==
-                                                      'InstitutionsList') {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            InstitutionsListScreen(),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            _scale(22)),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.08),
-                                                        blurRadius: _scale(8),
-                                                        offset: Offset(
-                                                            0, _scale(4)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  padding: EdgeInsets.all(
-                                                      _responsiveValue(
-                                                          20, 24, 28)),
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Container(
-                                                        width: _scale(50),
-                                                        height: _scale(50),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: (item['color']
-                                                                  as Color)
-                                                              .withOpacity(0.1),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      _scale(
-                                                                          12)),
+                                                      );
+                                                    } else if (item['route'] ==
+                                                        'InstitutionsList') {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              InstitutionsListScreen(),
                                                         ),
-                                                        child: Icon(
-                                                          item['icon']
-                                                              as IconData,
-                                                          size: _scale(30),
-                                                          color: item['color']
-                                                              as Color,
+                                                      );
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              _scale(22)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.08),
+                                                          blurRadius: _scale(8),
+                                                          offset: Offset(
+                                                              0, _scale(4)),
                                                         ),
-                                                      ),
-                                                      SizedBox(
-                                                          height: _scale(12)),
-                                                      Text(
-                                                        item['title'] as String,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontSize:
-                                                              _responsiveValue(
-                                                                  14, 16, 18),
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          color: const Color(
-                                                              0xFF003366),
-                                                          height: 1.2,
+                                                      ],
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Container(
+                                                          width: _scale(50),
+                                                          height: _scale(50),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: (item['color']
+                                                                    as Color)
+                                                                .withOpacity(
+                                                                    0.1),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        _scale(
+                                                                            12)),
+                                                          ),
+                                                          child: Icon(
+                                                            item['icon']
+                                                                as IconData,
+                                                            size: _scale(30),
+                                                            color: item['color']
+                                                                as Color,
+                                                          ),
                                                         ),
-                                                      ),
-                                                      SizedBox(
-                                                          height: _scale(6)),
-                                                      Text(
-                                                        item['subtitle']
-                                                            as String,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontSize:
-                                                              _responsiveValue(
-                                                                  11, 12, 13),
-                                                          color: const Color(
-                                                              0xFF666666),
-                                                          height: 1.4,
+                                                        SizedBox(
+                                                            height: _scale(12)),
+                                                        Text(
+                                                          item['title']
+                                                              as String,
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 16, 18),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: const Color(
+                                                                0xFF003366),
+                                                            height: 1.2,
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                        SizedBox(
+                                                            height: _scale(6)),
+                                                        Text(
+                                                          item['subtitle']
+                                                              as String,
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    11, 12, 13),
+                                                            color: const Color(
+                                                                0xFF666666),
+                                                            height: 1.4,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          );
-                                        }).toList(),
+                                            );
+                                          }).toList(),
+                                        ),
                                       ),
                                     ),
+
+                                    // ===== ADDITIONAL SPACING BEFORE VIDEOS =====
+                                    if (youtubeUrls.isNotEmpty)
+                                      SizedBox(
+                                          height: _responsiveValue(24, 32, 40)),
                                   ],
                                 ),
 
@@ -492,41 +506,55 @@ class _Exam3ScreenState extends State<Exam3Screen> {
                                 if (youtubeUrls.isNotEmpty)
                                   Column(
                                     children: [
+                                      // Center the video title
                                       Padding(
                                         padding: EdgeInsets.symmetric(
                                           horizontal: horizontalPadding,
                                           vertical:
-                                              _responsiveValue(16, 20, 24),
+                                              _responsiveValue(8, 12, 16),
                                         ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.play_circle_fill,
-                                                color: Colors.red),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              'Video Tutorials',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(
-                                                    18, 20, 22),
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF003366),
+                                        child: Center(
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                  Icons.play_circle_fill,
+                                                  color: Colors.red,
+                                                  size: 28),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Video Tutorials',
+                                                style: TextStyle(
+                                                  fontSize: _responsiveValue(
+                                                      18, 20, 22),
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      const Color(0xFF003366),
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
+                                      // Center the videos
                                       ...youtubeUrls
-                                          .map((url) => Container(
-                                                width: screenWidth,
-                                                margin: EdgeInsets.only(),
-                                                child: CommonYoutubePlayer(
-                                                  youtubeUrl: url,
-                                                  height: isDesktop
-                                                      ? 400
-                                                      : (isTablet ? 320 : 250),
-                                                  placeholderThumbnail:
-                                                      _getYoutubeThumbnail(url),
-                                                  borderRadius: 0,
+                                          .map((url) => Center(
+                                                child: Container(
+                                                  width: screenWidth,
+                                                  constraints: BoxConstraints(
+                                                      maxWidth:
+                                                          maxContentWidth),
+                                                  child: CommonYoutubePlayer(
+                                                    youtubeUrl: url,
+                                                    height: isDesktop
+                                                        ? 400
+                                                        : (isTablet ? 320 : 250),
+                                                    placeholderThumbnail:
+                                                        _getYoutubeThumbnail(
+                                                            url),
+                                                    borderRadius: 0,
+                                                  ),
                                                 ),
                                               ))
                                           .toList(),

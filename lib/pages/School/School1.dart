@@ -21,7 +21,6 @@ class _School1ScreenState extends State<School1Screen> {
   int _footerIndex = 0;
   bool _isAutoScrollStarted = false;
   late bool isTablet;
-
   late bool isWeb;
 
   // API Data
@@ -336,7 +335,7 @@ class _School1ScreenState extends State<School1Screen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Banner Slider with API images
+          // Banner Slider with API images - Updated to match school2.dart
           _buildBannerSlider(size.width),
 
           // 2 Column Grid
@@ -358,13 +357,11 @@ class _School1ScreenState extends State<School1Screen> {
     int itemCount = useApiImages ? _adImages.length : bannerData.length;
 
     return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: isWeb ? 0 : (isTablet ? 24 : 0),
-      ),
+      // Removed horizontal margins to match school2.dart
       child: Column(
         children: [
           SizedBox(
-            height: isTablet ? 300 : 200,
+            height: isTablet ? 300 : 200, // Match school2.dart height
             child: PageView.builder(
               controller: _bannerController,
               itemCount: itemCount,
@@ -378,7 +375,7 @@ class _School1ScreenState extends State<School1Screen> {
               itemBuilder: (context, index) {
                 if (useApiImages) {
                   // Show API image
-                  return Container(
+                  return SizedBox(
                     width: bannerWidth,
                     height: isTablet ? 300 : 200,
                     child: Image.network(
@@ -386,33 +383,31 @@ class _School1ScreenState extends State<School1Screen> {
                       width: bannerWidth,
                       height: isTablet ? 300 : 200,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: bannerWidth,
-                          height: isTablet ? 300 : 200,
-                          color: const Color(0xFF0052A2),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image,
-                                  size: 50,
-                                  color: Colors.white.withOpacity(0.5),
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: bannerWidth,
+                        height: isTablet ? 300 : 200,
+                        color: const Color(0xFF0052A2),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Image ${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Image ${index + 1}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                      ),
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Container(
@@ -436,8 +431,9 @@ class _School1ScreenState extends State<School1Screen> {
                 } else {
                   // Show fallback banner with text
                   final item = bannerData[index];
-                  return Container(
+                  return SizedBox(
                     width: bannerWidth,
+                    height: isTablet ? 300 : 200,
                     child: Stack(
                       children: [
                         // Background Image
@@ -511,15 +507,15 @@ class _School1ScreenState extends State<School1Screen> {
             ),
           ),
 
-          // Pagination Dots
+          // Pagination Dots - Updated to match school2.dart
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(itemCount, (index) {
               return Container(
-                width: _currentBannerIndex == index ? 16 : 8,
+                width: _currentBannerIndex == index ? 24 : 8, // Match school2.dart width
                 height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 6), // Match school2.dart spacing
                 decoration: BoxDecoration(
                   color: _currentBannerIndex == index
                       ? const Color(0xFF0B5ED7)

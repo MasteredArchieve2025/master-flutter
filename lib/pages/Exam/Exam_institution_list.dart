@@ -321,7 +321,7 @@ class _InstitutionsListScreenState extends State<InstitutionsListScreen> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     padding:
                         EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _responsiveValue(52, 72, 80),
+                    height: _responsiveValue(52, 58, 80),
                     child: Row(
                       children: [
                         // Back Button

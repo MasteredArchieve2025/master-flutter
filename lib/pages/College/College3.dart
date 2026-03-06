@@ -474,12 +474,12 @@ class _College3ScreenState extends State<College3Screen> {
                                 ],
                               ),
                             ),
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: _youtubeUrls.length > 1
-                                  ? 0
-                                  : (isTablet ? 40 : 30),
-                            ),
+                          // Add gap before video
+                          SizedBox(height: isTablet ? 40 : 30),
+                          // Video with no bottom padding
+                          Container(
+                            width: double.infinity,
+                            height: isDesktop ? 400 : (isTablet ? 320 : 250),
                             child: CommonYoutubePlayer(
                               youtubeUrl: _youtubeUrls[_currentVideoIndex],
                               height: isDesktop ? 400 : (isTablet ? 320 : 250),
@@ -489,23 +489,27 @@ class _College3ScreenState extends State<College3Screen> {
                             ),
                           ),
                         ] else
-                          // VIDEO AD - EDGE TO EDGE
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: isTablet ? 40 : 30,
-                            ),
-                            child: CommonYoutubePlayer(
-                              youtubeUrl:
-                                  'https://www.youtube.com/embed/qYapc_bkfxw',
-                              height: isDesktop ? 400 : (isTablet ? 320 : 250),
-                              placeholderThumbnail:
-                                  'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
-                              borderRadius: 0,
-                            ),
+                          // VIDEO AD - EDGE TO EDGE without any padding
+                          Column(
+                            children: [
+                              // Add gap before video
+                              SizedBox(height: isTablet ? 40 : 30),
+                              Container(
+                                width: double.infinity,
+                                height: isDesktop ? 400 : (isTablet ? 320 : 250),
+                                child: CommonYoutubePlayer(
+                                  youtubeUrl:
+                                      'https://www.youtube.com/embed/qYapc_bkfxw',
+                                  height: isDesktop ? 400 : (isTablet ? 320 : 250),
+                                  placeholderThumbnail:
+                                      'https://img.youtube.com/vi/qYapc_bkfxw/maxresdefault.jpg',
+                                  borderRadius: 0,
+                                ),
+                              ),
+                            ],
                           ),
 
-                        // Spacer for Footer
-                        // SizedBox(height: isDesktop ? 60 : 80),
+                        // No spacer - removed completely
                       ],
                     ),
                   ),

@@ -383,7 +383,7 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     padding:
                         EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _responsiveValue(52, 72, 80),
+                    height: _responsiveValue(52, 58, 80),
                     child: Row(
                       children: [
                         // Back Button
@@ -478,8 +478,6 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                               maxWidth: maxContentWidth),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.max,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               Column(
                                                 mainAxisSize: MainAxisSize.min,
@@ -489,7 +487,7 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                                     Container(
                                                       width: screenWidth,
                                                       height: _responsiveValue(
-                                                          180, 220, 260),
+                                                          200, 220, 260),
                                                       child: PageView.builder(
                                                         controller:
                                                             _adController,
@@ -594,190 +592,215 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                                           16, 20, 24)),
 
                                                   // ===== EXAM OVERVIEW CARD =====
-                                                  Container(
-                                                    margin: EdgeInsets.symmetric(
+                                                  // Center the overview card
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(
                                                         horizontal:
                                                             horizontalPadding),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              _scale(16)),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.black
-                                                              .withOpacity(
-                                                                  0.08),
-                                                          blurRadius: _scale(8),
-                                                          offset: Offset(
-                                                              0, _scale(2)),
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: double.infinity,
+                                                        constraints: BoxConstraints(
+                                                            maxWidth:
+                                                                maxContentWidth -
+                                                                    (horizontalPadding *
+                                                                        2)),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          16)),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(
+                                                                      0.08),
+                                                              blurRadius:
+                                                                  _scale(8),
+                                                              offset: Offset(
+                                                                  0, _scale(2)),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
-                                                    ),
-                                                    child: Padding(
-                                                      padding: EdgeInsets.all(
-                                                          _responsiveValue(
-                                                              16, 20, 24)),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          // Overview Header with Image if available
-                                                          Row(
+                                                        child: Padding(
+                                                          padding: EdgeInsets
+                                                              .all(
+                                                                  _responsiveValue(
+                                                                      16,
+                                                                      20,
+                                                                      24)),
+                                                          child: Column(
                                                             crossAxisAlignment:
                                                                 CrossAxisAlignment
                                                                     .start,
                                                             children: [
-                                                              Container(
-                                                                width:
-                                                                    _scale(50),
-                                                                height:
-                                                                    _scale(50),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: const Color(
-                                                                          0xFF4A90E2)
-                                                                      .withOpacity(
-                                                                          0.1),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
+                                                              // Overview Header with Image if available
+                                                              Row(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Container(
+                                                                    width: _scale(
+                                                                        50),
+                                                                    height:
+                                                                        _scale(
+                                                                            50),
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      color: const Color(
+                                                                              0xFF4A90E2)
+                                                                          .withOpacity(
+                                                                              0.1),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
                                                                               _scale(12)),
-                                                                  image: displayData[
-                                                                              'image'] !=
-                                                                          null
-                                                                      ? DecorationImage(
-                                                                          image:
-                                                                              NetworkImage(displayData['image']),
-                                                                          fit: BoxFit
-                                                                              .cover,
-                                                                          onError:
-                                                                              (exception, stackTrace) {},
-                                                                        )
-                                                                      : null,
-                                                                ),
-                                                                child: displayData[
-                                                                            'image'] ==
-                                                                        null
-                                                                    ? Icon(
-                                                                        Icons
-                                                                            .school,
-                                                                        size: _scale(
-                                                                            30),
-                                                                        color: const Color(
-                                                                            0xFF4A90E2),
-                                                                      )
-                                                                    : null,
-                                                              ),
-                                                              SizedBox(
-                                                                  width: _scale(
-                                                                      16)),
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      displayData[
-                                                                              'title']
-                                                                          as String,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontSize: _responsiveValue(
-                                                                            18,
-                                                                            20,
-                                                                            22),
-                                                                        fontWeight:
-                                                                            FontWeight.w700,
-                                                                        color: const Color(
-                                                                            0xFF003366),
-                                                                      ),
+                                                                      image: displayData[
+                                                                                  'image'] !=
+                                                                              null
+                                                                          ? DecorationImage(
+                                                                              image: NetworkImage(displayData['image']),
+                                                                              fit: BoxFit.cover,
+                                                                              onError: (exception, stackTrace) {},
+                                                                            )
+                                                                          : null,
                                                                     ),
-                                                                    SizedBox(
-                                                                        height:
-                                                                            _scale(4)),
-                                                                    Text(
-                                                                      displayData[
-                                                                              'description']
+                                                                    child: displayData[
+                                                                                'image'] ==
+                                                                            null
+                                                                        ? Icon(
+                                                                            Icons
+                                                                                .school,
+                                                                            size:
+                                                                                _scale(30),
+                                                                            color: const Color(
+                                                                                0xFF4A90E2),
+                                                                          )
+                                                                        : null,
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          _scale(
+                                                                              16)),
+                                                                  Expanded(
+                                                                    child:
+                                                                        Column(
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment
+                                                                              .start,
+                                                                      children: [
+                                                                        Text(
+                                                                          displayData[
+                                                                                  'title']
+                                                                              as String,
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                _responsiveValue(18, 20, 22),
+                                                                            fontWeight:
+                                                                                FontWeight.w700,
+                                                                            color: const Color(
+                                                                                0xFF003366),
+                                                                          ),
+                                                                        ),
+                                                                        SizedBox(
+                                                                            height:
+                                                                                _scale(4)),
+                                                                        Text(
+                                                                          displayData[
+                                                                                  'description']
+                                                                              as String,
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                _responsiveValue(13, 14, 15),
+                                                                            color: const Color(
+                                                                                0xFF666666),
+                                                                            height:
+                                                                                1.4,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+
+                                                              SizedBox(
+                                                                  height:
+                                                                      _scale(
+                                                                          16)),
+
+                                                              // Divider
+                                                              Container(
+                                                                height: 1,
+                                                                color:
+                                                                    const Color(
+                                                                        0xFFE0E0E0),
+                                                              ),
+
+                                                              SizedBox(
+                                                                  height:
+                                                                      _scale(
+                                                                          16)),
+
+                                                              // Quick Stats Grid - Center the grid
+                                                              Center(
+                                                                child: Wrap(
+                                                                  alignment:
+                                                                      WrapAlignment
+                                                                          .center,
+                                                                  spacing:
+                                                                      _scale(
+                                                                          12),
+                                                                  runSpacing:
+                                                                      _scale(
+                                                                          12),
+                                                                  children: [
+                                                                    _buildStatItem(
+                                                                      icon: Icons
+                                                                          .business,
+                                                                      label:
+                                                                          'Board',
+                                                                      value: displayData[
+                                                                              'board']
                                                                           as String,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontSize: _responsiveValue(
-                                                                            13,
-                                                                            14,
-                                                                            15),
-                                                                        color: const Color(
-                                                                            0xFF666666),
-                                                                        height:
-                                                                            1.4,
-                                                                      ),
+                                                                    ),
+                                                                    _buildStatItem(
+                                                                      icon: Icons
+                                                                          .calendar_today,
+                                                                      label:
+                                                                          'Year',
+                                                                      value: displayData[
+                                                                              'year']
+                                                                          as String,
+                                                                    ),
+                                                                    _buildStatItem(
+                                                                      icon: Icons
+                                                                          .timer,
+                                                                      label:
+                                                                          'Duration',
+                                                                      value: displayData[
+                                                                              'duration']
+                                                                          as String,
+                                                                    ),
+                                                                    _buildStatItem(
+                                                                      icon: Icons
+                                                                          .score,
+                                                                      label:
+                                                                          'Total Marks',
+                                                                      value: displayData[
+                                                                              'totalMarks']
+                                                                          .toString(),
                                                                     ),
                                                                   ],
                                                                 ),
                                                               ),
                                                             ],
                                                           ),
-
-                                                          SizedBox(
-                                                              height:
-                                                                  _scale(16)),
-
-                                                          // Divider
-                                                          Container(
-                                                            height: 1,
-                                                            color: const Color(
-                                                                0xFFE0E0E0),
-                                                          ),
-
-                                                          SizedBox(
-                                                              height:
-                                                                  _scale(16)),
-
-                                                          // Quick Stats Grid
-                                                          Wrap(
-                                                            spacing: _scale(12),
-                                                            runSpacing:
-                                                                _scale(12),
-                                                            children: [
-                                                              _buildStatItem(
-                                                                icon: Icons
-                                                                    .business,
-                                                                label: 'Board',
-                                                                value: displayData[
-                                                                        'board']
-                                                                    as String,
-                                                              ),
-                                                              _buildStatItem(
-                                                                icon: Icons
-                                                                    .calendar_today,
-                                                                label: 'Year',
-                                                                value: displayData[
-                                                                        'year']
-                                                                    as String,
-                                                              ),
-                                                              _buildStatItem(
-                                                                icon:
-                                                                    Icons.timer,
-                                                                label:
-                                                                    'Duration',
-                                                                value: displayData[
-                                                                        'duration']
-                                                                    as String,
-                                                              ),
-                                                              _buildStatItem(
-                                                                icon:
-                                                                    Icons.score,
-                                                                label:
-                                                                    'Total Marks',
-                                                                value: displayData[
-                                                                        'totalMarks']
-                                                                    .toString(),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ],
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -787,246 +810,591 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
                                                           16, 20, 24)),
 
                                                   // ===== SUBJECTS SECTION =====
-                                                  _buildSectionCard(
-                                                    icon: Icons.subject,
-                                                    title: 'Subjects',
-                                                    child: Wrap(
-                                                      spacing: _scale(12),
-                                                      runSpacing: _scale(12),
-                                                      children: (displayData[
-                                                                  'subjects']
-                                                              as List)
-                                                          .map<Widget>(
-                                                              (subject) {
-                                                        return Container(
-                                                          padding: EdgeInsets
-                                                              .symmetric(
-                                                            horizontal:
-                                                                _scale(16),
-                                                            vertical:
-                                                                _scale(12),
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: const Color(
-                                                                0xFFF0F7FF),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        _scale(
-                                                                            10)),
-                                                          ),
-                                                          child: Text(
-                                                            subject,
-                                                            style: TextStyle(
-                                                              fontSize:
-                                                                  _responsiveValue(
-                                                                      13,
-                                                                      14,
-                                                                      15),
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color: const Color(
-                                                                  0xFF4A90E2),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  ),
-
-                                                  // ===== SYLLABUS SECTION =====
-                                                  _buildSectionCard(
-                                                    icon: Icons.book,
-                                                    title: 'Detailed Syllabus',
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: (displayData[
-                                                                  'syllabus']
-                                                              as List)
-                                                          .map<Widget>((item) {
-                                                        return Padding(
-                                                          padding:
-                                                              EdgeInsets.only(
-                                                                  bottom:
+                                                  // Center the subjects section
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding),
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: double.infinity,
+                                                        constraints: BoxConstraints(
+                                                            maxWidth:
+                                                                maxContentWidth -
+                                                                    (horizontalPadding *
+                                                                        2)),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
                                                                       _scale(
-                                                                          12)),
-                                                          child: Row(
+                                                                          16)),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(
+                                                                      0.06),
+                                                              blurRadius:
+                                                                  _scale(6),
+                                                              offset: Offset(
+                                                                  0, _scale(2)),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Padding(
+                                                          padding: EdgeInsets
+                                                              .all(
+                                                                  _responsiveValue(
+                                                                      16,
+                                                                      20,
+                                                                      24)),
+                                                          child: Column(
                                                             crossAxisAlignment:
                                                                 CrossAxisAlignment
                                                                     .start,
                                                             children: [
-                                                              Padding(
-                                                                padding: EdgeInsets
-                                                                    .only(
-                                                                        top: _scale(
-                                                                            8)),
-                                                                child:
-                                                                    Container(
-                                                                  width:
-                                                                      _scale(6),
-                                                                  height:
-                                                                      _scale(6),
-                                                                  decoration:
-                                                                      BoxDecoration(
+                                                              // Section Header
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .subject,
+                                                                    size: _scale(
+                                                                        24),
                                                                     color: const Color(
                                                                         0xFF4A90E2),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            _scale(3)),
                                                                   ),
-                                                                ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          _scale(
+                                                                              12)),
+                                                                  Text(
+                                                                    'Subjects',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              16,
+                                                                              18,
+                                                                              20),
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: const Color(
+                                                                          0xFF003366),
+                                                                    ),
+                                                                  ),
+                                                                ],
                                                               ),
                                                               SizedBox(
-                                                                  width: _scale(
-                                                                      12)),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  item,
-                                                                  style:
-                                                                      TextStyle(
-                                                                    fontSize:
-                                                                        _responsiveValue(
-                                                                            13,
-                                                                            14,
-                                                                            15),
-                                                                    color: const Color(
-                                                                        0xFF444444),
-                                                                    height: 1.5,
-                                                                  ),
+                                                                  height:
+                                                                      _scale(
+                                                                          20)),
+                                                              // Section Content - Center the subjects
+                                                              Center(
+                                                                child: Wrap(
+                                                                  alignment:
+                                                                      WrapAlignment
+                                                                          .center,
+                                                                  spacing:
+                                                                      _scale(
+                                                                          12),
+                                                                  runSpacing:
+                                                                      _scale(
+                                                                          12),
+                                                                  children: (displayData[
+                                                                              'subjects']
+                                                                          as List)
+                                                                      .map<
+                                                                              Widget>(
+                                                                          (subject) {
+                                                                        return Container(
+                                                                          padding: EdgeInsets
+                                                                              .symmetric(
+                                                                            horizontal:
+                                                                                _scale(16),
+                                                                            vertical:
+                                                                                _scale(12),
+                                                                          ),
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            color: const Color(
+                                                                                0xFFF0F7FF),
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(_scale(10)),
+                                                                          ),
+                                                                          child:
+                                                                              Text(
+                                                                            subject,
+                                                                            style:
+                                                                                TextStyle(
+                                                                              fontSize: _responsiveValue(13, 14, 15),
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: const Color(0xFF4A90E2),
+                                                                            ),
+                                                                          ),
+                                                                        );
+                                                                      })
+                                                                      .toList(),
                                                                 ),
                                                               ),
                                                             ],
                                                           ),
-                                                        );
-                                                      }).toList(),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+
+                                                  // ===== SYLLABUS SECTION =====
+                                                  // Center the syllabus section
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                8, 12, 16)),
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: double.infinity,
+                                                        constraints: BoxConstraints(
+                                                            maxWidth:
+                                                                maxContentWidth -
+                                                                    (horizontalPadding *
+                                                                        2)),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          16)),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(
+                                                                      0.06),
+                                                              blurRadius:
+                                                                  _scale(6),
+                                                              offset: Offset(
+                                                                  0, _scale(2)),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Padding(
+                                                          padding: EdgeInsets
+                                                              .all(
+                                                                  _responsiveValue(
+                                                                      16,
+                                                                      20,
+                                                                      24)),
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              // Section Header
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.book,
+                                                                    size: _scale(
+                                                                        24),
+                                                                    color: const Color(
+                                                                        0xFF4A90E2),
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          _scale(
+                                                                              12)),
+                                                                  Text(
+                                                                    'Detailed Syllabus',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              16,
+                                                                              18,
+                                                                              20),
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: const Color(
+                                                                          0xFF003366),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(
+                                                                  height:
+                                                                      _scale(
+                                                                          20)),
+                                                              // Section Content - Left aligned but container is centered
+                                                              Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: (displayData[
+                                                                            'syllabus']
+                                                                        as List)
+                                                                    .map<
+                                                                            Widget>(
+                                                                        (item) {
+                                                                      return Padding(
+                                                                        padding: EdgeInsets.only(
+                                                                            bottom:
+                                                                                _scale(12)),
+                                                                        child:
+                                                                            Row(
+                                                                          crossAxisAlignment:
+                                                                              CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            Padding(
+                                                                              padding: EdgeInsets.only(top: _scale(8)),
+                                                                              child: Container(
+                                                                                width: _scale(6),
+                                                                                height: _scale(6),
+                                                                                decoration: BoxDecoration(
+                                                                                  color: const Color(0xFF4A90E2),
+                                                                                  borderRadius: BorderRadius.circular(_scale(3)),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            SizedBox(width: _scale(12)),
+                                                                            Expanded(
+                                                                              child: Text(
+                                                                                item,
+                                                                                style: TextStyle(
+                                                                                  fontSize: _responsiveValue(13, 14, 15),
+                                                                                  color: const Color(0xFF444444),
+                                                                                  height: 1.5,
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      );
+                                                                    })
+                                                                    .toList(),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
 
                                                   // ===== EXAM PATTERN SECTION =====
-                                                  _buildSectionCard(
-                                                    icon: Icons.pattern,
-                                                    title: 'Exam Pattern',
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        // Pattern Grid
-                                                        Wrap(
-                                                          spacing: _scale(12),
-                                                          runSpacing:
-                                                              _scale(12),
-                                                          children: [
-                                                            _buildPatternItem(
-                                                              label: 'Duration',
-                                                              value: displayData[
-                                                                      'duration']
-                                                                  as String,
-                                                            ),
-                                                            _buildPatternItem(
-                                                              label:
-                                                                  'Total Marks',
-                                                              value: displayData[
-                                                                      'totalMarks']
-                                                                  .toString(),
-                                                            ),
-                                                            _buildPatternItem(
-                                                              label:
-                                                                  'Passing Marks',
-                                                              value: displayData[
-                                                                      'passingMarks']
-                                                                  .toString(),
+                                                  // Center the exam pattern section
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding),
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: double.infinity,
+                                                        constraints: BoxConstraints(
+                                                            maxWidth:
+                                                                maxContentWidth -
+                                                                    (horizontalPadding *
+                                                                        2)),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          16)),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(
+                                                                      0.06),
+                                                              blurRadius:
+                                                                  _scale(6),
+                                                              offset: Offset(
+                                                                  0, _scale(2)),
                                                             ),
                                                           ],
                                                         ),
+                                                        child: Padding(
+                                                          padding: EdgeInsets
+                                                              .all(
+                                                                  _responsiveValue(
+                                                                      16,
+                                                                      20,
+                                                                      24)),
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              // Section Header
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .pattern,
+                                                                    size: _scale(
+                                                                        24),
+                                                                    color: const Color(
+                                                                        0xFF4A90E2),
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          _scale(
+                                                                              12)),
+                                                                  Text(
+                                                                    'Exam Pattern',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              16,
+                                                                              18,
+                                                                              20),
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: const Color(
+                                                                          0xFF003366),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(
+                                                                  height:
+                                                                      _scale(
+                                                                          20)),
+                                                              // Section Content
+                                                              Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  // Pattern Grid - Center the pattern items
+                                                                  Center(
+                                                                    child:
+                                                                        Wrap(
+                                                                      alignment:
+                                                                          WrapAlignment
+                                                                              .center,
+                                                                      spacing:
+                                                                          _scale(
+                                                                              12),
+                                                                      runSpacing:
+                                                                          _scale(
+                                                                              12),
+                                                                      children: [
+                                                                        _buildPatternItem(
+                                                                          label:
+                                                                              'Duration',
+                                                                          value: displayData[
+                                                                                  'duration']
+                                                                              as String,
+                                                                        ),
+                                                                        _buildPatternItem(
+                                                                          label:
+                                                                              'Total Marks',
+                                                                          value: displayData[
+                                                                                  'totalMarks']
+                                                                              .toString(),
+                                                                        ),
+                                                                        _buildPatternItem(
+                                                                          label:
+                                                                              'Passing Marks',
+                                                                          value: displayData[
+                                                                                  'passingMarks']
+                                                                              .toString(),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
 
-                                                        SizedBox(
-                                                            height: _scale(20)),
+                                                                  SizedBox(
+                                                                      height:
+                                                                          _scale(
+                                                                              20)),
 
-                                                        // Question Types
-                                                        Text(
-                                                          'Question Types:',
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                _responsiveValue(
-                                                                    14, 16, 18),
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: const Color(
-                                                                0xFF003366),
+                                                                  // Question Types
+                                                                  Text(
+                                                                    'Question Types:',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              14,
+                                                                              16,
+                                                                              18),
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      color: const Color(
+                                                                          0xFF003366),
+                                                                    ),
+                                                                  ),
+
+                                                                  SizedBox(
+                                                                      height:
+                                                                          _scale(
+                                                                              12)),
+
+                                                                  // Center the question types
+                                                                  Center(
+                                                                    child:
+                                                                        Wrap(
+                                                                      alignment:
+                                                                          WrapAlignment
+                                                                              .center,
+                                                                      spacing:
+                                                                          _scale(
+                                                                              8),
+                                                                      runSpacing:
+                                                                          _scale(
+                                                                              8),
+                                                                      children: (displayData[
+                                                                                  'questionTypes']
+                                                                              as List)
+                                                                          .map<
+                                                                                  Widget>(
+                                                                              (type) {
+                                                                            return Container(
+                                                                              padding: EdgeInsets.symmetric(
+                                                                                horizontal: _scale(16),
+                                                                                vertical: _scale(8),
+                                                                              ),
+                                                                              decoration: BoxDecoration(
+                                                                                color: const Color(0xFFE8F4FF),
+                                                                                borderRadius: BorderRadius.circular(_scale(20)),
+                                                                              ),
+                                                                              child: Text(
+                                                                                type,
+                                                                                style: TextStyle(
+                                                                                  fontSize: _responsiveValue(12, 13, 14),
+                                                                                  color: const Color(0xFF4A90E2),
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                ),
+                                                                              ),
+                                                                            );
+                                                                          })
+                                                                          .toList(),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
                                                           ),
                                                         ),
-
-                                                        SizedBox(
-                                                            height: _scale(12)),
-
-                                                        Wrap(
-                                                          spacing: _scale(8),
-                                                          runSpacing: _scale(8),
-                                                          children: (displayData[
-                                                                      'questionTypes']
-                                                                  as List)
-                                                              .map<Widget>(
-                                                                  (type) {
-                                                            return Container(
-                                                              padding: EdgeInsets
-                                                                  .symmetric(
-                                                                horizontal:
-                                                                    _scale(16),
-                                                                vertical:
-                                                                    _scale(8),
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: const Color(
-                                                                    0xFFE8F4FF),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            _scale(20)),
-                                                              ),
-                                                              child: Text(
-                                                                type,
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontSize:
-                                                                      _responsiveValue(
-                                                                          12,
-                                                                          13,
-                                                                          14),
-                                                                  color: const Color(
-                                                                      0xFF4A90E2),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                              ),
-                                                            );
-                                                          }).toList(),
-                                                        ),
-                                                      ],
+                                                      ),
                                                     ),
                                                   ),
 
                                                   // ===== IMPORTANT DATES SECTION =====
-                                                  _buildSectionCard(
-                                                    icon: Icons.calendar_month,
-                                                    title: 'Important Dates',
-                                                    child: Text(
-                                                      displayData[
-                                                              'importantDates']
-                                                          as String,
-                                                      style: TextStyle(
-                                                        fontSize:
+                                                  // Center the important dates section
+                                                  Padding(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
                                                             _responsiveValue(
-                                                                13, 14, 15),
-                                                        color: const Color(
-                                                            0xFF444444),
-                                                        height: 1.5,
+                                                                8, 12, 16)),
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: double.infinity,
+                                                        constraints: BoxConstraints(
+                                                            maxWidth:
+                                                                maxContentWidth -
+                                                                    (horizontalPadding *
+                                                                        2)),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      _scale(
+                                                                          16)),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(
+                                                                      0.06),
+                                                              blurRadius:
+                                                                  _scale(6),
+                                                              offset: Offset(
+                                                                  0, _scale(2)),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Padding(
+                                                          padding: EdgeInsets
+                                                              .all(
+                                                                  _responsiveValue(
+                                                                      16,
+                                                                      20,
+                                                                      24)),
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              // Section Header
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .calendar_month,
+                                                                    size: _scale(
+                                                                        24),
+                                                                    color: const Color(
+                                                                        0xFF4A90E2),
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          _scale(
+                                                                              12)),
+                                                                  Text(
+                                                                    'Important Dates',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              16,
+                                                                              18,
+                                                                              20),
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: const Color(
+                                                                          0xFF003366),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(
+                                                                  height:
+                                                                      _scale(
+                                                                          20)),
+                                                              // Section Content - Left aligned but container is centered
+                                                              Text(
+                                                                displayData[
+                                                                        'importantDates']
+                                                                    as String,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      _responsiveValue(
+                                                                          13,
+                                                                          14,
+                                                                          15),
+                                                                  color: const Color(
+                                                                      0xFF444444),
+                                                                  height: 1.5,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -1189,61 +1557,6 @@ class _ExamDetailsFullScreenState extends State<ExamDetailsFullScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Build Section Card Widget
-  Widget _buildSectionCard({
-    required IconData icon,
-    required String title,
-    required Widget child,
-  }) {
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: _responsiveValue(16, 24, 32),
-        vertical: _responsiveValue(8, 12, 16),
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_scale(16)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: _scale(6),
-            offset: Offset(0, _scale(2)),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(_responsiveValue(16, 20, 24)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Section Header
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  size: _scale(24),
-                  color: const Color(0xFF4A90E2),
-                ),
-                SizedBox(width: _scale(12)),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: _responsiveValue(16, 18, 20),
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF003366),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: _scale(20)),
-            // Section Content
-            child,
-          ],
-        ),
       ),
     );
   }

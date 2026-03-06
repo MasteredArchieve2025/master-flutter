@@ -238,7 +238,7 @@ class _Exam1ScreenState extends State<Exam1Screen> {
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
     // Calculate header height
-    final double headerHeight = _responsiveValue(52, 72, 80);
+    final double headerHeight = _responsiveValue(52, 58, 80);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
