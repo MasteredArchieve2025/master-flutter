@@ -1,14 +1,19 @@
 // lib/pages/Course/Course2.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../Widgets/CommonYoutubePlayer.dart';
+import '../../components/glass_loader.dart';
+import '../../api/baseurl.dart';
 import 'Course3.dart';
 
 class Course2Screen extends StatefulWidget {
-  final List<dynamic> sections;
+  final Map<String, dynamic> categoryData;
 
   const Course2Screen({
     super.key,
-    required this.sections,
+    required this.categoryData,
   });
 
   @override
@@ -16,170 +21,168 @@ class Course2Screen extends StatefulWidget {
 }
 
 class _Course2ScreenState extends State<Course2Screen> {
-  int _activeBannerIndex = 0;
-  final PageController _bannerController = PageController();
-  Timer? _bannerTimer;
+  int _activeAd = 0;
+  final PageController _adController = PageController();
+  Timer? _adTimer;
 
-  // Banner Data
-  final List<String> bannerAds = [
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
-    'https://images.unsplash.com/photo-1509062522246-3755977927d7',
-    'https://images.unsplash.com/photo-1551650975-87deedd944c3',
+  // Loading states
+  bool _isLoading = true;
+  bool _isLoadingAds = true;
+  String? _errorMessage;
+
+  // Course items from API
+  List<Map<String, dynamic>> _courseItems = [];
+
+  // Ads and Videos
+  List<String> _adImages = [];
+  List<String> _youtubeUrls = [];
+  int _currentVideoIndex = 0;
+
+  // Default Banner Ads (fallback)
+  final List<String> _defaultBannerAds = [
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  // Course Meta Data
-  final Map<String, Map<String, String>> courseMeta = {
-    "Web Development": {
-      "icon": "web",
-      "desc": "Build modern websites and web apps",
-    },
-    "Python Programming": {
-      "icon": "code",
-      "desc": "Learn Python for real-world applications",
-    },
-    "Data Science": {
-      "icon": "show_chart",
-      "desc": "Analyze data and build insights",
-    },
-    "Cybersecurity": {
-      "icon": "security",
-      "desc": "Protect systems from digital threats",
-    },
-    "Cloud Computing": {
-      "icon": "cloud",
-      "desc": "Master cloud services and deployment",
-    },
-    "Nursing Fundamentals": {
-      "icon": "medical_services",
-      "desc": "Essential skills for nursing professionals",
-    },
-    "Public Health": {
-      "icon": "local_hospital",
-      "desc": "Community health and disease prevention",
-    },
-    "Nutrition & Dietetics": {
-      "icon": "restaurant",
-      "desc": "Science of nutrition and healthy eating",
-    },
-    "Medical Terminology": {
-      "icon": "medical_information",
-      "desc": "Learn medical language and terms",
-    },
-    "First Aid & CPR": {
-      "icon": "favorite",
-      "desc": "Emergency response and life-saving techniques",
-    },
-    "Digital Marketing": {
-      "icon": "campaign",
-      "desc": "Online marketing strategies and tools",
-    },
-    "Business Analytics": {
-      "icon": "bar_chart",
-      "desc": "Data-driven business decision making",
-    },
-    "Project Management": {
-      "icon": "checklist",
-      "desc": "Plan and execute projects successfully",
-    },
-    "Finance Fundamentals": {
-      "icon": "attach_money",
-      "desc": "Understand finance & accounting basics",
-    },
-    "Entrepreneurship": {
-      "icon": "lightbulb",
-      "desc": "Start and grow your own business",
-    },
-    "English Grammar & Writing": {
-      "icon": "edit",
-      "desc": "Master English language skills",
-    },
-    "Public Speaking": {
-      "icon": "mic",
-      "desc": "Confident communication and presentation",
-    },
-    "Business Communication": {
-      "icon": "email",
-      "desc": "Professional communication in business",
-    },
-    "French for Beginners": {
-      "icon": "translate",
-      "desc": "Start learning French language basics",
-    },
-    "Creative Writing": {
-      "icon": "menu_book",
-      "desc": "Develop storytelling and writing skills",
-    },
-    "Mechanical Engineering Basics": {
-      "icon": "settings",
-      "desc": "Fundamentals of mechanical systems",
-    },
-    "Electrical Systems": {
-      "icon": "bolt",
-      "desc": "Understanding electrical circuits",
-    },
-    "Civil Engineering": {
-      "icon": "architecture",
-      "desc": "Infrastructure and construction principles",
-    },
-    "Robotics": {
-      "icon": "smart_toy",
-      "desc": "Design and program robots",
-    },
-    "3D Printing & CAD Design": {
-      "icon": "precision_manufacturing",
-      "desc": "Create 3D models and prototypes",
-    },
-    "UI/UX Design": {
-      "icon": "palette",
-      "desc": "Design user-friendly digital interfaces",
-    },
-    "Graphic Design": {
-      "icon": "brush",
-      "desc": "Visual communication and design",
-    },
-    "Animation": {
-      "icon": "movie",
-      "desc": "Bring characters and stories to life",
-    },
-    "Photography": {
-      "icon": "camera_alt",
-      "desc": "Master the art of photography",
-    },
-    "Interior Design": {
-      "icon": "chair",
-      "desc": "Create beautiful living spaces",
-    },
-    "Time Management": {
-      "icon": "schedule",
-      "desc": "Maximize productivity and efficiency",
-    },
-    "Mindfulness & Meditation": {
-      "icon": "self_improvement",
-      "desc": "Stress reduction and mental wellness",
-    },
-    "Fitness & Wellness": {
-      "icon": "fitness_center",
-      "desc": "Physical health and exercise routines",
-    },
-    "Personal Finance": {
-      "icon": "account_balance_wallet",
-      "desc": "Money management and financial planning",
-    },
-    "Goal Setting": {
-      "icon": "target",
-      "desc": "Achieve your personal and professional goals",
-    },
-  };
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
   @override
   void initState() {
     super.initState();
-    // Auto scroll banners
-    _bannerTimer = Timer.periodic(const Duration(milliseconds: 3000), (timer) {
-      if (_bannerController.hasClients && mounted) {
-        int nextPage = _activeBannerIndex + 1;
+    _fetchCourseItems();
+    _loadAdvertisements();
+    _startAdTimer();
+  }
+
+  // Fetch course items by categoryId
+  Future<void> _fetchCourseItems() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final categoryId = widget.categoryData['id'] ?? widget.categoryData['_id'];
+    
+    if (categoryId == null) {
+      setState(() {
+        _errorMessage = 'Category ID not found';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/course-items?categoryId=$categoryId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        
+        // Handle the response structure: { "success": true, "data": [...] }
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'];
+          
+          setState(() {
+            // Sort by sortOrder if available
+            data.sort((a, b) => (a['sortOrder'] ?? 0).compareTo(b['sortOrder'] ?? 0));
+            _courseItems = List<Map<String, dynamic>>.from(data);
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = 'Invalid response format';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load courses: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Load advertisements for coursepage2
+  Future<void> _loadAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for coursepage2...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=coursepage2'),
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final apiData = data['data'];
+          setState(() {
+            if (apiData['images'] != null && apiData['images'] is List) {
+              _adImages = List<String>.from(apiData['images']);
+            }
+            if (apiData['youtube_urls'] != null &&
+                apiData['youtube_urls'] is List) {
+              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
+            }
+            _isLoadingAds = false;
+          });
+        } else {
+          setState(() {
+            _isLoadingAds = false;
+          });
+        }
+      } else {
+        setState(() {
+          _isLoadingAds = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() {
+        _isLoadingAds = false;
+      });
+    }
+  }
+
+  // Video navigation methods
+  void _nextVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
+    });
+  }
+
+  void _previousVideo() {
+    if (_youtubeUrls.isEmpty) return;
+    setState(() {
+      _currentVideoIndex =
+          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
+    });
+  }
+
+  String _getVideoThumbnail(String url) {
+    if (url.contains('youtube.com/embed/')) {
+      final videoId = url.split('/').last;
+      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    }
+    return url;
+  }
+
+  void _startAdTimer() {
+    _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_adController.hasClients && mounted) {
+        int nextPage = _activeAd + 1;
         if (nextPage >= bannerAds.length) nextPage = 0;
-        _bannerController.animateToPage(
+        _adController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
@@ -190,8 +193,8 @@ class _Course2ScreenState extends State<Course2Screen> {
 
   @override
   void dispose() {
-    _bannerTimer?.cancel();
-    _bannerController.dispose();
+    _adTimer?.cancel();
+    _adController.dispose();
     super.dispose();
   }
 
@@ -214,7 +217,6 @@ class _Course2ScreenState extends State<Course2Screen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
@@ -228,7 +230,7 @@ class _Course2ScreenState extends State<Course2Screen> {
     final double videoHeight = _responsiveValue(250, 320, 400);
 
     // Calculate columns based on screen size
-    final int columns = isDesktop ? 3 : (isTablet ? 2 : 2);
+    final int columns = isDesktop ? 4 : (isTablet ? 3 : 2);
     final double gap = _responsiveValue(12, 16, 20);
     final double cardWidth =
         (screenWidth - (horizontalPadding * 2) - (gap * (columns - 1))) /
@@ -236,192 +238,438 @@ class _Course2ScreenState extends State<Course2Screen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0052A2),
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-            size: _scale(24),
-          ),
-        ),
-        title: Text(
-          'Course Details',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: _scale(18),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        centerTitle: true,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.1),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ===== MAIN CONTENT =====
-            Expanded(
-              child: SingleChildScrollView(
-                child: Center(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                // App Bar
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0052A2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                    borderRadius: isDesktop
+                        ? const BorderRadius.only(
+                            bottomLeft: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          )
+                        : null,
+                  ),
                   child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: maxContentWidth,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    constraints: BoxConstraints(maxWidth: maxContentWidth),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    height: _responsiveValue(52, 58, 64),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // ===== BANNER SLIDER =====
-                        Container(
-                          child: SizedBox(
-                            height: bannerHeight,
-                            child: Stack(
-                              children: [
-                                // Banner PageView
-                                PageView.builder(
-                                  controller: _bannerController,
-                                  itemCount: bannerAds.length,
-                                  onPageChanged: (index) {
-                                    setState(() {
-                                      _activeBannerIndex = index;
-                                    });
-                                  },
-                                  itemBuilder: (context, index) {
-                                    return Container(
-                                      width: screenWidth,
-                                      color: const Color(0xFF4C73AC),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(
-                                            Icons.school,
-                                            size: 80,
-                                            color: Colors.white,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Banner ${index + 1}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                        SizedBox(
+                          width: 40,
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(
+                              Icons.arrow_back,
+                              size: 24,
+                              color: Colors.white,
                             ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ),
-
-                        // ===== PAGINATION DOTS =====
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(bannerAds.length, (index) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              width: _activeBannerIndex == index ? 16 : 8,
-                              height: 8,
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: _activeBannerIndex == index
-                                    ? const Color(0xFF0B5ED7)
-                                    : const Color(0xFFCCCCCC),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            );
-                          }),
-                        ),
-
-                        // ===== SECTIONS =====
-                        for (int idx = 0; idx < widget.sections.length; idx++)
-                          _buildSection(
-                            section: widget.sections[idx],
-                            index: idx,
-                            horizontalPadding: horizontalPadding,
-                            cardWidth: cardWidth,
-                            gap: gap,
-                            columns: columns,
-                          ),
-
-                        // ===== VIDEO SECTION HEADER =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            left: horizontalPadding,
-                            right: horizontalPadding,
-                            top: _responsiveValue(20, 24, 30),
-                            bottom: _responsiveValue(12, 16, 20),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Video',
-                                style: TextStyle(
-                                  fontSize: _responsiveValue(18, 20, 22),
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // ===== YOUTUBE VIDEO - EDGE TO EDGE WITH HORIZONTAL PADDING =====
-                        Container(
-                          margin: EdgeInsets.only(
-                            left: horizontalPadding,
-                            right: horizontalPadding,
-                            top: 0,
-                            bottom: 0,
-                          ),
-                          width: double.infinity,
-                          height: videoHeight,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            image: DecorationImage(
-                              image: NetworkImage(
-                                'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                        Expanded(
                           child: Center(
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow,
-                                size: 40,
+                            child: Text(
+                              widget.categoryData['name']?.toString() ?? 'Courses',
+                              style: TextStyle(
                                 color: Colors.white,
+                                fontSize: _responsiveValue(17, 18, 19),
+                                fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
-
-                        // ===== MINIMAL SPACER =====
-                        //  SizedBox(height: _responsiveValue(20, 30, 40)),
+                        const SizedBox(width: 40),
                       ],
                     ),
                   ),
                 ),
+
+                // MAIN CONTENT
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Center(
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: maxContentWidth,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // TOP AUTO SCROLL AD BANNER
+                            Container(
+                              margin: EdgeInsets.only(
+                                top: isDesktop ? 8 : 0,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: isDesktop
+                                    ? BorderRadius.circular(12)
+                                    : null,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: isDesktop
+                                    ? BorderRadius.circular(12)
+                                    : BorderRadius.zero,
+                                child: SizedBox(
+                                  height: bannerHeight,
+                                  child: PageView.builder(
+                                    controller: _adController,
+                                    itemCount: bannerAds.length,
+                                    onPageChanged: (index) {
+                                      setState(() {
+                                        _activeAd = index;
+                                      });
+                                    },
+                                    itemBuilder: (context, index) {
+                                      return Container(
+                                        width: screenWidth,
+                                        color: const Color(0xFFF0F0F0),
+                                        child: Image.network(
+                                          bannerAds[index],
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return const Center(
+                                              child: CircularProgressIndicator(
+                                                  color: Color(0xFF0B5ED7)),
+                                            );
+                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.image,
+                                                    size: 60,
+                                                    color:
+                                                        const Color(0xFF0B5ED7),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    'Advertisement ${index + 1}',
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      color: Color(0xFF0B5ED7),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Dots Indicator
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children:
+                                  List.generate(bannerAds.length, (index) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: _activeAd == index ? 24 : 8,
+                                  height: 8,
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  decoration: BoxDecoration(
+                                    color: _activeAd == index
+                                        ? const Color(0xFF0B5ED7)
+                                        : const Color(0xFFCCCCCC),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                );
+                              }),
+                            ),
+
+                            // Category Description (if available)
+                            if (widget.categoryData['description'] != null)
+                              Container(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding,
+                                  vertical: _responsiveValue(16, 20, 24),
+                                ),
+                                padding: EdgeInsets.all(_responsiveValue(16, 18, 20)),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(_responsiveValue(10, 12, 14)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  widget.categoryData['description'].toString(),
+                                  style: TextStyle(
+                                    fontSize: _responsiveValue(14, 15, 16),
+                                    color: Colors.grey.shade700,
+                                    height: 1.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+
+                            // Section Title
+                            Container(
+                              margin: EdgeInsets.only(
+                                left: horizontalPadding,
+                                right: horizontalPadding,
+                                top: _responsiveValue(8, 10, 12),
+                                bottom: _responsiveValue(12, 16, 20),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Available Courses',
+                                    style: TextStyle(
+                                      fontSize: _responsiveValue(18, 20, 22),
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0C2F63),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_courseItems.length} items',
+                                    style: TextStyle(
+                                      fontSize: _responsiveValue(14, 15, 16),
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Course Items Grid
+                            if (_isLoading)
+                              Container(
+                                height: 300,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF0052A2),
+                                  ),
+                                ),
+                              )
+                            else if (_errorMessage != null)
+                              _buildErrorWidget(isDesktop, isTablet)
+                            else if (_courseItems.isEmpty)
+                              _buildEmptyWidget(isDesktop, isTablet)
+                            else
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: horizontalPadding,
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Wrap(
+                                      spacing: gap,
+                                      runSpacing: _responsiveValue(14, 16, 20),
+                                      alignment: WrapAlignment.start,
+                                      children: _courseItems.map((item) {
+                                        return SizedBox(
+                                          width: cardWidth,
+                                          child: _buildCourseCard(
+                                            item: item,
+                                            cardWidth: cardWidth,
+                                          ),
+                                        );
+                                      }).toList(),
+                                    );
+                                  },
+                                ),
+                              ),
+
+                            // ===== YOUTUBE VIDEO SECTION =====
+                            if (_youtubeUrls.isNotEmpty) ...[
+                              if (_youtubeUrls.length > 1)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: horizontalPadding,
+                                    vertical: isTablet ? 16 : 12,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Course Videos',
+                                        style: TextStyle(
+                                          fontSize: isDesktop ? 22 : 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: _previousVideo,
+                                            icon: const Icon(Icons.chevron_left,
+                                                color: Color(0xFF0B5ED7)),
+                                          ),
+                                          Text(
+                                            '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
+                                            style: const TextStyle(
+                                              color: Color(0xFF0B5ED7),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: _nextVideo,
+                                            icon: const Icon(
+                                                Icons.chevron_right,
+                                                color: Color(0xFF0B5ED7)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: _youtubeUrls.length > 1
+                                      ? 0
+                                      : (isTablet ? 40 : 30),
+                                  bottom: _responsiveValue(30, 40, 50),
+                                ),
+                                child: CommonYoutubePlayer(
+                                  youtubeUrl: _youtubeUrls[_currentVideoIndex],
+                                  height:
+                                      isDesktop ? 400 : (isTablet ? 320 : 250),
+                                  placeholderThumbnail: _getVideoThumbnail(
+                                      _youtubeUrls[_currentVideoIndex]),
+                                  borderRadius: 0,
+                                ),
+                              ),
+                            ] else
+                              // Default VIDEO - EDGE TO EDGE
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: isTablet ? 40 : 30,
+                                  bottom: _responsiveValue(30, 40, 50),
+                                ),
+                                child: CommonYoutubePlayer(
+                                  youtubeUrl:
+                                      'https://www.youtube.com/embed/NONufn3jgXI',
+                                  height:
+                                      isDesktop ? 400 : (isTablet ? 320 : 250),
+                                  placeholderThumbnail:
+                                      'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
+                                  borderRadius: 0,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isLoading) const GlassLoader(message: 'Loading courses...'),
+        ],
+      ),
+    );
+  }
+
+  // Error widget
+  Widget _buildErrorWidget(bool isDesktop, bool isTablet) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 60,
+              color: Colors.red[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load courses',
+              style: TextStyle(
+                fontSize: isDesktop ? 18 : 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isDesktop ? 14 : 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchCourseItems,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0052A2),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Empty widget
+  Widget _buildEmptyWidget(bool isDesktop, bool isTablet) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          children: [
+            Icon(
+              Icons.library_books_outlined,
+              size: 60,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No courses available in this category',
+              style: TextStyle(
+                fontSize: isDesktop ? 18 : 16,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -430,166 +678,13 @@ class _Course2ScreenState extends State<Course2Screen> {
     );
   }
 
-  Widget _buildSection({
-    required Map<String, dynamic> section,
-    required int index,
-    required double horizontalPadding,
-    required double cardWidth,
-    required double gap,
-    required int columns,
-  }) {
-    final List<String> items =
-        (section['items'] as List<dynamic>?)?.cast<String>() ?? [];
-
-    return Column(
-      children: [
-        // Section Header
-        Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: index == 0
-                ? _responsiveValue(16, 20, 24)
-                : _responsiveValue(24, 28, 32),
-          ),
-          padding: EdgeInsets.symmetric(
-            vertical: _responsiveValue(14, 16, 18),
-            horizontal: _responsiveValue(16, 20, 24),
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFFCFE5FA),
-            borderRadius: BorderRadius.circular(_scale(14)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              section['title'] as String? ?? 'Course Section',
-              style: TextStyle(
-                fontSize: _responsiveValue(18, 22, 26),
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF0B5AA7),
-              ),
-            ),
-          ),
-        ),
-
-        // Cards Grid
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Wrap(
-            spacing: gap,
-            runSpacing: _responsiveValue(12, 16, 20),
-            alignment: WrapAlignment.start,
-            children: items.map((item) {
-              final meta = courseMeta[item] ??
-                  {
-                    "icon": "menu_book",
-                    "desc": "Explore this professional course",
-                  };
-
-              return SizedBox(
-                width: cardWidth,
-                child: _buildCourseCard(
-                  title: item,
-                  meta: meta,
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-
-        // Spacing after each section
-        SizedBox(height: _responsiveValue(16, 20, 24)),
-      ],
-    );
-  }
-
   Widget _buildCourseCard({
-    required String title,
-    required Map<String, String> meta,
+    required Map<String, dynamic> item,
+    required double cardWidth,
   }) {
-    // Get appropriate icon
-    IconData getIcon(String iconName) {
-      switch (iconName) {
-        case "web":
-          return Icons.web;
-        case "code":
-          return Icons.code;
-        case "show_chart":
-          return Icons.show_chart;
-        case "security":
-          return Icons.security;
-        case "cloud":
-          return Icons.cloud;
-        case "medical_services":
-          return Icons.medical_services;
-        case "local_hospital":
-          return Icons.local_hospital;
-        case "restaurant":
-          return Icons.restaurant;
-        case "medical_information":
-          return Icons.medical_information;
-        case "favorite":
-          return Icons.favorite;
-        case "campaign":
-          return Icons.campaign;
-        case "bar_chart":
-          return Icons.bar_chart;
-        case "checklist":
-          return Icons.checklist;
-        case "attach_money":
-          return Icons.attach_money;
-        case "lightbulb":
-          return Icons.lightbulb;
-        case "edit":
-          return Icons.edit;
-        case "mic":
-          return Icons.mic;
-        case "email":
-          return Icons.email;
-        case "translate":
-          return Icons.translate;
-        case "menu_book":
-          return Icons.menu_book;
-        case "settings":
-          return Icons.settings;
-        case "bolt":
-          return Icons.bolt;
-        case "architecture":
-          return Icons.architecture;
-        case "smart_toy":
-          return Icons.smart_toy;
-        case "precision_manufacturing":
-          return Icons.precision_manufacturing;
-        case "palette":
-          return Icons.palette;
-        case "brush":
-          return Icons.brush;
-        case "movie":
-          return Icons.movie;
-        case "camera_alt":
-          return Icons.camera_alt;
-        case "chair":
-          return Icons.chair;
-        case "schedule":
-          return Icons.schedule;
-        case "self_improvement":
-          return Icons.self_improvement;
-        case "fitness_center":
-          return Icons.fitness_center;
-        case "account_balance_wallet":
-          return Icons.account_balance_wallet;
-        case "target":
-          return Icons.flag;
-        default:
-          return Icons.menu_book;
-      }
-    }
+    final String itemName = item['name']?.toString() ?? 'Unnamed Course';
+    final String description = item['description']?.toString() ?? 'Explore this professional course';
+    final String imageUrl = item['image']?.toString() ?? '';
 
     return GestureDetector(
       onTap: () {
@@ -598,20 +693,21 @@ class _Course2ScreenState extends State<Course2Screen> {
           context,
           MaterialPageRoute(
             builder: (context) => Course3Screen(
-              title: title,
+              title: itemName,
+              courseData: item, // Pass full course data
             ),
           ),
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Navigate to $title'),
+            content: Text('Selected: $itemName'),
             duration: const Duration(seconds: 1),
           ),
         );
       },
       child: Container(
-        padding: EdgeInsets.all(_scale(16)),
+        padding: EdgeInsets.all(_scale(12)),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(_scale(14)),
@@ -627,30 +723,52 @@ class _Course2ScreenState extends State<Course2Screen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Gradient Icon Container
-            Container(
-              width: _scale(56),
-              height: _scale(56),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2295D2), Color(0xFF284598)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            // Course Image
+            if (imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(_scale(12)),
+                child: Image.network(
+                  imageUrl,
+                  width: cardWidth - _scale(24),
+                  height: _scale(100),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: cardWidth - _scale(24),
+                      height: _scale(100),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E0E0),
+                        borderRadius: BorderRadius.circular(_scale(12)),
+                      ),
+                      child: Icon(
+                        Icons.image_not_supported,
+                        size: _scale(30),
+                        color: Colors.grey.shade500,
+                      ),
+                    );
+                  },
                 ),
-                borderRadius: BorderRadius.circular(_scale(28)),
+              )
+            else
+              Container(
+                width: cardWidth - _scale(24),
+                height: _scale(100),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(_scale(12)),
+                ),
+                child: Icon(
+                  Icons.menu_book,
+                  size: _scale(30),
+                  color: Colors.grey.shade500,
+                ),
               ),
-              child: Icon(
-                getIcon(meta["icon"] ?? "menu_book"),
-                size: _scale(26),
-                color: Colors.white,
-              ),
-            ),
 
             SizedBox(height: _scale(10)),
 
             // Title
             Text(
-              title,
+              itemName,
               style: TextStyle(
                 fontSize: _scale(15),
                 fontWeight: FontWeight.w700,
@@ -665,7 +783,7 @@ class _Course2ScreenState extends State<Course2Screen> {
 
             // Description
             Text(
-              meta["desc"] ?? "Explore this professional course",
+              description,
               style: TextStyle(
                 fontSize: _scale(11),
                 color: const Color(0xFF555555),
