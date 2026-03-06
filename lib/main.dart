@@ -16,7 +16,7 @@ import 'pages/IQ/IQ1.dart';
 import 'pages/Extraskills/Extraskills1.dart';
 import './pages/Charity/Charity.dart';
 import './pages/Feedback/Feedback.dart';
-import './pages/Profile/Profile.dart';  // REMOVE ./pages/Blogs/BlogsScreen.dart if not exists
+import './pages/Profile/Profile.dart';
 import './pages/Blogs/BlogsScreen.dart';
 import './pages/Auth/AuthLoading.dart';
 import './pages/Auth/AuthScreen.dart';
@@ -81,10 +81,8 @@ class MyEducationApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/splash',
+      initialRoute: '/loading',
       routes: {
-        // Splash Route
-        '/splash': (context) => const SplashScreen(),
         // Auth Routes
         '/loading': (context) => const AuthLoadingScreen(),
         '/auth': (context) => const AuthScreen(),
@@ -117,20 +115,56 @@ class MyEducationApp extends StatelessWidget {
         final String routeName = settings.name ?? '';
         
         switch (routeName) {
+          // Auth Routes
+          case '/loading':
+            return MaterialPageRoute(
+              builder: (context) => const AuthLoadingScreen(),
+            );
+          
+          case '/auth':
+            return MaterialPageRoute(
+              builder: (context) => const AuthScreen(),
+            );
+          
+          case '/forgot-password':
+            return MaterialPageRoute(
+              builder: (context) => const ForgotPasswordScreen(),
+            );
+          
+          // Home Route
+          case '/home':
+            return MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            );
+          
+          // School Routes
           case '/school1':
-            return MaterialPageRoute(builder: (context) => const School1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const School1Screen(),
+            );
+          
           case '/school2':
             final args = settings.arguments as String?;
             return MaterialPageRoute(
-              builder: (context) => School2Screen(initialCategory: args),
+              builder: (context) => School2Screen(
+                initialCategory: args,
+              ),
             );
+          
           case '/school3':
             final args = settings.arguments as Map<String, dynamic>?;
             return MaterialPageRoute(
-              builder: (context) => School3Screen(school: args),
+              builder: (context) => School3Screen(
+                school: args,
+              ),
             );
+          
+          // Tutions Routes
           case '/tutions1':
-            return MaterialPageRoute(builder: (context) => const Tution1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const Tution1Screen(),
+            );
+          
           case '/tutions2':
             final args = settings.arguments as String?;
             return MaterialPageRoute(
@@ -138,6 +172,7 @@ class MyEducationApp extends StatelessWidget {
                 selectedClass: args ?? 'Class 12',
               ),
             );
+          
           case '/tutions3':
             final args = settings.arguments as String?;
             return MaterialPageRoute(
@@ -145,34 +180,66 @@ class MyEducationApp extends StatelessWidget {
                 instituteName: args ?? 'Elite Scholars Academy',
               ),
             );
+          
+          // College Routes
           case '/college1':
-            return MaterialPageRoute(builder: (context) => const College1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const College1Screen(),
+            );
+          
+          // Course Routes
           case '/course1':
-            return MaterialPageRoute(builder: (context) => const Course1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const Course1Screen(),
+            );
+          
+          // Exam Routes
           case '/exam1':
-            return MaterialPageRoute(builder: (context) => const Exam1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const Exam1Screen(),
+            );
+          
+          // IQ Routes
           case '/iq1':
-            return MaterialPageRoute(builder: (context) => const IQ1Screen());
+            return MaterialPageRoute(
+              builder: (context) => const IQ1Screen(),
+            );
+          
+          // Extra Skills Routes
           case '/extraskills1':
-            return MaterialPageRoute(builder: (context) => const Extraskills1Screen());
-          case '/home':
-            return MaterialPageRoute(builder: (context) => const HomeScreen());
+            return MaterialPageRoute(
+              builder: (context) => const Extraskills1Screen(),
+            );
+          
+          // Charity Routes
           case '/charity':
-            return MaterialPageRoute(builder: (context) => const CharityScreen());
+            return MaterialPageRoute(
+              builder: (context) => const CharityScreen(),
+            );
+          
+          // Feedback Routes
           case '/feedback':
-            return MaterialPageRoute(builder: (context) => const FeedbackScreen());
+            return MaterialPageRoute(
+              builder: (context) => const FeedbackScreen(),
+            );
+          
+          // Profile Routes
           case '/profile':
-            return MaterialPageRoute(builder: (context) => const ProfileScreen());  // REMOVE const if needed
+            return MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            );
+          
+          // Blogs Routes
           case '/blogs':
-            return MaterialPageRoute(builder: (context) => const BlogsScreen());
-          case '/auth':
-            return MaterialPageRoute(builder: (context) => const AuthScreen());
-          case '/forgot-password':
-            return MaterialPageRoute(builder: (context) => const ForgotPasswordScreen());
-          case '/loading':
-            return MaterialPageRoute(builder: (context) => const AuthLoadingScreen());
+            return MaterialPageRoute(
+              builder: (context) => const BlogsScreen(),
+            );
+          
+          // Default route
           default:
-            return MaterialPageRoute(builder: (context) => const HomeScreen());
+            return MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            );
         }
       },
     );

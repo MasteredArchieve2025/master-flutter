@@ -1,6 +1,9 @@
 // lib/pages/Feedback/Feedback.dart
 import 'package:flutter/material.dart';
-import '../../widgets/Footer.dart'; // Import your footer
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../widgets/Footer.dart';
+import '../../services/auth_token_manager.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -14,9 +17,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
+  
+  bool _isSubmitting = false;
+  bool _hasUserSubmittedFeedback = false;
+  
+  // API endpoint
+  final String _feedbackApiUrl = 'https://master-backend-18ik.onrender.com/api/feedback';
 
   // Customer Feedback Data
-  final List<Map<String, dynamic>> _feedbacks = [
+  List<Map<String, dynamic>> _feedbacks = [
     {
       'id': 1,
       'name': 'Mabisha',
@@ -59,6 +68,39 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     },
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    _checkUserFeedbackStatus();
+  }
+
+  // Load user data from AuthTokenManager
+  Future<void> _loadUserData() async {
+    final userData = await AuthTokenManager.instance.getUserData();
+    if (userData != null) {
+      setState(() {
+        _nameController.text = userData['username'] ?? '';
+        _emailController.text = userData['email'] ?? '';
+      });
+    }
+  }
+
+  // Check if user has already submitted feedback
+  Future<void> _checkUserFeedbackStatus() async {
+    final email = await AuthTokenManager.instance.getEmail();
+    if (email != null) {
+      // You can implement logic to check if this email has already submitted feedback
+      // For now, we'll check against existing feedback list
+      setState(() {
+        _hasUserSubmittedFeedback = _feedbacks.any((feedback) => 
+            feedback['email'] == email || 
+            (feedback['name'] == _nameController.text && _nameController.text.isNotEmpty)
+        );
+      });
+    }
+  }
+
   // Responsive value function
   double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -75,8 +117,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     super.dispose();
   }
 
-  void _handleSubmit() {
-    // Handle form submission
+  // Submit feedback to API
+  Future<void> _submitFeedback() async {
+    // Validate form
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _commentController.text.isEmpty ||
@@ -90,31 +133,104 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       return;
     }
 
-    // Add new feedback to the list
+    // Check if user has already submitted
+    if (_hasUserSubmittedFeedback) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You have already submitted feedback. Only one feedback per user is allowed.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
-      _feedbacks.insert(0, {
-        'id': _feedbacks.length + 1,
+      _isSubmitting = true;
+    });
+
+    try {
+      // Get JWT token
+      final token = await AuthTokenManager.instance.getToken();
+      
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please login to submit feedback'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Prepare feedback data
+      final feedbackData = {
         'name': _nameController.text,
-        'avatar': 'https://randomuser.me/api/portraits/men/1.jpg', // Default
+        'email': _emailController.text,
         'rating': _rating,
         'comment': _commentController.text,
+      };
+
+      // Make API call
+      final response = await http.post(
+        Uri.parse(_feedbackApiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(feedbackData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Parse response
+        final responseData = jsonDecode(response.body);
+        
+        // Add new feedback to the list
+        setState(() {
+          _feedbacks.insert(0, {
+            'id': _feedbacks.length + 1,
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'avatar': 'https://randomuser.me/api/portraits/men/1.jpg', // Default
+            'rating': _rating,
+            'comment': _commentController.text,
+          });
+          _hasUserSubmittedFeedback = true;
+        });
+
+        // Clear form
+        _commentController.clear();
+        setState(() {
+          _rating = 0;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(responseData['message'] ?? 'Feedback submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Handle error
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['message'] ?? 'Failed to submit feedback'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSubmitting = false;
       });
-    });
-
-    // Clear form
-    _nameController.clear();
-    _emailController.clear();
-    _commentController.clear();
-    setState(() {
-      _rating = 0;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Feedback submitted successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    }
   }
 
   void _handleSave() {
@@ -202,9 +318,39 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
             ),
           ),
+          
+          // Show warning if user already submitted
+          if (_hasUserSubmittedFeedback)
+            Padding(
+              padding: EdgeInsets.only(top: _responsiveValue(8, 10, 12)),
+              child: Container(
+                padding: EdgeInsets.all(_responsiveValue(8, 10, 12)),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.orange.shade800),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You have already submitted feedback. Only one feedback per user is allowed.',
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: _responsiveValue(12, 13, 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          
           SizedBox(height: _responsiveValue(16, 20, 24)),
 
-          // Student Name Field
+          // Student Name Field (pre-filled from auth)
           Text(
             'Student Name',
             style: TextStyle(
@@ -216,10 +362,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           SizedBox(height: _responsiveValue(4, 6, 8)),
           TextField(
             controller: _nameController,
+            readOnly: true, // Make read-only since it comes from auth
             decoration: InputDecoration(
               hintText: 'Enter your name',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Colors.grey.shade200,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
@@ -229,7 +376,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           ),
           SizedBox(height: _responsiveValue(12, 16, 20)),
 
-          // Email Field
+          // Email Field (pre-filled from auth)
           Text(
             'Email ID',
             style: TextStyle(
@@ -241,10 +388,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           SizedBox(height: _responsiveValue(4, 6, 8)),
           TextField(
             controller: _emailController,
+            readOnly: true, // Make read-only since it comes from auth
             decoration: InputDecoration(
               hintText: 'Enter your email',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: Colors.grey.shade200,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
@@ -284,10 +432,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           TextField(
             controller: _commentController,
             maxLines: 4,
+            enabled: !_hasUserSubmittedFeedback, // Disable if already submitted
             decoration: InputDecoration(
-              hintText: 'Write here...',
+              hintText: _hasUserSubmittedFeedback 
+                  ? 'You have already submitted feedback' 
+                  : 'Write here...',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: _hasUserSubmittedFeedback ? Colors.grey.shade200 : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
@@ -306,7 +457,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 child: Container(
                   margin: EdgeInsets.only(right: _responsiveValue(8, 10, 12)),
                   child: ElevatedButton(
-                    onPressed: _handleSubmit,
+                    onPressed: _hasUserSubmittedFeedback || _isSubmitting 
+                        ? null 
+                        : _submitFeedback,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0077B6),
                       padding: EdgeInsets.symmetric(
@@ -316,24 +469,33 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
-                      'Send',
-                      style: TextStyle(
-                        fontSize: _responsiveValue(14, 15, 16),
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? SizedBox(
+                            height: _responsiveValue(20, 22, 24),
+                            width: _responsiveValue(20, 22, 24),
+                            child: const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Send',
+                            style: TextStyle(
+                              fontSize: _responsiveValue(14, 15, 16),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
 
-              // Save Button
+              // Save Button (local draft only)
               Expanded(
                 child: Container(
                   margin: EdgeInsets.only(left: _responsiveValue(8, 10, 12)),
                   child: ElevatedButton(
-                    onPressed: _handleSave,
+                    onPressed: _hasUserSubmittedFeedback ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0077B6),
                       padding: EdgeInsets.symmetric(
@@ -366,7 +528,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       children: List.generate(5, (index) {
         final starIndex = index + 1;
         return GestureDetector(
-          onTap: () {
+          onTap: _hasUserSubmittedFeedback ? null : () {
             setState(() {
               _rating = starIndex;
             });
@@ -374,7 +536,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           child: Icon(
             starIndex <= _rating ? Icons.star : Icons.star_border,
             size: _responsiveValue(24, 28, 32),
-            color: const Color(0xFFF4C430),
+            color: _hasUserSubmittedFeedback 
+                ? Colors.grey 
+                : const Color(0xFFF4C430),
           ),
         );
       }),
