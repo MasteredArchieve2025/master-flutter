@@ -81,8 +81,9 @@ class MyEducationApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/loading',
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         // Auth Routes
         '/loading': (context) => const AuthLoadingScreen(),
         '/auth': (context) => const AuthScreen(),
