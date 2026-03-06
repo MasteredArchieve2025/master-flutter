@@ -1,7 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'Splash_Screen/splash_screen.dart';
+import './Splash_Screen/splash_screen.dart';
 import 'pages/Home/Homepage.dart';
 import 'pages/School/School1.dart';
 import 'pages/School/School2.dart';
