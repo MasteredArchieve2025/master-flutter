@@ -1,69 +1,324 @@
 // lib/pages/IQ/IQ3.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'Iq_result.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../api/baseurl.dart';
+import 'IQResult.dart';
 
 class IQ3Screen extends StatefulWidget {
-  const IQ3Screen({super.key});
+  final Map<String, dynamic> testData;
+  final String sessionToken;
+  final Map<String, dynamic> questionsData;
+
+  const IQ3Screen({
+    super.key,
+    required this.testData,
+    required this.sessionToken,
+    required this.questionsData,
+  });
 
   @override
   State<IQ3Screen> createState() => _IQ3ScreenState();
 }
 
 class _IQ3ScreenState extends State<IQ3Screen> {
-  int _currentQuestion = 1; // Start from question 2 as per image
-  List<int?> _answers = List.filled(30, null);
-  int _timeLeft = 44 * 60 + 17; // 44:17 as per image
-  bool _testCompleted = false;
-  bool _showSubmitModal = false;
-  bool _loading = false;
+  int _currentQuestion = 0;
   int? _selectedOption;
-  List<int> _visitedQuestions = [0, 1]; // Questions 1 and 2 visited
+  final Map<int, int> _answers = {};
+  int _timeLeft = 0;
+  bool _timerActive = true;
   Timer? _timer;
+  bool _isSubmitting = false;
+  final List<int> _visitedQuestions = [0];
 
-  // Sample questions data (30 questions)
-  final List<Map<String, dynamic>> _sampleQuestions = [
-    {
-      'id': 1,
-      'question': "Complete the sequence: 2, 4, 8, 16, ?",
-      'options': ["24", "32", "28", "20"],
-      'correctAnswer': 1,
-      'type': "numerical",
-      'difficulty': "medium",
-    },
-    {
-      'id': 2,
-      'question': "Which word does NOT belong with the others?",
-      'options': ["Apple", "Banana", "Carrot", "Orange"],
-      'correctAnswer': 2,
-      'type': "verbal",
-      'difficulty': "easy",
-    },
-    // Add more questions here (total 30)
-    for (int i = 3; i <= 30; i++)
-      {
-        'id': i,
-        'question': "Sample question $i?",
-        'options': ["Option A", "Option B", "Option C", "Option D"],
-        'correctAnswer': 0,
-        'type': i % 3 == 0
-            ? "spatial"
-            : i % 3 == 1
-                ? "numerical"
-                : "verbal",
-        'difficulty': i % 3 == 0
-            ? "hard"
-            : i % 3 == 1
-                ? "medium"
-                : "easy",
-      }
-  ];
+  late List<dynamic> _questions;
+  late int _totalQuestions;   // ✅ FIX: was undefined in original — declared here
+  late int _timeLimitMinutes;
 
   @override
   void initState() {
     super.initState();
+    _initializeTestData();
     _startTimer();
-    _selectedOption = _answers[_currentQuestion];
+  }
+
+  void _initializeTestData() {
+    _timeLimitMinutes = widget.testData['time_limit_minutes'] ?? 45;
+    _timeLeft = _timeLimitMinutes * 60;
+
+    // ✅ Parse questions from: { success, data: { questions: [...] } }
+    final raw = widget.questionsData;
+    if (raw['success'] == true && raw['data'] != null) {
+      final data = raw['data'];
+      if (data is Map && data['questions'] != null) {
+        _questions = List<dynamic>.from(data['questions']);
+      } else if (data is List) {
+        _questions = List<dynamic>.from(data);
+      } else {
+        _questions = [];
+      }
+    } else if (raw['questions'] != null) {
+      _questions = List<dynamic>.from(raw['questions']);
+    } else {
+      _questions = [];
+    }
+
+    _totalQuestions = _questions.length;
+    debugPrint('✅ Loaded $_totalQuestions questions'); // ✅ FIX: was _totalQuestions (undefined)
+  }
+
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_timeLeft > 0 && _timerActive) {
+        setState(() => _timeLeft--);
+      } else if (_timeLeft == 0 && _timerActive) {
+        _timerActive = false;
+        _submitTest(autoSubmit: true);
+      }
+    });
+  }
+
+  // ✅ FIX: Backend expects camelCase body keys: questionId, selectedOption, timeSpent
+  Future<void> _saveAnswer(int questionIndex, int selectedOption) async {
+    try {
+      final questionId = _questions[questionIndex]['id'];
+      final int timeSpent = (_timeLimitMinutes * 60) - _timeLeft;
+
+      final response = await http.post(
+        Uri.parse('${BaseUrl.baseUrl}/api/iq/sessions/${widget.sessionToken}/answer'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'questionId': questionId,       // ✅ was: question_id
+          'selectedOption': selectedOption, // ✅ was: selected_option
+          'timeSpent': timeSpent,          // ✅ was: missing entirely
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('⚠️ Save answer failed: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('❌ saveAnswer error: $e');
+    }
+  }
+
+  void _selectOption(int optionIndex) {
+    setState(() {
+      _selectedOption = optionIndex;
+      _answers[_currentQuestion] = optionIndex;
+    });
+    _saveAnswer(_currentQuestion, optionIndex);
+  }
+
+  void _nextQuestion() {
+    if (_currentQuestion < _questions.length - 1) {
+      final next = _currentQuestion + 1;
+      setState(() {
+        _currentQuestion = next;
+        _selectedOption = _answers[next];
+        if (!_visitedQuestions.contains(next)) _visitedQuestions.add(next);
+      });
+    }
+  }
+
+  void _previousQuestion() {
+    if (_currentQuestion > 0) {
+      final prev = _currentQuestion - 1;
+      setState(() {
+        _currentQuestion = prev;
+        _selectedOption = _answers[prev];
+        if (!_visitedQuestions.contains(prev)) _visitedQuestions.add(prev);
+      });
+    }
+  }
+
+  void _goToQuestion(int index) {
+    setState(() {
+      _currentQuestion = index;
+      _selectedOption = _answers[index];
+      if (!_visitedQuestions.contains(index)) _visitedQuestions.add(index);
+    });
+  }
+
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Exit Test?"),
+        content: const Text("Are you sure? Your progress will be lost."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              _timer?.cancel();
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('Exit', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitTest({bool autoSubmit = false}) async {
+    if (_isSubmitting) return;
+
+    if (!autoSubmit && _answers.length < _questions.length) {
+      _showConfirmSubmitDialog();
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _timerActive = false;
+    });
+
+    try {
+      final int timeSpent = (_timeLimitMinutes * 60) - _timeLeft;
+      debugPrint('▶️ POST submit | token=${widget.sessionToken} | timeSpent=$timeSpent');
+
+      // ✅ FIX: Pass timeSpent in body — backend reads req.body.timeSpent
+      final response = await http.post(
+        Uri.parse('${BaseUrl.baseUrl}/api/iq/sessions/${widget.sessionToken}/submit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'timeSpent': timeSpent}),
+      );
+
+      debugPrint('📥 Submit status: ${response.statusCode}');
+      debugPrint('📥 Submit body:   ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> resp = jsonDecode(response.body);
+
+        if (resp['success'] == true && mounted) {
+          // ✅ Backend returns: { success, data: { id, ... }, summary: { ... } }
+          final data = resp['data'];
+          final int? resultId = data is Map ? (data['id'] as int?) : null;
+
+          if (resultId != null) {
+            await _fetchResult(resultId);
+          } else {
+            // Fallback: build result from summary block
+            _goToResultScreen(resp);
+          }
+        } else {
+          _showErrorDialog('Submit failed: ${resp['message'] ?? 'Unknown error'}');
+        }
+      } else {
+        _showErrorDialog('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('❌ Submit error: $e');
+      _showErrorDialog('Error: ${e.toString()}');
+    }
+  }
+
+  Future<void> _fetchResult(int resultId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/iq/results/$resultId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      setState(() => _isSubmitting = false);
+
+      if (response.statusCode == 200 && mounted) {
+        final Map<String, dynamic> resp = jsonDecode(response.body);
+        if (resp['success'] == true) {
+          final resultData = resp['data'] ?? resp;
+          _navigateToResult(resultData);
+        } else {
+          _showErrorDialog('Failed to get results: ${resp['message']}');
+        }
+      } else {
+        _showErrorDialog('Results HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      _showErrorDialog('Error fetching results: $e');
+    }
+  }
+
+  // Builds result map from the submit response summary block
+  void _goToResultScreen(Map<String, dynamic> resp) {
+    setState(() => _isSubmitting = false);
+    final summary = resp['summary'] ?? {};
+    final data = resp['data'] ?? {};
+
+    final resultData = <String, dynamic>{
+      'total_score':      summary['score'] ?? data['total_score'] ?? 0,
+      'max_score':        summary['maxScore'] ?? data['max_score'] ?? 0,
+      'correct_answers':  summary['correctAnswers'] ?? data['correct_answers'] ?? 0,
+      'wrong_answers':    summary['wrongAnswers'] ?? data['wrong_answers'] ?? 0,
+      'unanswered':       summary['unanswered'] ?? data['unanswered'] ?? 0,
+      'percentage':       (summary['percentage'] ?? data['percentage'] ?? 0.0).toDouble(),
+      'iq_score':         summary['iqScore'] ?? data['iq_score'] ?? 0,
+      'performance_level': summary['performanceLevel'] ?? data['performance_level'] ?? '',
+      'time_taken':       summary['timeTaken'] ?? data['time_taken'] ?? 0,
+    };
+
+    _navigateToResult(resultData);
+  }
+
+  void _navigateToResult(Map<String, dynamic> resultData) {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => IQResultScreen(
+          testData: widget.testData,
+          resultData: resultData,
+        ),
+      ),
+    );
+  }
+
+  void _showConfirmSubmitDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Submit Test?"),
+        content: Text(
+          'You answered ${_answers.length} of ${_questions.length} questions. '
+          'Unanswered will be marked wrong. Submit anyway?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Review')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _submitTest(autoSubmit: true);
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: SingleChildScrollView(child: Text(message)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        ],
+      ),
+    );
   }
 
   @override
@@ -72,190 +327,44 @@ class _IQ3ScreenState extends State<IQ3Screen> {
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeLeft > 0 && !_testCompleted) {
-        setState(() {
-          _timeLeft--;
-        });
-      } else if (_timeLeft == 0 && !_testCompleted) {
-        _handleAutoSubmit();
-      }
-    });
-  }
-
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-  }
-
-  void _handleAnswerSelect(int optionIndex) {
-    setState(() {
-      _answers[_currentQuestion] = optionIndex;
-      _selectedOption = optionIndex;
-    });
-  }
-
-  void _handleNextQuestion() {
-    if (_currentQuestion < _sampleQuestions.length - 1) {
-      final nextQuestion = _currentQuestion + 1;
-      setState(() {
-        _currentQuestion = nextQuestion;
-        _selectedOption = _answers[nextQuestion];
-        if (!_visitedQuestions.contains(nextQuestion)) {
-          _visitedQuestions.add(nextQuestion);
-        }
-      });
-    }
-  }
-
-  void _handlePreviousQuestion() {
-    if (_currentQuestion > 0) {
-      final prevQuestion = _currentQuestion - 1;
-      setState(() {
-        _currentQuestion = prevQuestion;
-        _selectedOption = _answers[prevQuestion];
-        if (!_visitedQuestions.contains(prevQuestion)) {
-          _visitedQuestions.add(prevQuestion);
-        }
-      });
-    }
-  }
-
-  void _handleQuestionSelect(int index) {
-    setState(() {
-      _currentQuestion = index;
-      _selectedOption = _answers[index];
-      if (!_visitedQuestions.contains(index)) {
-        _visitedQuestions.add(index);
-      }
-    });
-  }
-
-  int _calculateScore() {
-    int score = 0;
-    for (int i = 0; i < _answers.length; i++) {
-      if (_answers[i] == _sampleQuestions[i]['correctAnswer']) {
-        score += 2;
-      }
-    }
-    return score;
-  }
-
-  void _handleAutoSubmit() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text("Time's Up!"),
-        content: const Text(
-            "Your test time has expired. Submitting your answers..."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _submitAndNavigate();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleSubmitTest() {
-    final answeredCount = _answers.where((answer) => answer != null).length;
-    final unansweredCount = _sampleQuestions.length - answeredCount;
-
-    if (unansweredCount > 0) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Unanswered Questions"),
-          content: Text(
-            "You have $unansweredCount unanswered question${unansweredCount > 1 ? 's' : ''}. Are you sure you want to submit?",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Continue Test'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _submitAndNavigate();
-              },
-              child: const Text('Submit Anyway'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      _submitAndNavigate();
-    }
-  }
-
-  void _submitAndNavigate() {
-    setState(() {
-      _loading = true;
-    });
-
-    // Calculate results
-    final score = _calculateScore();
-    final timeTaken = 45 * 60 - _timeLeft; // Total time - time left
-
-    // Cancel timer
-    _timer?.cancel();
-
-    // Small delay for better UX
-    Future.delayed(const Duration(milliseconds: 800), () {
-      // Navigate to result screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => IQResultScreen(
-            score: score,
-            totalQuestions: _sampleQuestions.length,
-            answers: _answers,
-            questions: _sampleQuestions,
-            timeTaken: timeTaken,
-          ),
-        ),
-      );
-    });
-  }
-
-  int _getProgressPercentage() {
-    return ((_currentQuestion + 1) / _sampleQuestions.length * 100).round();
-  }
-
-  int _getAnsweredCount() {
-    return _answers.where((answer) => answer != null).length;
-  }
-
-  // Responsive value function
-  double _responsiveValue(double mobile, double tablet, double desktop) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return desktop; // Desktop
-    if (screenWidth >= 768) return tablet; // Tablet
-    return mobile; // Mobile
+  double _rv(double m, double t, double d) {
+    final sw = MediaQuery.of(context).size.width;
+    if (sw >= 1024) return d;
+    if (sw >= 768) return t;
+    return m;
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final double sw = MediaQuery.of(context).size.width;
+    final bool isDesktop = sw >= 1024;
+    final double hp = _rv(16, 24, 32);
+    final double maxW = isDesktop ? 1400 : double.infinity;
 
-    final bool isMobile = screenWidth < 768;
-    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
-    final bool isDesktop = screenWidth >= 1024;
+    if (_questions.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0052A2),
+          title: const Text('IQ Test', style: TextStyle(color: Colors.white)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text('No questions available for this test.',
+              style: TextStyle(fontSize: 16, color: Colors.grey)),
+        ),
+      );
+    }
 
-    final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
+    final q = _questions[_currentQuestion];
+    final List<dynamic> options = q['options'] ?? [];
 
-    final currentQuestionData = _sampleQuestions[_currentQuestion];
+    // ✅ FIX: was q['question'] — backend returns 'question_text'
+    final String questionText = q['question_text'] ?? q['question'] ?? 'No question text';
+    final String difficulty = (q['difficulty'] ?? 'medium').toString().toUpperCase();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -263,111 +372,52 @@ class _IQ3ScreenState extends State<IQ3Screen> {
         children: [
           Column(
             children: [
-              // ===== HEADER =====
+              // ── Header ──────────────────────────────────────────────
               Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0052A2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
+                color: const Color(0xFF0052A2),
                 child: SafeArea(
                   bottom: false,
-                  child: Container(
-                    constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding:
-                        EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _responsiveValue(64, 72, 80),
+                  child: SizedBox(
+                    height: _rv(64, 72, 80),
                     child: Row(
                       children: [
-                        // Back Button
+                        SizedBox(width: hp),
                         GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text("Exit Test?"),
-                                content: const Text(
-                                    "Are you sure you want to exit? Your progress will be lost."),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      _timer?.cancel();
-                                      Navigator.pop(context);
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text(
-                                      'Exit',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(
-                              Icons.arrow_back,
-                              size: _responsiveValue(24, 26, 28),
-                              color: Colors.white,
-                            ),
-                          ),
+                          onTap: _showExitConfirmation,
+                          child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
                         ),
-
-                        // Center Title
                         Expanded(
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                Text('IQ Test',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: _rv(18, 20, 22),
+                                        fontWeight: FontWeight.w700)),
                                 Text(
-                                  'IQ Test',
+                                  'Question ${_currentQuestion + 1} of ${_questions.length}',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: _responsiveValue(18, 20, 22),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Question ${_currentQuestion + 1} of ${_sampleQuestions.length}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: _responsiveValue(14, 15, 16),
-                                  ),
+                                      color: Colors.white70, fontSize: _rv(13, 14, 15)),
                                 ),
                               ],
                             ),
                           ),
                         ),
-
-                        // Timer
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _responsiveValue(12, 14, 16),
-                            vertical: _responsiveValue(6, 7, 8),
-                          ),
+                          margin: EdgeInsets.only(right: hp),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16)),
                           child: Text(
                             _formatTime(_timeLeft),
                             style: TextStyle(
-                              fontSize: _responsiveValue(16, 17, 18),
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
+                                fontSize: _rv(15, 16, 17),
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white),
                           ),
                         ),
                       ],
@@ -376,565 +426,321 @@ class _IQ3ScreenState extends State<IQ3Screen> {
                 ),
               ),
 
-              // ===== PROGRESS SECTION =====
+              // ── Progress Bar ────────────────────────────────────────
               Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Color(0xFFE9ECEF),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Container(
-                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                    vertical: _responsiveValue(12, 14, 16),
-                  ),
+                color: Colors.white,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hp, vertical: 12),
                   child: Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Text('${_answers.length} of ${_questions.length} answered',
+                              style: TextStyle(
+                                  fontSize: _rv(13, 14, 15), color: const Color(0xFF666666))),
                           Text(
-                            '${_getAnsweredCount()} of ${_sampleQuestions.length} answered',
-                            style: TextStyle(
-                              fontSize: _responsiveValue(14, 15, 16),
-                              color: const Color(0xFF666666),
-                            ),
-                          ),
-                          Text(
-                            '${_getProgressPercentage()}%',
-                            style: TextStyle(
-                              fontSize: _responsiveValue(16, 17, 18),
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0072BC),
-                            ),
-                          ),
+                              '${((_currentQuestion + 1) / _questions.length * 100).round()}%',
+                              style: TextStyle(
+                                  fontSize: _rv(15, 16, 17),
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0072BC))),
                         ],
                       ),
                       const SizedBox(height: 8),
-
-                      // Progress Bar
-                      Container(
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9ECEF),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: FractionallySizedBox(
-                          widthFactor: _getProgressPercentage() / 100,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF00C9FF), Color(0xFF0072BC)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: (_currentQuestion + 1) / _questions.length,
+                          backgroundColor: const Color(0xFFE9ECEF),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0072BC)),
+                          minHeight: 6,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+              const Divider(height: 1, color: Color(0xFFE9ECEF)),
 
-              // ===== MAIN CONTENT AREA =====
+              // ── Questions ────────────────────────────────────────────
               Expanded(
                 child: SingleChildScrollView(
                   child: Center(
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: maxContentWidth),
-                      padding: EdgeInsets.all(horizontalPadding),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: _responsiveValue(16, 20, 24)),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxW),
+                      child: Padding(
+                        padding: EdgeInsets.all(hp),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: _rv(16, 20, 24)),
 
-                          // ===== QUESTION HEADER =====
-                          Row(
-                            children: [
-                              // Question Badge
+                            // Q tag + difficulty
+                            Row(children: [
                               Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: _responsiveValue(16, 18, 20),
-                                  vertical: _responsiveValue(8, 9, 10),
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFFFF416C),
-                                      Color(0xFFFF4B2B)
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  'Q${_currentQuestion + 1}',
-                                  style: TextStyle(
-                                    fontSize: _responsiveValue(16, 17, 18),
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                    gradient: const LinearGradient(
+                                        colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)]),
+                                    borderRadius: BorderRadius.circular(16)),
+                                child: Text('Q${_currentQuestion + 1}',
+                                    style: TextStyle(
+                                        fontSize: _rv(15, 16, 17),
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white)),
                               ),
-                              SizedBox(width: _responsiveValue(12, 14, 16)),
-
-                              // Difficulty Badge
+                              const SizedBox(width: 12),
                               Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: _responsiveValue(12, 13, 14),
-                                  vertical: _responsiveValue(6, 7, 8),
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: currentQuestionData['difficulty'] ==
-                                          'easy'
-                                      ? const Color(0xFFF0FFF4)
-                                      : currentQuestionData['difficulty'] ==
-                                              'medium'
-                                          ? const Color(0xFFFFFAF0)
-                                          : const Color(0xFFFFF5F5),
+                                    color: const Color(0xFFF0F7FF),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF0072BC))),
+                                child: Text(difficulty,
+                                    style: TextStyle(
+                                        fontSize: _rv(11, 12, 13),
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF0072BC))),
+                              ),
+                            ]),
+
+                            SizedBox(height: _rv(16, 20, 24)),
+
+                            // Question text card
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(_rv(18, 20, 22)),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: currentQuestionData['difficulty'] ==
-                                            'easy'
-                                        ? const Color(0xFF48BB78)
-                                        : currentQuestionData['difficulty'] ==
-                                                'medium'
-                                            ? const Color(0xFFED8936)
-                                            : const Color(0xFFF56565),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  (currentQuestionData['difficulty'] as String)
-                                      .toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: _responsiveValue(12, 13, 14),
-                                    fontWeight: FontWeight.w700,
-                                    color: currentQuestionData['difficulty'] ==
-                                            'easy'
-                                        ? const Color(0xFF48BB78)
-                                        : currentQuestionData['difficulty'] ==
-                                                'medium'
-                                            ? const Color(0xFFED8936)
-                                            : const Color(0xFFF56565),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: _responsiveValue(20, 24, 28)),
-
-                          // ===== QUESTION CARD =====
-                          Container(
-                            width: double.infinity,
-                            padding:
-                                EdgeInsets.all(_responsiveValue(20, 22, 24)),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              currentQuestionData['question'],
-                              style: TextStyle(
-                                fontSize: _responsiveValue(18, 20, 22),
-                                color: const Color(0xFF003366),
-                                fontWeight: FontWeight.w600,
-                                height: 1.4,
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2))
+                                  ]),
+                              child: Text(
+                                questionText,
+                                style: TextStyle(
+                                    fontSize: _rv(17, 19, 21),
+                                    color: const Color(0xFF003366),
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.5),
                               ),
                             ),
-                          ),
-                          SizedBox(height: _responsiveValue(20, 24, 28)),
 
-                          // ===== OPTIONS LIST =====
-                          Column(
-                            children:
-                                (currentQuestionData['options'] as List<String>)
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                              final index = entry.key;
-                              final option = entry.value;
+                            SizedBox(height: _rv(16, 20, 24)),
 
+                            // Options
+                            ...List.generate(options.length, (i) {
+                              final opt = options[i]?.toString() ?? '';
+                              final selected = _selectedOption == i;
                               return GestureDetector(
-                                onTap: () => _handleAnswerSelect(index),
+                                onTap: () => _selectOption(i),
                                 child: Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: _responsiveValue(12, 13, 14)),
-                                  padding: EdgeInsets.all(
-                                      _responsiveValue(16, 17, 18)),
+                                  margin: EdgeInsets.only(bottom: _rv(10, 12, 14)),
+                                  padding: EdgeInsets.all(_rv(14, 16, 18)),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: _selectedOption == index
-                                          ? const Color(0xFF0072BC)
-                                          : const Color(0xFFE9ECEF),
-                                      width: 2,
-                                    ),
+                                        color: selected
+                                            ? const Color(0xFF0072BC)
+                                            : const Color(0xFFE9ECEF),
+                                        width: 2),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      // Option Letter
-                                      Container(
-                                        width: _responsiveValue(36, 38, 40),
-                                        height: _responsiveValue(36, 38, 40),
-                                        decoration: BoxDecoration(
-                                          color: _selectedOption == index
-                                              ? const Color(0xFF0072BC)
-                                              : const Color(0xFFF8F9FA),
-                                          borderRadius:
-                                              BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color: _selectedOption == index
+                                  child: Row(children: [
+                                    // Letter circle
+                                    Container(
+                                      width: _rv(34, 36, 38),
+                                      height: _rv(34, 36, 38),
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? const Color(0xFF0072BC)
+                                            : const Color(0xFFF8F9FA),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                            color: selected
                                                 ? const Color(0xFF0072BC)
                                                 : const Color(0xFFE9ECEF),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            String.fromCharCode(65 + index),
-                                            style: TextStyle(
-                                              fontSize:
-                                                  _responsiveValue(16, 17, 18),
-                                              fontWeight: FontWeight.w700,
-                                              color: _selectedOption == index
-                                                  ? Colors.white
-                                                  : const Color(0xFF666666),
-                                            ),
-                                          ),
-                                        ),
+                                            width: 2),
                                       ),
-                                      SizedBox(
-                                          width: _responsiveValue(16, 17, 18)),
-
-                                      // Option Text
-                                      Expanded(
+                                      child: Center(
                                         child: Text(
-                                          option,
+                                          String.fromCharCode(65 + i),
                                           style: TextStyle(
-                                            fontSize:
-                                                _responsiveValue(16, 17, 18),
-                                            color: _selectedOption == index
-                                                ? const Color(0xFF0052A2)
-                                                : const Color(0xFF333333),
-                                            fontWeight: _selectedOption == index
-                                                ? FontWeight.w600
-                                                : FontWeight.normal,
-                                          ),
+                                              fontSize: _rv(14, 15, 16),
+                                              fontWeight: FontWeight.w700,
+                                              color: selected
+                                                  ? Colors.white
+                                                  : const Color(0xFF666666)),
                                         ),
                                       ),
-
-                                      // Check Icon
-                                      if (_selectedOption == index)
-                                        Icon(
-                                          Icons.check_circle,
-                                          size: _responsiveValue(24, 25, 26),
-                                          color: const Color(0xFF00B09B),
-                                        ),
-                                    ],
-                                  ),
+                                    ),
+                                    SizedBox(width: _rv(14, 16, 18)),
+                                    Expanded(
+                                      child: Text(opt,
+                                          style: TextStyle(
+                                              fontSize: _rv(15, 16, 17),
+                                              color: selected
+                                                  ? const Color(0xFF0052A2)
+                                                  : const Color(0xFF333333),
+                                              fontWeight: selected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal)),
+                                    ),
+                                    if (selected)
+                                      const Icon(Icons.check_circle,
+                                          color: Color(0xFF00B09B), size: 22),
+                                  ]),
                                 ),
                               );
-                            }).toList(),
-                          ),
-                          SizedBox(height: _responsiveValue(24, 28, 32)),
+                            }),
 
-                          // ===== NAVIGATION BUTTONS =====
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Previous Button
-                              ElevatedButton(
-                                onPressed: _currentQuestion == 0
-                                    ? null
-                                    : _handlePreviousQuestion,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF0072BC),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: _responsiveValue(24, 26, 28),
-                                    vertical: _responsiveValue(14, 15, 16),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: const BorderSide(
-                                      color: Color(0xFF0072BC),
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.chevron_left,
-                                      size: _responsiveValue(20, 21, 22),
-                                      color: const Color(0xFF0072BC),
-                                    ),
-                                    SizedBox(width: _responsiveValue(8, 9, 10)),
-                                    Text(
-                                      'Previous',
-                                      style: TextStyle(
-                                        fontSize: _responsiveValue(16, 17, 18),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            SizedBox(height: _rv(20, 24, 28)),
 
-                              // Next/Submit Button
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: _currentQuestion ==
-                                            _sampleQuestions.length - 1
-                                        ? [
-                                            const Color(0xFFFF416C),
-                                            const Color(0xFFFF4B2B)
-                                          ]
-                                        : [
-                                            const Color(0xFF0072BC),
-                                            const Color(0xFF0052A2)
-                                          ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _currentQuestion ==
-                                          _sampleQuestions.length - 1
-                                      ? _handleSubmitTest
-                                      : _handleNextQuestion,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    foregroundColor: Colors.white,
+                            // Navigation
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Previous
+                                OutlinedButton.icon(
+                                  onPressed: _currentQuestion == 0 ? null : _previousQuestion,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0072BC),
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: _responsiveValue(24, 26, 28),
-                                      vertical: _responsiveValue(14, 15, 16),
-                                    ),
+                                        horizontal: _rv(20, 24, 28), vertical: _rv(12, 14, 16)),
+                                    side: const BorderSide(color: Color(0xFF0072BC), width: 2),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                        borderRadius: BorderRadius.circular(12)),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        _currentQuestion ==
-                                                _sampleQuestions.length - 1
-                                            ? 'Submit Test'
-                                            : 'Next Question',
-                                        style: TextStyle(
-                                          fontSize:
-                                              _responsiveValue(16, 17, 18),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      if (_currentQuestion !=
-                                          _sampleQuestions.length - 1)
-                                        Row(
-                                          children: [
-                                            SizedBox(
-                                                width:
-                                                    _responsiveValue(8, 9, 10)),
-                                            Icon(
-                                              Icons.chevron_right,
-                                              size:
-                                                  _responsiveValue(20, 21, 22),
-                                              color: Colors.white,
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
+                                  icon: const Icon(Icons.chevron_left),
+                                  label: const Text('Previous',
+                                      style: TextStyle(fontWeight: FontWeight.w700)),
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: _responsiveValue(20, 24, 28)),
 
-                          // ===== YOUTUBE VIDEO SECTION - UPDATED =====
-                          Container(
-                            margin: EdgeInsets.only(
-                              top: _responsiveValue(20, 24, 28),
-                              bottom: 0, // Reduced bottom margin
-                            ),
-                            width: double.infinity,
-                            height: isDesktop
-                                ? 360
-                                : (isTablet
-                                    ? 320
-                                    : 220), // Same height as Exam1
-                            decoration: const BoxDecoration(
-                              color: Colors.black,
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                  'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                ),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            child: Center(
-                              child: GestureDetector(
-                                onTap: () => _showUrlDialog(
-                                    'https://www.youtube.com/embed/L2zqTYgcpfg'),
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
+                                // Next / Submit
+                                Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
+                                    gradient: LinearGradient(
+                                      colors: _currentQuestion == _questions.length - 1
+                                          ? [const Color(0xFFFF416C), const Color(0xFFFF4B2B)]
+                                          : [const Color(0xFF0072BC), const Color(0xFF0052A2)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(
-                                    Icons.play_arrow,
-                                    size: 40,
-                                    color: Colors.white,
+                                  child: ElevatedButton(
+                                    onPressed: _currentQuestion == _questions.length - 1
+                                        ? () => _submitTest()
+                                        : _nextQuestion,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: _rv(20, 24, 28), vertical: _rv(12, 14, 16)),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Text(
+                                        _currentQuestion == _questions.length - 1
+                                            ? 'Submit Test'
+                                            : 'Next',
+                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                      ),
+                                      if (_currentQuestion != _questions.length - 1)
+                                        const Icon(Icons.chevron_right, size: 20),
+                                    ]),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                        ],
+
+                            SizedBox(height: _rv(16, 20, 24)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // ===== QUESTION PALETTE =====
+              // ── Question Palette ─────────────────────────────────────
               Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: const Border(
-                    top: BorderSide(
-                      color: Color(0xFFE9ECEF),
-                      width: 1,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                      vertical: _responsiveValue(12, 14, 16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Question Palette',
-                          style: TextStyle(
-                            fontSize: _responsiveValue(16, 17, 18),
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF003366),
-                          ),
-                        ),
-                        SizedBox(height: _responsiveValue(8, 9, 10)),
-
-                        // Question Grids (3 rows of 10)
-                        for (int row = 0; row < 3; row++) ...[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(10, (col) {
-                              final index = row * 10 + col;
-                              if (index >= _sampleQuestions.length)
-                                return Container();
-
+                color: Colors.white,
+                child: Column(
+                  children: [
+                    const Divider(height: 1, color: Color(0xFFE9ECEF)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: hp, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Question Palette',
+                              style: TextStyle(
+                                  fontSize: _rv(14, 15, 16),
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF003366))),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 5,
+                            children: List.generate(_questions.length, (i) {
                               return GestureDetector(
-                                onTap: () => _handleQuestionSelect(index),
+                                onTap: () => _goToQuestion(i),
                                 child: Container(
-                                  width: _responsiveValue(28, 30, 32),
-                                  height: _responsiveValue(28, 30, 32),
-                                  margin: EdgeInsets.all(
-                                      _responsiveValue(2, 2.5, 3)),
+                                  width: _rv(34, 36, 38),
+                                  height: _rv(34, 36, 38),
                                   decoration: BoxDecoration(
-                                    color: _getButtonColor(index),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: _getBorderColor(index),
-                                      width: 1,
-                                    ),
+                                    color: _btnColor(i),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: _btnBorder(i)),
                                   ),
                                   child: Center(
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: TextStyle(
-                                        fontSize: _responsiveValue(12, 13, 14),
-                                        fontWeight: FontWeight.w600,
-                                        color: _getTextColor(index),
-                                      ),
-                                    ),
+                                    child: Text('${i + 1}',
+                                        style: TextStyle(
+                                            fontSize: _rv(11, 12, 13),
+                                            fontWeight: FontWeight.w600,
+                                            color: _btnText(i))),
                                   ),
                                 ),
                               );
                             }),
                           ),
-                          SizedBox(height: _responsiveValue(4, 5, 6)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 14,
+                            runSpacing: 4,
+                            children: [
+                              _legend('Current', const Color(0xFF0072BC)),
+                              _legend('Answered', const Color(0xFF00B09B)),
+                              _legend('Visited', const Color(0xFFE6F2FF)),
+                              _legend('Not Visited', const Color(0xFFF8F9FA)),
+                            ],
+                          ),
                         ],
-
-                        // Legend
-                        SizedBox(height: _responsiveValue(8, 9, 10)),
-                        Wrap(
-                          spacing: _responsiveValue(12, 14, 16),
-                          runSpacing: _responsiveValue(4, 5, 6),
-                          children: [
-                            _buildLegend('Current', const Color(0xFF0072BC)),
-                            _buildLegend('Answered', const Color(0xFF00B09B)),
-                            _buildLegend('Visited', const Color(0xFFE6F2FF)),
-                            _buildLegend(
-                                'Not Visited', const Color(0xFFF8F9FA)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
           ),
 
-          // Loading Overlay
-          if (_loading)
+          // ── Submitting overlay ───────────────────────────────────────
+          if (_isSubmitting)
             Container(
               color: Colors.black.withOpacity(0.5),
               child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text('Submitting...', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  ],
                 ),
               ),
             ),
@@ -943,85 +749,40 @@ class _IQ3ScreenState extends State<IQ3Screen> {
     );
   }
 
-  // Helper methods for palette button colors
-  Color _getButtonColor(int index) {
-    if (index == _currentQuestion) return const Color(0xFF0072BC);
-    if (_answers[index] != null) return const Color(0xFF00B09B);
-    if (_visitedQuestions.contains(index)) return const Color(0xFFE6F2FF);
+  Color _btnColor(int i) {
+    if (i == _currentQuestion) return const Color(0xFF0072BC);
+    if (_answers.containsKey(i)) return const Color(0xFF00B09B);
+    if (_visitedQuestions.contains(i)) return const Color(0xFFE6F2FF);
     return const Color(0xFFF8F9FA);
   }
 
-  Color _getBorderColor(int index) {
-    if (index == _currentQuestion) return const Color(0xFF0072BC);
-    if (_answers[index] != null) return const Color(0xFF00B09B);
-    if (_visitedQuestions.contains(index)) return const Color(0xFF0072BC);
+  Color _btnBorder(int i) {
+    if (i == _currentQuestion) return const Color(0xFF0072BC);
+    if (_answers.containsKey(i)) return const Color(0xFF00B09B);
+    if (_visitedQuestions.contains(i)) return const Color(0xFF0072BC);
     return const Color(0xFFE9ECEF);
   }
 
-  Color _getTextColor(int index) {
-    if (index == _currentQuestion || _answers[index] != null) {
-      return Colors.white;
-    }
+  Color _btnText(int i) {
+    if (i == _currentQuestion || _answers.containsKey(i)) return Colors.white;
     return const Color(0xFF666666);
   }
 
-  // Helper Widget: Legend Item
-  Widget _buildLegend(String text, Color color) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 768;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: isMobile ? 12 : 14,
-          height: isMobile ? 12 : 14,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(
+  Widget _legend(String label, Color color) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 12, height: 12,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
               color: color == const Color(0xFFF8F9FA)
                   ? const Color(0xFFE9ECEF)
-                  : color,
-              width: 1,
-            ),
-          ),
+                  : color),
         ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: isMobile ? 12 : 14,
-            color: const Color(0xFF666666),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Show URL dialog
-  void _showUrlDialog(String url) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('External Link'),
-        content: Text('Would you like to open: $url'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Opening: $url')),
-              );
-            },
-            child: const Text('Open'),
-          ),
-        ],
       ),
-    );
+      const SizedBox(width: 4),
+      Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
+    ]);
   }
 }
