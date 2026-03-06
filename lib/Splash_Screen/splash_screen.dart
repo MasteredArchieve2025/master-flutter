@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-// Remove this incorrect import - AuthScreen is in pages/Auth folder, not in Splash_Screen
-// import 'AuthScreen.dart'; 
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,7 +13,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
@@ -23,38 +20,27 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+        curve: Curves.easeIn,
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.5),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+        curve: Curves.elasticOut,
       ),
     );
 
     _controller.forward();
 
-    // Navigate to AuthLoadingScreen after 3 seconds - CORRECTED SYNTAX
-    Timer(const Duration(seconds: 5), () {
-      // Use pushReplacementNamed with the route name
+    // Navigate after 2.5 seconds
+    Timer(const Duration(milliseconds: 2500), () {
       Navigator.pushReplacementNamed(context, '/loading');
     });
   }
@@ -67,6 +53,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Get screen size for responsive layout
+    final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600;
+
+    // Responsive dimensions
+    final logoSize = isTablet ? size.width * 0.15 : size.width * 0.25;
+    final fontSize = isTablet ? size.width * 0.04 : size.width * 0.06;
+    final spacing = isTablet ? size.height * 0.02 : size.height * 0.015;
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -84,49 +79,49 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         child: Stack(
           children: [
-            // Animated background particles (optional)
+            // Minimal background effect
             Positioned.fill(
               child: CustomPaint(
-                painter: BackgroundPainter(),
+                painter: MinimalBackgroundPainter(),
               ),
             ),
-            
-            // Main content
+
+            // Main content - Centered vertically and horizontally
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo with animation
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Container(
-                        width: 180,
-                        height: 180,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo
+                      Container(
+                        width: logoSize,
+                        height: logoSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                              offset: const Offset(0, 10),
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 5),
                             ),
                           ],
                         ),
                         child: ClipOval(
                           child: Image.asset(
-                            'assets/master_logo.png', // Update this path
+                            'assets/master_logo.png',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              // Fallback icon if image not found
                               return Container(
                                 color: Colors.white,
                                 child: Icon(
                                   Icons.archive,
-                                  size: 100,
+                                  size: logoSize * 0.5,
                                   color: const Color(0xFF0066BE),
                                 ),
                               );
@@ -134,81 +129,68 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // App name with slide animation
-                  SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      children: [
-                        Text(
-                          'MASTER',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 4,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                offset: const Offset(2, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
+
+                      SizedBox(height: spacing),
+
+                      // App name - Smaller letters
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'MASTER',
+                            style: TextStyle(
+                              fontSize: fontSize * 0.9,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 2,
+                              height: 1.1,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  offset: const Offset(1, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Text(
-                          'ARCHIEVE',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 4,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                offset: const Offset(2, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
+                          Text(
+                            'ARCHIEVE',
+                            style: TextStyle(
+                              fontSize: fontSize * 0.9,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 2,
+                              height: 1.1,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  offset: const Offset(1, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                  
-                  const SizedBox(height: 20),
-                  
-                 
-                  
-                  const SizedBox(height: 50),
-                  
-                  // Loading indicator
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 3,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            
-            // Version number at bottom
+
+            // Version number at bottom - Smaller and compact
             Positioned(
-              bottom: 30,
+              bottom: size.height * 0.03,
               left: 0,
               right: 0,
               child: Center(
                 child: Text(
-                  'Version 1.0.0',
+                  'v1.0.0',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.4),
+                    fontSize: isTablet ? 12 : 10,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -220,23 +202,22 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// Custom painter for background effects
-class BackgroundPainter extends CustomPainter {
+// Minimal background painter
+class MinimalBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withOpacity(0.03)
       ..style = PaintingStyle.fill;
 
-    // Draw random circles in background
-    for (int i = 0; i < 10; i++) {
-      double x = (i * 37.5) % size.width;
-      double y = (i * 42.3) % size.height;
-      double radius = 20 + (i * 5) % 40;
-      
+    // Draw minimal circles
+    for (int i = 0; i < 5; i++) {
+      double x = (i * 80) % size.width;
+      double y = (i * 60) % size.height;
+
       canvas.drawCircle(
         Offset(x, y),
-        radius,
+        30,
         paint,
       );
     }
