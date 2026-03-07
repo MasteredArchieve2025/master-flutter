@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
 import '../../Api/School/Colleges/College_service.dart';
+import '../../components/glass_loader.dart';
+import '../../services/auth_token_manager.dart';
 
 class College5Screen extends StatefulWidget {
   final Map<String, dynamic> college;
@@ -20,39 +23,52 @@ class College5Screen extends StatefulWidget {
 }
 
 class _College5ScreenState extends State<College5Screen> {
+  // ─── Base URL ──────────────────────────────────────────────────────────────
+  static const String _baseUrl = 'https://master-backend-18ik.onrender.com';
+
+  // ─── UI State ──────────────────────────────────────────────────────────────
   int _footerIndex = 0;
   int _activeAd = 0;
   String _activeTab = "Placement";
-  int _rating = 0;
-  final TextEditingController _reviewController = TextEditingController();
   final PageController _adController = PageController();
   Timer? _adTimer;
 
-  // Banner Ads Data
+  // ─── Auth ──────────────────────────────────────────────────────────────────
+  final AuthTokenManager _authManager = AuthTokenManager.instance;
+  bool _isLoggedIn = false;
+  int? _currentUserId;
+  String? _currentUserName;
+  bool _isAuthChecking = true;
+
+  // ─── Review Form ───────────────────────────────────────────────────────────
+  int _rating = 0;
+  final TextEditingController _reviewController = TextEditingController();
+  bool _isSubmittingReview = false;
+  bool _hasUserReviewed = false;
+
+  // ─── Reviews Data ──────────────────────────────────────────────────────────
+  List<Map<String, dynamic>> _reviews = [];
+  double _averageRating = 0.0;
+  int _totalReviews = 0;
+  bool _isLoadingReviews = true;
+  String? _reviewsError;
+
+  // ─── Ads & Videos ──────────────────────────────────────────────────────────
   final List<String> _defaultBannerAds = [
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
   ];
 
-  List<String> get bannerAds =>
-      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
-
   List<String> _adImages = [];
   List<String> _youtubeUrls = [];
   int _currentVideoIndex = 0;
   bool _isLoadingAds = true;
 
-  // Reviews Data
-  final List<Map<String, dynamic>> _reviews = [
-    {
-      'name': 'Student Review',
-      'rating': 5,
-      'comment': 'Good placement support and faculty guidance.',
-    },
-  ];
+  List<String> get bannerAds =>
+      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
 
-  // Tabs Data
+  // ─── Tabs ──────────────────────────────────────────────────────────────────
   final List<String> tabs = [
     "All",
     "Dept",
@@ -63,11 +79,26 @@ class _College5ScreenState extends State<College5Screen> {
     "About"
   ];
 
+  // ─── Responsive (set in build) ─────────────────────────────────────────────
+  late bool _isTablet;
+  late bool _isDesktop;
+  late double _horizontalPadding;
+  late double _bannerHeight;
+  late double _maxContentWidth;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════════
+
   @override
   void initState() {
     super.initState();
+    _checkAuthStatus();
     _loadAdvertisements();
-    // Auto scroll ads
+    _loadLocalReviews();
+    _fetchReviews();
+
+    // Auto-scroll ads
     _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_adController.hasClients && mounted) {
         int nextPage = _activeAd + 1;
@@ -81,12 +112,354 @@ class _College5ScreenState extends State<College5Screen> {
     });
   }
 
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _adController.dispose();
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  AUTH
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _checkAuthStatus() async {
+    setState(() => _isAuthChecking = true);
+    try {
+      final hasToken = await _authManager.hasToken();
+      final userData = await _authManager.getUserData();
+      final userName = await _authManager.getUsername();
+
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = hasToken;
+          _currentUserId =
+              userData != null ? userData['id'] as int? : null;
+          _currentUserName = userName;
+          _isAuthChecking = false;
+        });
+        _checkIfUserReviewed();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _currentUserId = null;
+          _currentUserName = null;
+          _isAuthChecking = false;
+        });
+      }
+    }
+  }
+
+  void _checkIfUserReviewed() {
+    if (_currentUserId == null || _reviews.isEmpty) {
+      setState(() => _hasUserReviewed = false);
+      return;
+    }
+    final exists = _reviews.any((r) => r['userId'] == _currentUserId);
+    setState(() => _hasUserReviewed = exists);
+  }
+
+  void _navigateToLogin() {
+    Navigator.pushNamed(context, '/auth').then((_) {
+      _checkAuthStatus();
+      _loadLocalReviews();
+      _fetchReviews();
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  COLLEGE ID HELPER
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  int? _getCollegeId() {
+    final id = widget.college['id'];
+    if (id is int) return id;
+    if (id is String) return int.tryParse(id);
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  LOCAL REVIEW STORAGE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _loadLocalReviews() async {
+    final collegeId = _getCollegeId();
+    if (collegeId == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? reviewsJson =
+          prefs.getString('reviews_college_$collegeId');
+
+      if (reviewsJson != null) {
+        final List<dynamic> decoded = jsonDecode(reviewsJson);
+        setState(() {
+          _reviews = List<Map<String, dynamic>>.from(decoded);
+          _totalReviews = _reviews.length;
+          _calculateAverageRating();
+        });
+        if (_currentUserId != null) _checkIfUserReviewed();
+      }
+    } catch (e) {
+      debugPrint('Error loading local reviews: $e');
+    }
+  }
+
+  Future<void> _saveLocalReviews() async {
+    final collegeId = _getCollegeId();
+    if (collegeId == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          'reviews_college_$collegeId', jsonEncode(_reviews));
+    } catch (e) {
+      debugPrint('Error saving local reviews: $e');
+    }
+  }
+
+  void _calculateAverageRating() {
+    if (_reviews.isEmpty) {
+      _averageRating = 0.0;
+      return;
+    }
+    double sum = 0.0;
+    for (var review in _reviews) {
+      final r = review['rating'];
+      if (r is int) sum += r.toDouble();
+      else if (r is double) sum += r;
+      else if (r is String) sum += double.tryParse(r) ?? 0.0;
+    }
+    _averageRating = sum / _reviews.length;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FETCH REVIEWS FROM API
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _fetchReviews() async {
+    final collegeId = _getCollegeId();
+    if (collegeId == null) {
+      setState(() => _isLoadingReviews = false);
+      return;
+    }
+
+    setState(() {
+      _isLoadingReviews = true;
+      _reviewsError = null;
+    });
+
+    try {
+      final token = await _authManager.getToken();
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/college-reviews/$collegeId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      debugPrint('📡 College Reviews Status: ${response.statusCode}');
+      debugPrint('📡 College Reviews Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        // Support both { reviews: [...], totalReviews: N }
+        // and plain list response
+        List<dynamic> reviewsList = [];
+        int total = 0;
+
+        if (jsonResponse.containsKey('reviews') &&
+            jsonResponse['reviews'] is List) {
+          reviewsList = jsonResponse['reviews'];
+          total = jsonResponse['totalReviews'] ?? reviewsList.length;
+        } else if (jsonResponse.containsKey('data') &&
+            jsonResponse['data'] is List) {
+          reviewsList = jsonResponse['data'];
+          total = reviewsList.length;
+        }
+
+        final formatted = <Map<String, dynamic>>[];
+        for (var review in reviewsList) {
+          if (review is Map<String, dynamic>) {
+            int? userId;
+            if (review['userId'] is int) {
+              userId = review['userId'] as int;
+            } else if (review['userId'] is String) {
+              userId = int.tryParse(review['userId'].toString());
+            }
+
+            formatted.add({
+              'id': review['id'] ?? 0,
+              'userId': userId,
+              'userName': review['username'] ?? 'Anonymous',
+              'rating': review['rating'] ?? 0,
+              'review': review['review'] ?? '',
+              'createdAt':
+                  review['createdAt'] ?? DateTime.now().toIso8601String(),
+            });
+          }
+        }
+
+        setState(() {
+          _reviews = formatted;
+          _totalReviews = total;
+          _calculateAverageRating();
+          _isLoadingReviews = false;
+        });
+
+        await _saveLocalReviews();
+        if (_currentUserId != null) _checkIfUserReviewed();
+      } else if (response.statusCode == 404) {
+        setState(() {
+          _reviews = [];
+          _isLoadingReviews = false;
+        });
+      } else {
+        setState(() {
+          _reviewsError = 'Failed to load reviews (${response.statusCode})';
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching reviews: $e');
+      setState(() {
+        _reviewsError = 'Error loading reviews';
+        _isLoadingReviews = false;
+      });
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  SUBMIT REVIEW
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _submitReview() async {
+    if (_rating == 0 || _reviewController.text.trim().isEmpty) {
+      _showDialog('Incomplete', 'Please give a rating and write your review.');
+      return;
+    }
+
+    if (!_isLoggedIn) {
+      _showDialog('Login Required', 'Please login to submit a review.');
+      return;
+    }
+
+    if (_hasUserReviewed) {
+      _showDialog(
+          'Already Reviewed', 'You have already reviewed this college.');
+      return;
+    }
+
+    final collegeId = _getCollegeId();
+    if (collegeId == null) {
+      _showDialog('Error', 'College information is missing.');
+      return;
+    }
+
+    setState(() => _isSubmittingReview = true);
+
+    try {
+      final token = await _authManager.getToken();
+
+      if (token == null) {
+        _showDialog('Login Required', 'Please login to submit a review.');
+        setState(() => _isSubmittingReview = false);
+        return;
+      }
+
+      // Optimistic local review
+      final newReview = {
+        'id': DateTime.now().millisecondsSinceEpoch,
+        'userId': _currentUserId,
+        'userName': _currentUserName ?? 'Anonymous User',
+        'rating': _rating,
+        'review': _reviewController.text.trim(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse('$_baseUrl/api/college-reviews'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'collegeId': collegeId,
+            'rating': _rating,
+            'review': _reviewController.text.trim(),
+          }),
+        );
+
+        debugPrint(
+            '📡 Submit Review: ${response.statusCode} - ${response.body}');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          try {
+            final res = jsonDecode(response.body);
+            if (res is Map && res.containsKey('id')) {
+              newReview['id'] = res['id'];
+            }
+          } catch (_) {}
+        } else if (response.statusCode == 409 ||
+            response.statusCode == 400) {
+          setState(() {
+            _hasUserReviewed = true;
+            _isSubmittingReview = false;
+          });
+          _showDialog('Already Reviewed',
+              'You have already submitted a review for this college. Each user can only post one review.');
+          return;
+        } else {
+          debugPrint(
+              '⚠️ API submission failed ${response.statusCode}, saving locally.');
+        }
+      } catch (e) {
+        debugPrint('Network error, saving locally: $e');
+      }
+
+      setState(() {
+        _reviews.insert(0, newReview);
+        _totalReviews = _reviews.length;
+        _calculateAverageRating();
+        _rating = 0;
+        _reviewController.clear();
+        _hasUserReviewed = true;
+        _isSubmittingReview = false;
+      });
+
+      await _saveLocalReviews();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review submitted successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSubmittingReview = false);
+      _showDialog('Error', e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  ADS
+  // ═══════════════════════════════════════════════════════════════════════════
+
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for collegepage5...');
     try {
       final response = await http.get(
-        Uri.parse(
-            'https://master-backend-18ik.onrender.com/api/advertisements?page=collegepage5'),
+        Uri.parse('$_baseUrl/api/advertisements?page=collegepage5'),
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -106,8 +479,13 @@ class _College5ScreenState extends State<College5Screen> {
       }
     } catch (e) {
       debugPrint('❌ Error loading advertisements: $e');
+      if (mounted) setState(() => _isLoadingAds = false);
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
 
   void _nextVideo() {
     if (_youtubeUrls.isEmpty) return;
@@ -132,101 +510,99 @@ class _College5ScreenState extends State<College5Screen> {
     return url;
   }
 
-  @override
-  void dispose() {
-    _adTimer?.cancel();
-    _adController.dispose();
-    _reviewController.dispose();
-    super.dispose();
-  }
-
-  // Responsive header height like IQ1
-  double _getHeaderHeight(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 64; // Desktop
-    if (screenWidth >= 768) return 58; // Tablet
-    return 52; // Mobile
-  }
-
-  // Responsive font size like IQ1
-  double _getTitleFontSize(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 19;
-    if (screenWidth >= 768) return 18;
-    return 17;
-  }
-
-  // Responsive horizontal padding like IQ1
-  double _getHorizontalPadding(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 32;
-    if (screenWidth >= 768) return 24;
-    return 16;
-  }
-
-  // Simple URL launcher function
-  void _launchURL(String url) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Would launch: $url'),
-        duration: const Duration(seconds: 2),
+  void _showDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
 
-  void _openMap() {
-    _launchURL(
-        'https://www.google.com/maps/search/?api=1&query=Arunachala+College+of+Engineering');
-  }
-
-  void _callNow() {
-    _launchURL('tel:9876543210');
-  }
-
-  void _openWhatsApp() {
-    _launchURL('https://wa.me/919876543210');
-  }
-
-  void _submitReview() {
-    if (_rating == 0 || _reviewController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please give rating and write review'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final diff = DateTime.now().difference(date);
+      if (diff.inDays > 365) return '${(diff.inDays / 365).floor()} year(s) ago';
+      if (diff.inDays > 30) return '${(diff.inDays / 30).floor()} month(s) ago';
+      if (diff.inDays > 0) return '${diff.inDays} day(s) ago';
+      if (diff.inHours > 0) return '${diff.inHours} hour(s) ago';
+      if (diff.inMinutes > 0) return '${diff.inMinutes} minute(s) ago';
+      return 'Just now';
+    } catch (_) {
+      return '';
     }
+  }
 
-    setState(() {
-      _reviews.insert(0, {
-        'name': 'Anonymous User',
-        'rating': _rating,
-        'comment': _reviewController.text,
-      });
-      _rating = 0;
-      _reviewController.clear();
-    });
-
+  void _openMap() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Review submitted successfully!'),
+        content:
+            Text('Opening map...'),
         duration: Duration(seconds: 2),
       ),
     );
   }
+
+  void _callNow() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Calling...'), duration: Duration(seconds: 2)),
+    );
+  }
+
+  void _openWhatsApp() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Opening WhatsApp...'),
+          duration: Duration(seconds: 2)),
+    );
+  }
+
+  // ─── Responsive helpers ────────────────────────────────────────────────────
+
+  double _getHeaderHeight(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w >= 1024) return 64;
+    if (w >= 768) return 58;
+    return 52;
+  }
+
+  double _getTitleFontSize(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w >= 1024) return 19;
+    if (w >= 768) return 18;
+    return 17;
+  }
+
+  double _getHorizontalPadding(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w >= 1024) return 32;
+    if (w >= 768) return 24;
+    return 16;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  TAB CONTENT
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _renderContent() {
     final fullData = widget.college['fullData'] as CollegeInfo?;
     String contentText = 'Details not available.';
 
     if (fullData != null) {
-      String aboutContent = fullData.aboutCollege.isEmpty
-          ? 'Details not available.'
-          : fullData.aboutCollege;
       switch (_activeTab) {
         case 'About':
-          contentText = aboutContent;
+          contentText = fullData.aboutCollege.isEmpty
+              ? 'Details not available.'
+              : fullData.aboutCollege;
           break;
         case 'Academic':
           contentText = fullData.academics.isEmpty
@@ -292,6 +668,7 @@ class _College5ScreenState extends State<College5Screen> {
       );
     }
 
+    // Placement
     return _buildSectionCard(
       title: 'Placement',
       child: Text(
@@ -307,33 +684,30 @@ class _College5ScreenState extends State<College5Screen> {
     );
   }
 
-  // Responsive variables
-  late bool _isTablet;
-  late bool _isDesktop;
-  late double _horizontalPadding;
-  late double _bannerHeight;
-  late double _maxContentWidth;
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
-    // Responsive breakpoints
     _isTablet = screenWidth >= 768;
     _isDesktop = screenWidth >= 1024;
-
-    // Responsive dimensions
     _horizontalPadding = _getHorizontalPadding(context);
     _bannerHeight = _isDesktop ? 300 : (_isTablet ? 300 : 200);
     _maxContentWidth = _isDesktop ? 1200 : double.infinity;
+
+    final double bodyFontSize = _isTablet ? 15 : 13;
+    final double smallFontSize = _isTablet ? 13 : 11;
+    final double cardPadding = _isTablet ? 20 : 16;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
       body: SafeArea(
         child: Column(
           children: [
-            // ===== HEADER (Updated to match IQ1) =====
+            // ── HEADER ──────────────────────────────────────────────────────
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -354,27 +728,22 @@ class _College5ScreenState extends State<College5Screen> {
               ),
               child: Container(
                 constraints: BoxConstraints(maxWidth: _maxContentWidth),
-                padding: EdgeInsets.symmetric(horizontal: _horizontalPadding),
+                padding:
+                    EdgeInsets.symmetric(horizontal: _horizontalPadding),
                 height: _getHeaderHeight(context),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back Button - Fixed size like IQ1
                     SizedBox(
                       width: 40,
                       child: IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          size: 24, // Fixed size like IQ1
-                          color: Colors.white,
-                        ),
+                        icon: const Icon(Icons.arrow_back,
+                            size: 24, color: Colors.white),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
                     ),
-
-                    // Header Title - Centered like IQ1
                     Expanded(
                       child: Center(
                         child: Text(
@@ -387,34 +756,26 @@ class _College5ScreenState extends State<College5Screen> {
                         ),
                       ),
                     ),
-
-                    // Spacer for symmetry like IQ1
                     const SizedBox(width: 40),
                   ],
                 ),
               ),
             ),
 
-            // ===== MAIN CONTENT =====
+            // ── MAIN CONTENT ─────────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 child: Center(
                   child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: _maxContentWidth,
-                    ),
+                    constraints:
+                        BoxConstraints(maxWidth: _maxContentWidth),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ===== TOP ADS =====
+                        // ── BANNER ADS ─────────────────────────────────────
                         Container(
                           margin: EdgeInsets.only(
-                            top: _isDesktop ? 8 : 0,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                _isDesktop ? BorderRadius.circular(12) : null,
-                          ),
+                              top: _isDesktop ? 8 : 0),
                           child: ClipRRect(
                             borderRadius: _isDesktop
                                 ? BorderRadius.circular(12)
@@ -424,52 +785,41 @@ class _College5ScreenState extends State<College5Screen> {
                               child: PageView.builder(
                                 controller: _adController,
                                 itemCount: bannerAds.length,
-                                onPageChanged: (index) {
-                                  setState(() {
-                                    _activeAd = index;
-                                  });
-                                },
+                                onPageChanged: (index) =>
+                                    setState(() => _activeAd = index),
                                 itemBuilder: (context, index) {
                                   return Container(
-                                    width: screenWidth,
                                     color: const Color(0xFFF0F0F0),
                                     child: Image.network(
                                       bannerAds[index],
                                       fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                        if (loadingProgress == null)
-                                          return child;
+                                      loadingBuilder: (context, child, p) {
+                                        if (p == null) return child;
                                         return const Center(
                                           child: CircularProgressIndicator(
                                               color: Color(0xFF0B5ED7)),
                                         );
                                       },
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.image,
+                                      errorBuilder: (_, __, ___) => Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.image,
                                                 size: 60,
-                                                color: const Color(0xFF0B5ED7),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'Advertisement ${index + 1}',
-                                                style: const TextStyle(
+                                                color: Color(0xFF0B5ED7)),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Advertisement ${index + 1}',
+                                              style: const TextStyle(
                                                   fontSize: 18,
                                                   color: Color(0xFF0B5ED7),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
+                                                  fontWeight:
+                                                      FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },
@@ -478,16 +828,18 @@ class _College5ScreenState extends State<College5Screen> {
                           ),
                         ),
 
-                        // Dots Indicator
+                        // Dots indicator
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(bannerAds.length, (index) {
+                          children:
+                              List.generate(bannerAds.length, (index) {
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               width: _activeAd == index ? 24 : 8,
                               height: 8,
-                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 6),
                               decoration: BoxDecoration(
                                 color: _activeAd == index
                                     ? const Color(0xFF0B5ED7)
@@ -498,7 +850,7 @@ class _College5ScreenState extends State<College5Screen> {
                           }),
                         ),
 
-                        // ===== HERO CARD =====
+                        // ── HERO CARD ──────────────────────────────────────
                         Container(
                           margin: EdgeInsets.fromLTRB(
                             _isDesktop ? 0 : _horizontalPadding,
@@ -509,8 +861,8 @@ class _College5ScreenState extends State<College5Screen> {
                           padding: EdgeInsets.all(_isTablet ? 20 : 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4C73AC),
-                            borderRadius:
-                                BorderRadius.circular(_isTablet ? 20 : 18),
+                            borderRadius: BorderRadius.circular(
+                                _isTablet ? 20 : 18),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,14 +871,13 @@ class _College5ScreenState extends State<College5Screen> {
                                 widget.college['name'] ?? 'College Name',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize:
-                                      _isDesktop ? 26 : (_isTablet ? 24 : 20),
+                                  fontSize: _isDesktop
+                                      ? 26
+                                      : (_isTablet ? 24 : 20),
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-
                               const SizedBox(height: 4),
-
                               Text(
                                 '${widget.college['category'] ?? ''} · ${(widget.college['type'] ?? '').toString().replaceAll('Govt', 'Government')} Institution',
                                 style: TextStyle(
@@ -534,17 +885,43 @@ class _College5ScreenState extends State<College5Screen> {
                                   fontSize: _isTablet ? 14 : 12,
                                 ),
                               ),
-
                               const SizedBox(height: 10),
-
-                              // Info Rows
+                              // Average rating from reviews
+                              if (_averageRating > 0) ...[
+                                Row(
+                                  children: [
+                                    const Icon(Icons.star,
+                                        size: 16,
+                                        color: Color(0xFFFFB703)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _averageRating.toStringAsFixed(1),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: _isTablet ? 14 : 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (_totalReviews > 0) ...[
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '($_totalReviews reviews)',
+                                        style: TextStyle(
+                                          color:
+                                              const Color(0xFFE8F0FF),
+                                          fontSize: _isTablet ? 13 : 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                              ],
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.school,
-                                    size: _isTablet ? 18 : 16,
-                                    color: const Color(0xFFE8F0FF),
-                                  ),
+                                  Icon(Icons.school,
+                                      size: _isTablet ? 18 : 16,
+                                      color: const Color(0xFFE8F0FF)),
                                   const SizedBox(width: 6),
                                   Text(
                                     '${widget.college['degreeName'] ?? ''} Programs',
@@ -555,19 +932,16 @@ class _College5ScreenState extends State<College5Screen> {
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 8),
-
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.location_on,
-                                    size: _isTablet ? 18 : 16,
-                                    color: const Color(0xFFE8F0FF),
-                                  ),
+                                  Icon(Icons.location_on,
+                                      size: _isTablet ? 18 : 16,
+                                      color: const Color(0xFFE8F0FF)),
                                   const SizedBox(width: 6),
                                   Text(
-                                    widget.college['location'] ?? 'Location',
+                                    widget.college['location'] ??
+                                        'Location',
                                     style: TextStyle(
                                       color: const Color(0xFFE8F0FF),
                                       fontSize: _isTablet ? 14 : 12,
@@ -579,30 +953,28 @@ class _College5ScreenState extends State<College5Screen> {
                           ),
                         ),
 
-                        // ===== TABS =====
+                        // ── TABS ───────────────────────────────────────────
                         Container(
                           height: _isTablet ? 60 : 50,
                           margin: EdgeInsets.only(
-                            top: _isTablet ? 12 : 10,
-                          ),
+                              top: _isTablet ? 12 : 10),
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: tabs.length,
                             itemBuilder: (context, index) {
                               final tab = tabs[index];
                               return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _activeTab = tab;
-                                  });
-                                },
+                                onTap: () =>
+                                    setState(() => _activeTab = tab),
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: _isTablet ? 18 : 16,
                                     vertical: _isTablet ? 10 : 8,
                                   ),
                                   margin: EdgeInsets.only(
-                                    left: index == 0 ? _horizontalPadding : 0,
+                                    left: index == 0
+                                        ? _horizontalPadding
+                                        : 0,
                                     right: index == tabs.length - 1
                                         ? _horizontalPadding
                                         : 10,
@@ -632,10 +1004,10 @@ class _College5ScreenState extends State<College5Screen> {
                           ),
                         ),
 
-                        // ===== TAB CONTENT =====
+                        // ── TAB CONTENT ────────────────────────────────────
                         _renderContent(),
 
-                        // ===== MAP BUTTON =====
+                        // ── MAP BUTTON ─────────────────────────────────────
                         Container(
                           margin: EdgeInsets.fromLTRB(
                             _isDesktop ? 0 : _horizontalPadding,
@@ -652,18 +1024,13 @@ class _College5ScreenState extends State<College5Screen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
-                              padding: EdgeInsets.symmetric(
-                                vertical: _isTablet ? 16 : 14,
-                              ),
                               elevation: 4,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.map,
-                                  size: _isTablet ? 20 : 18,
-                                ),
+                                Icon(Icons.map,
+                                    size: _isTablet ? 20 : 18),
                                 const SizedBox(width: 8),
                                 Text(
                                   'View on Map',
@@ -677,7 +1044,7 @@ class _College5ScreenState extends State<College5Screen> {
                           ),
                         ),
 
-                        // ===== CALL & WHATSAPP =====
+                        // ── CALL & WHATSAPP ────────────────────────────────
                         Container(
                           margin: EdgeInsets.fromLTRB(
                             _isDesktop ? 0 : _horizontalPadding,
@@ -691,67 +1058,64 @@ class _College5ScreenState extends State<College5Screen> {
                                 child: ElevatedButton(
                                   onPressed: _callNow,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE53E3E),
+                                    backgroundColor:
+                                        const Color(0xFFE53E3E),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          _isTablet ? 16 : 14),
+                                      borderRadius:
+                                          BorderRadius.circular(14),
                                     ),
                                     padding: EdgeInsets.symmetric(
-                                      vertical: _isTablet ? 16 : 14,
-                                    ),
+                                        vertical: _isTablet ? 16 : 14),
                                     elevation: 4,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        Icons.call,
-                                        size: _isTablet ? 20 : 18,
-                                      ),
+                                      Icon(Icons.call,
+                                          size: _isTablet ? 20 : 18),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        'Call',
-                                        style: TextStyle(
-                                          fontSize: _isTablet ? 16 : 14,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                                      Text('Call',
+                                          style: TextStyle(
+                                              fontSize:
+                                                  _isTablet ? 16 : 14,
+                                              fontWeight:
+                                                  FontWeight.w700)),
                                     ],
                                   ),
                                 ),
                               ),
-                              SizedBox(width: _isTablet ? 12 : 8),
+                              SizedBox(
+                                  width: _isTablet ? 12 : 8),
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: _openWhatsApp,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF25D366),
+                                    backgroundColor:
+                                        const Color(0xFF25D366),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          _isTablet ? 16 : 14),
+                                      borderRadius:
+                                          BorderRadius.circular(14),
                                     ),
                                     padding: EdgeInsets.symmetric(
-                                      vertical: _isTablet ? 16 : 14,
-                                    ),
+                                        vertical: _isTablet ? 16 : 14),
                                     elevation: 4,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        Icons.message,
-                                        size: _isTablet ? 20 : 18,
-                                      ),
+                                      Icon(Icons.message,
+                                          size: _isTablet ? 20 : 18),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        'WhatsApp',
-                                        style: TextStyle(
-                                          fontSize: _isTablet ? 16 : 14,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                                      Text('WhatsApp',
+                                          style: TextStyle(
+                                              fontSize:
+                                                  _isTablet ? 16 : 14,
+                                              fontWeight:
+                                                  FontWeight.w700)),
                                     ],
                                   ),
                                 ),
@@ -760,106 +1124,404 @@ class _College5ScreenState extends State<College5Screen> {
                           ),
                         ),
 
-                        // ===== RATE & REVIEW =====
+                        // ── RATE & REVIEW ──────────────────────────────────
                         _buildSectionCard(
                           title: 'Rate & Review',
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Star Rating
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(5, (index) {
-                                  return IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _rating = index + 1;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      index < _rating
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      size: _isTablet ? 32 : 28,
-                                      color: const Color(0xFFFFD700),
-                                    ),
-                                  );
-                                }),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Review Input
-                              TextField(
-                                controller: _reviewController,
-                                maxLines: 4,
-                                decoration: InputDecoration(
-                                  hintText: 'Write your review...',
-                                  hintStyle: TextStyle(
-                                    color: const Color(0xFF999999),
-                                    fontSize: _isTablet ? 16 : 14,
+                              // Auth checking
+                              if (_isAuthChecking)
+                                const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: GlassLoader(),
                                   ),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFF),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        _isTablet ? 12 : 10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  contentPadding:
-                                      EdgeInsets.all(_isTablet ? 16 : 12),
-                                ),
-                              ),
+                                )
 
-                              const SizedBox(height: 16),
-
-                              // Submit Button
-                              ElevatedButton(
-                                onPressed: _submitReview,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0B5ED7),
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size.fromHeight(50),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: _isTablet ? 14 : 12,
-                                  ),
-                                  elevation: 4,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.send,
-                                      size: _isTablet ? 20 : 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Submit Review',
-                                      style: TextStyle(
-                                        fontSize: _isTablet ? 16 : 14,
-                                        fontWeight: FontWeight.w700,
+                              // Not logged in
+                              else if (!_isLoggedIn)
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        'Login to share your experience',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey),
+                                        textAlign: TextAlign.center,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 12),
+                                      ElevatedButton(
+                                        onPressed: _navigateToLogin,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF0B5ED7),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    20),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                            'Login to Review'),
+                                      ),
+                                    ],
+                                  ),
+                                )
+
+                              // Already reviewed
+                              else if (_hasUserReviewed)
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange[50],
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: Colors.orange),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.info_outline,
+                                              color: Colors.orange[700]),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'You have already reviewed this college',
+                                              style: TextStyle(
+                                                color: Colors.orange[700],
+                                                fontWeight:
+                                                    FontWeight.w600,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Each user can only post one review. Thank you for your feedback!',
+                                        style: TextStyle(
+                                          color: Colors.orange[700],
+                                          fontSize: 12,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                )
+
+                              // Review form
+                              else ...[
+                                Text(
+                                  'Rate your experience',
+                                  style: TextStyle(
+                                    fontSize: bodyFontSize,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[700],
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: List.generate(5, (index) {
+                                    return IconButton(
+                                      onPressed: _isSubmittingReview
+                                          ? null
+                                          : () => setState(
+                                              () => _rating = index + 1),
+                                      icon: Icon(
+                                        index < _rating
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        size: _isTablet ? 34 : 30,
+                                        color: const Color(0xFFFFD700),
+                                      ),
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                    );
+                                  }),
+                                ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFF),
+                                    borderRadius:
+                                        BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: const Color(0xFFE0E7FF)),
+                                  ),
+                                  child: TextField(
+                                    controller: _reviewController,
+                                    maxLines: 4,
+                                    minLines: 3,
+                                    enabled: !_isSubmittingReview,
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Share your experience...',
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: bodyFontSize,
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding:
+                                          EdgeInsets.all(cardPadding),
+                                    ),
+                                    style:
+                                        TextStyle(fontSize: bodyFontSize),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: _isSubmittingReview
+                                        ? null
+                                        : _submitReview,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          const Color(0xFF0B5ED7),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(30),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          vertical:
+                                              _isTablet ? 14 : 12),
+                                      elevation: 2,
+                                    ),
+                                    child: _isSubmittingReview
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: GlassLoader(),
+                                          )
+                                        : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.send,
+                                                  size: _isTablet
+                                                      ? 20
+                                                      : 18),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Submit Review',
+                                                style: TextStyle(
+                                                  fontSize: _isTablet
+                                                      ? 16
+                                                      : 14,
+                                                  fontWeight:
+                                                      FontWeight.w700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
 
-                        // ===== REVIEWS LIST =====
+                        // ── STUDENT REVIEWS LIST ───────────────────────────
                         _buildSectionCard(
-                          title: 'Student Reviews',
-                          child: Column(
-                            children: _reviews.map((review) {
-                              return _buildReviewCard(review);
-                            }).toList(),
-                          ),
+                          title:
+                              'Student Reviews (${_reviews.length})',
+                          child: _isLoadingReviews
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: GlassLoader(),
+                                  ),
+                                )
+                              : _reviewsError != null
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          children: [
+                                            Icon(Icons.error_outline,
+                                                color: Colors.red[300]),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              _reviewsError!,
+                                              style: TextStyle(
+                                                  color: Colors.grey[600]),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            TextButton(
+                                              onPressed: _fetchReviews,
+                                              child:
+                                                  const Text('Retry'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : _reviews.isEmpty
+                                      ? Container(
+                                          padding:
+                                              const EdgeInsets.all(20),
+                                          child: Center(
+                                            child: Column(
+                                              children: [
+                                                Icon(
+                                                    Icons
+                                                        .rate_review_outlined,
+                                                    size: 48,
+                                                    color: Colors
+                                                        .grey[400]),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'No reviews yet',
+                                                  style: TextStyle(
+                                                      color:
+                                                          Colors.grey[600],
+                                                      fontSize: 16),
+                                                ),
+                                                if (_isLoggedIn &&
+                                                    !_hasUserReviewed)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets
+                                                            .only(top: 6),
+                                                    child: Text(
+                                                      'Be the first to review!',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .grey[500],
+                                                          fontSize: 14),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      : Column(
+                                          children:
+                                              _reviews.map((review) {
+                                            // normalise rating to int
+                                            int ratingVal = 0;
+                                            final r = review['rating'];
+                                            if (r is int) ratingVal = r;
+                                            else if (r is double) ratingVal = r.round();
+                                            else if (r is String) ratingVal = int.tryParse(r) ?? 0;
+
+                                            return Container(
+                                              width: double.infinity,
+                                              margin: const EdgeInsets
+                                                  .only(bottom: 12),
+                                              padding: EdgeInsets.all(
+                                                  cardPadding),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                    0xFFF8FAFF),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        12),
+                                                border: const Border(
+                                                  left: BorderSide(
+                                                    color: Color(
+                                                        0xFF0B5ED7),
+                                                    width: 3,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          review['userName']
+                                                                  ?.toString() ??
+                                                              'Anonymous',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                bodyFontSize,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .w700,
+                                                            color: const Color(
+                                                                0xFF004780),
+                                                          ),
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis,
+                                                        ),
+                                                      ),
+                                                      Row(
+                                                        children: List
+                                                            .generate(
+                                                                5,
+                                                                (i) => Icon(
+                                                                      i < ratingVal
+                                                                          ? Icons
+                                                                              .star
+                                                                          : Icons
+                                                                              .star_outline,
+                                                                      color: const Color(
+                                                                          0xFFFFD700),
+                                                                      size:
+                                                                          smallFontSize,
+                                                                    )),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(
+                                                      height: 8),
+                                                  Text(
+                                                    review['review']
+                                                            ?.toString() ??
+                                                        '',
+                                                    style: TextStyle(
+                                                      fontSize:
+                                                          smallFontSize,
+                                                      color: const Color(
+                                                          0xFF5F6F81),
+                                                      height: 1.5,
+                                                    ),
+                                                  ),
+                                                  if (review['createdAt'] !=
+                                                      null)
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets
+                                                              .only(
+                                                              top: 6),
+                                                      child: Text(
+                                                        _formatDate(review[
+                                                                'createdAt']
+                                                            .toString()),
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: Colors
+                                                              .grey[500],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
                         ),
 
-                        // ===== YOUTUBE VIDEO SECTION =====
+                        // ── YOUTUBE VIDEOS ─────────────────────────────────
                         if (_youtubeUrls.isNotEmpty) ...[
                           if (_youtubeUrls.length > 1)
                             Padding(
@@ -883,7 +1545,8 @@ class _College5ScreenState extends State<College5Screen> {
                                     children: [
                                       IconButton(
                                         onPressed: _previousVideo,
-                                        icon: const Icon(Icons.chevron_left,
+                                        icon: const Icon(
+                                            Icons.chevron_left,
                                             color: Color(0xFF0B5ED7)),
                                       ),
                                       Text(
@@ -895,7 +1558,8 @@ class _College5ScreenState extends State<College5Screen> {
                                       ),
                                       IconButton(
                                         onPressed: _nextVideo,
-                                        icon: const Icon(Icons.chevron_right,
+                                        icon: const Icon(
+                                            Icons.chevron_right,
                                             color: Color(0xFF0B5ED7)),
                                       ),
                                     ],
@@ -910,33 +1574,31 @@ class _College5ScreenState extends State<College5Screen> {
                                   : (_isTablet ? 40 : 32),
                             ),
                             child: CommonYoutubePlayer(
-                              youtubeUrl: _youtubeUrls[_currentVideoIndex],
-                              height:
-                                  _isDesktop ? 400 : (_isTablet ? 320 : 250),
+                              youtubeUrl:
+                                  _youtubeUrls[_currentVideoIndex],
+                              height: _isDesktop
+                                  ? 400
+                                  : (_isTablet ? 320 : 250),
                               placeholderThumbnail: _getVideoThumbnail(
                                   _youtubeUrls[_currentVideoIndex]),
                               borderRadius: 0,
                             ),
                           ),
                         ] else
-                          // VIDEO AD - EDGE TO EDGE
                           Padding(
                             padding: EdgeInsets.only(
-                              top: _isTablet ? 40 : 32,
-                            ),
+                                top: _isTablet ? 40 : 32),
                             child: CommonYoutubePlayer(
                               youtubeUrl:
                                   'https://www.youtube.com/embed/NONufn3jgXI',
-                              height:
-                                  _isDesktop ? 400 : (_isTablet ? 320 : 250),
+                              height: _isDesktop
+                                  ? 400
+                                  : (_isTablet ? 320 : 250),
                               placeholderThumbnail:
                                   'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
                               borderRadius: 0,
                             ),
                           ),
-
-                        // ===== MINIMAL SPACER =====
-                        // SizedBox(height: _isTablet ? 30 : 20), // Minimal space for footer
                       ],
                     ),
                   ),
@@ -944,20 +1606,21 @@ class _College5ScreenState extends State<College5Screen> {
               ),
             ),
 
-            // ===== FOOTER =====
+            // ── FOOTER ──────────────────────────────────────────────────────
             Footer(
               currentIndex: _footerIndex,
-              onItemTapped: (index) {
-                setState(() {
-                  _footerIndex = index;
-                });
-              },
+              onItemTapped: (index) =>
+                  setState(() => _footerIndex = index),
             ),
           ],
         ),
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  SHARED WIDGETS
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildSectionCard({
     required String title,
@@ -981,6 +1644,7 @@ class _College5ScreenState extends State<College5Screen> {
             offset: const Offset(0, 2),
           ),
         ],
+        border: Border.all(color: Colors.grey.shade100, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -990,58 +1654,11 @@ class _College5ScreenState extends State<College5Screen> {
             style: TextStyle(
               fontSize: _isTablet ? 18 : 16,
               fontWeight: FontWeight.w700,
-              color: Colors.black,
+              color: const Color(0xFF004780),
             ),
           ),
           const SizedBox(height: 12),
           child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewCard(Map<String, dynamic> review) {
-    return Container(
-      padding: EdgeInsets.all(_isTablet ? 16 : 12),
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(_isTablet ? 14 : 12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                review['name'],
-                style: TextStyle(
-                  fontSize: _isTablet ? 16 : 14,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF004780),
-                ),
-              ),
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < review['rating'] ? Icons.star : Icons.star_border,
-                    size: _isTablet ? 16 : 14,
-                    color: const Color(0xFFFFD700),
-                  );
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            review['comment'],
-            style: TextStyle(
-              fontSize: _isTablet ? 15 : 13,
-              color: const Color(0xFF5F6F81),
-              height: 1.5,
-            ),
-          ),
         ],
       ),
     );
