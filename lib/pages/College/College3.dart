@@ -6,7 +6,7 @@ import 'dart:convert';
 import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Widgets/Footer.dart';
 import 'College4.dart';
-import '../Collegecourse/Collegecourse1.dart';
+import '../Course/Course1.dart';
 
 class College3Screen extends StatefulWidget {
   final String? degree;
@@ -410,7 +410,7 @@ class _College3ScreenState extends State<College3Screen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              const Collegecourse1Screen(),
+                                              const Course1Screen(),
                                         ),
                                       );
 

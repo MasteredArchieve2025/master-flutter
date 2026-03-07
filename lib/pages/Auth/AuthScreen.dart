@@ -166,302 +166,274 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Stack(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
             children: [
-              // Main scrollable content
-              SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: size.height - 
-                               MediaQuery.of(context).padding.top - 
-                               MediaQuery.of(context).padding.bottom,
+              // Header with Tabs
+              Stack(
+                children: [
+                  AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      return ClipPath(
+                        clipper: TopWaveClipper(_animation.value),
+                        child: Container(
+                          height: 220,
+                          width: size.width,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        // Header with Tabs
-                        Stack(
-                          children: [
-                            AnimatedBuilder(
+                  Positioned(
+                    top: 60,
+                    left: 0,
+                    right: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () => switchTo("login"),
+                            child: AnimatedBuilder(
                               animation: _animation,
                               builder: (context, child) {
-                                return ClipPath(
-                                  clipper: TopWaveClipper(_animation.value),
-                                  child: Container(
-                                    height: 220,
-                                    width: size.width,
-                                    decoration: const BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
+                                return Text(
+                                  "LOGIN",
+                                  style: TextStyle(
+                                    color: Color.lerp(
+                                      const Color(0xFF1E1E1E),
+                                      Colors.white,
+                                      _animation.value,
                                     ),
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
                                   ),
                                 );
                               },
                             ),
-                            Positioned(
-                              top: 60,
-                              left: 0,
-                              right: 0,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 40),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => switchTo("login"),
-                                      child: AnimatedBuilder(
-                                        animation: _animation,
-                                        builder: (context, child) {
-                                          return Text(
-                                            "LOGIN",
-                                            style: TextStyle(
-                                              color: Color.lerp(
-                                                const Color(0xFF1E1E1E),
-                                                Colors.white,
-                                                _animation.value,
-                                              ),
-                                              fontSize: 19,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 1.2,
-                                            ),
-                                          );
-                                        },
-                                      ),
+                          ),
+                          GestureDetector(
+                            onTap: () => switchTo("register"),
+                            child: AnimatedBuilder(
+                              animation: _animation,
+                              builder: (context, child) {
+                                return Text(
+                                  "REGISTER",
+                                  style: TextStyle(
+                                    color: Color.lerp(
+                                      Colors.white,
+                                      const Color(0xFF1E1E1E),
+                                      _animation.value,
                                     ),
-                                    GestureDetector(
-                                      onTap: () => switchTo("register"),
-                                      child: AnimatedBuilder(
-                                        animation: _animation,
-                                        builder: (context, child) {
-                                          return Text(
-                                            "REGISTER",
-                                            style: TextStyle(
-                                              color: Color.lerp(
-                                                Colors.white,
-                                                const Color(0xFF1E1E1E),
-                                                _animation.value,
-                                              ),
-                                              fontSize: 19,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 1.2,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Form content
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (mode == "register")
-                                  InputField(
-                                    icon: Icons.person,
-                                    placeholder: "User Name",
-                                    controller: usernameController,
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
                                   ),
-                                InputField(
-                                  icon: Icons.phone,
-                                  placeholder: "Phone Number",
-                                  controller: phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  prefixWidget: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF0F7FF),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(
-                                              color:
-                                                  const Color(0xFF0066BE).withOpacity(0.2)),
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-                                          child: DropdownButton<String>(
-                                            value: selectedCountryCode,
-                                            isDense: true,
-                                            icon: const Icon(Icons.arrow_drop_down,
-                                                color: Color(0xFF0066BE)),
-                                            items: ["+91"].map((String value) {
-                                              return DropdownMenuItem<String>(
-                                                value: value,
-                                                child: Text(
-                                                  "IND $value",
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF0066BE),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                            onChanged: (String? newValue) {
-                                              if (newValue != null) {
-                                                setState(() {
-                                                  selectedCountryCode = newValue;
-                                                });
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        height: 20,
-                                        width: 1,
-                                        color: Colors.black.withOpacity(0.1),
-                                      ),
-                                    ],
-                                  ),
-                                  maxLength: 10,
-                                ),
-                                if (mode == "register") ...[
-                                  InputField(
-                                    icon: Icons.email,
-                                    placeholder: "Email",
-                                    controller: emailController,
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                ],
-                                InputField(
-                                  icon: Icons.lock,
-                                  placeholder: "Password",
-                                  controller: passwordController,
-                                  isPassword: true,
-                                  obscureText: obscurePassword,
-                                  onToggleObscure: () {
-                                    setState(() {
-                                      obscurePassword = !obscurePassword;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 25),
-                                GestureDetector(
-                                  onTap: loading ? null : handleAuth,
-                                  child: Container(
-                                    height: 52,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0066BE),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: loading
-                                          ? const SizedBox(
-                                              height: 24,
-                                              width: 24,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : Text(
-                                              mode == "login" ? "Login" : "Register",
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                if (mode == "login") ...[
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.pushNamed(context, '/forgot-password');
-                                    },
-                                    child: const Text(
-                                      "Forgot Password?",
-                                      style: TextStyle(
-                                        color: Color(0xFF0066BE),
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text(
-                                        "Don't you have an account yet? ",
-                                        style: TextStyle(fontSize: 14),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () => switchTo("register"),
-                                        child: const Text(
-                                          "Sign Up",
-                                          style: TextStyle(
-                                            color: Color(0xFF0066BE),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                SizedBox(height: bottomPadding > 0 ? bottomPadding : 20),
-                              ],
+                                );
+                              },
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-              
-              // Bottom Wave - positioned absolutely at the bottom
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    return ClipPath(
-                      clipper: BottomWaveClipper(_animation.value),
+
+              // Form content
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                child: Column(
+                  children: [
+                    if (mode == "register")
+                      InputField(
+                        icon: Icons.person,
+                        placeholder: "User Name",
+                        controller: usernameController,
+                      ),
+                    InputField(
+                      icon: Icons.phone,
+                      placeholder: "Phone Number",
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      prefixWidget: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F7FF),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFF0066BE).withOpacity(0.2)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedCountryCode,
+                                isDense: true,
+                                icon: const Icon(Icons.arrow_drop_down,
+                                    color: Color(0xFF0066BE)),
+                                items: ["+91"].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      "IND $value",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0066BE),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      selectedCountryCode = newValue;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            height: 20,
+                            width: 1,
+                            color: Colors.black.withOpacity(0.1),
+                          ),
+                        ],
+                      ),
+                      maxLength: 10,
+                    ),
+                    if (mode == "register") ...[
+                      InputField(
+                        icon: Icons.email,
+                        placeholder: "Email",
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                    ],
+                    InputField(
+                      icon: Icons.lock,
+                      placeholder: "Password",
+                      controller: passwordController,
+                      isPassword: true,
+                      obscureText: obscurePassword,
+                      onToggleObscure: () {
+                        setState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 25),
+                    GestureDetector(
+                      onTap: loading ? null : handleAuth,
                       child: Container(
-                        height: 140,
-                        width: size.width,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                        height: 52,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0066BE),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: loading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  mode == "login" ? "Login" : "Register",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (mode == "login") ...[
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/forgot-password');
+                        },
+                        child: const Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Color(0xFF0066BE),
+                            fontSize: 16,
                           ),
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Don't you have an account yet? ",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          GestureDetector(
+                            onTap: () => switchTo("register"),
+                            child: const Text(
+                              "Sign Up",
+                              style: TextStyle(
+                                color: Color(0xFF0066BE),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+
+              // Bottom Wave
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  return ClipPath(
+                    clipper: BottomWaveClipper(_animation.value),
+                    child: Container(
+                      height: 140,
+                      width: size.width,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -593,25 +565,8 @@ class BottomWaveClipper extends CustomClipper<Path> {
     double w = size.width;
     double h = size.height;
 
-    // Create a wave that properly sits at the bottom
-    path.moveTo(0, h);
-    
-    // First curve
-    path.cubicTo(
-      w * 0.2, h - 40,  // control point 1
-      w * 0.3, h - 60,  // control point 2
-      w * 0.5, h - 40,  // end point
-    );
-    
-    // Second curve
-    path.cubicTo(
-      w * 0.7, h - 20,  // control point 1
-      w * 0.8, h - 40,  // control point 2
-      w, h,              // end point
-    );
-    
-    path.lineTo(w, h);
-    path.lineTo(0, h);
+    // Semicircle with flat bottom, curving above
+    path.addArc(Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 3.14, 3.14);
     path.close();
 
     return path;
