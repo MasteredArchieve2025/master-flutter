@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../Widgets/Footer.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../components/glass_loader.dart';
 import '../../api/baseurl.dart';
 import 'Course2.dart';
+import '../../Widgets/Footer.dart';
 
 class Course1Screen extends StatefulWidget {
   const Course1Screen({super.key});
@@ -18,47 +18,68 @@ class Course1Screen extends StatefulWidget {
 
 class _Course1ScreenState extends State<Course1Screen> {
   int _footerIndex = 0;
-  int _activeAd = 0;
+  int _activeAdIndex = 0;
   final PageController _adController = PageController();
   Timer? _adTimer;
 
   // Loading states
   bool _isLoading = true;
-  bool _isLoadingAds = true;
+  bool _isAdsLoading = true;
   String? _errorMessage;
 
-  // Course categories from API
-  List<Map<String, dynamic>> _courseCategories = [];
-
-  // Ads and Videos
-  List<String> _adImages = [];
-  List<String> _youtubeUrls = [];
-  int _currentVideoIndex = 0;
-
-  // Default Banner Ads (fallback)
-  final List<String> _defaultBannerAds = [
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop',
-  ];
-
-  List<String> get bannerAds =>
-      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
+  // API Data
+  List<Map<String, dynamic>> courseCategories = [];
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   @override
   void initState() {
     super.initState();
     _fetchCourseCategories();
-    _loadAdvertisements();
-    _startAdTimer();
+    _fetchAdvertisements();
+
+    // Auto scroll ads
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
+        int nextPage = _activeAdIndex + 1;
+        if (nextPage >= adImages.length) nextPage = 0;
+        _adController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
-  // Fetch course categories from API
+  Future<void> _fetchAdvertisements() async {
+    debugPrint('🔄 Loading advertisements for coursepage1...');
+    try {
+      final response = await http.get(
+        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=coursepage1'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          setState(() {
+            adImages = List<String>.from(data['data']['images'] ?? []);
+            youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+            _isAdsLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading advertisements: $e');
+      setState(() {
+        _isAdsLoading = false;
+      });
+    }
+  }
+
   Future<void> _fetchCourseCategories() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    debugPrint('🔄 Loading course categories...');
 
     try {
       final response = await http.get(
@@ -68,124 +89,91 @@ class _Course1ScreenState extends State<Course1Screen> {
         },
       );
 
+      debugPrint('📡 Course Categories API Response Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
-        final dynamic responseData = jsonDecode(response.body);
+        final dynamic responseData = json.decode(response.body);
         
         // Handle different response formats
         List<dynamic> dataList = [];
         
         if (responseData is List) {
-          // If response is directly a list
           dataList = responseData;
         } else if (responseData is Map) {
-          // If response is a map/object
           if (responseData.containsKey('data') && responseData['data'] is List) {
-            // If response has a 'data' field that contains the list
             dataList = responseData['data'];
           } else if (responseData.containsKey('categories') && responseData['categories'] is List) {
-            // If response has a 'categories' field
             dataList = responseData['categories'];
           } else {
-            // If it's a single object, wrap it in a list
             dataList = [responseData];
           }
         }
         
+        debugPrint('📦 Loaded ${dataList.length} course categories');
+
         setState(() {
           // Sort by sortOrder if available
           dataList.sort((a, b) => (a['sortOrder'] ?? 0).compareTo(b['sortOrder'] ?? 0));
-          _courseCategories = List<Map<String, dynamic>>.from(dataList);
+          
+          courseCategories = dataList.map((item) {
+            // Fix image URL if needed
+            String? imageUrl = item['image'];
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              if (!imageUrl.startsWith('http')) {
+                imageUrl = '${BaseUrl.baseUrl}$imageUrl';
+              }
+            }
+
+            return {
+              'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
+              'title': item['name'] ?? 'Unknown Course',
+              'description': item['description'] ?? item['shortDescription'] ?? 'No description available',
+              'image': imageUrl,
+            };
+          }).toList();
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load categories: ${response.statusCode}';
+          _errorMessage = 'Failed to load course categories. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('❌ Error loading course categories: $e');
       setState(() {
-        _errorMessage = 'Error: ${e.toString()}';
+        _errorMessage = e.toString();
         _isLoading = false;
       });
     }
   }
 
-  // Load advertisements for coursepage1
-  Future<void> _loadAdvertisements() async {
-    debugPrint('🔄 Loading advertisements for coursepage1...');
+  void _retryLoading() {
+    setState(() {
+      _isLoading = true;
+      _isAdsLoading = true;
+      _errorMessage = null;
+    });
+    _fetchCourseCategories();
+    _fetchAdvertisements();
+  }
+
+  String _getYoutubeThumbnail(String url) {
     try {
-      final response = await http.get(
-        Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=coursepage1'),
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          final apiData = data['data'];
-          setState(() {
-            if (apiData['images'] != null && apiData['images'] is List) {
-              _adImages = List<String>.from(apiData['images']);
-            }
-            if (apiData['youtube_urls'] != null &&
-                apiData['youtube_urls'] is List) {
-              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
-            }
-            _isLoadingAds = false;
-          });
-        } else {
-          setState(() {
-            _isLoadingAds = false;
-          });
-        }
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
       } else {
-        setState(() {
-          _isLoadingAds = false;
-        });
+        videoId = url.split('/').last.split('?').first;
       }
-    } catch (e) {
-      debugPrint('❌ Error loading advertisements: $e');
-      setState(() {
-        _isLoadingAds = false;
-      });
-    }
-  }
-
-  // Video navigation methods
-  void _nextVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
-    });
-  }
-
-  void _previousVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex =
-          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
-    });
-  }
-
-  String _getVideoThumbnail(String url) {
-    if (url.contains('youtube.com/embed/')) {
-      final videoId = url.split('/').last;
       return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
     }
-    return url;
-  }
-
-  void _startAdTimer() {
-    _adTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_adController.hasClients && mounted) {
-        int nextPage = _activeAd + 1;
-        if (nextPage >= bannerAds.length) nextPage = 0;
-        _adController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
   }
 
   @override
@@ -195,348 +183,418 @@ class _Course1ScreenState extends State<Course1Screen> {
     super.dispose();
   }
 
-  // Responsive methods
-  double _getHeaderHeight(BuildContext context) {
+  // Scale function for responsive sizing
+  double _scale(double size) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 64;
-    if (screenWidth >= 768) return 58;
-    return 52;
+    if (screenWidth >= 1024) return size * 1.2; // Desktop
+    if (screenWidth >= 768) return size * 1.1; // Tablet
+    return size; // Mobile
   }
 
-  double _getTitleFontSize(BuildContext context) {
+  // Responsive value function
+  double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 19;
-    if (screenWidth >= 768) return 18;
-    return 17;
+    if (screenWidth >= 1024) return desktop; // Desktop
+    if (screenWidth >= 768) return tablet; // Tablet
+    return mobile; // Mobile
   }
 
-  double _getHorizontalPadding(BuildContext context) {
+  // Calculate grid columns
+  int _getGridColumns() {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 32;
-    if (screenWidth >= 768) return 24;
-    return 16;
+    if (screenWidth >= 1024) return 3; // Desktop
+    if (screenWidth >= 768) return 2; // Tablet
+    return 2; // Mobile
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final bool isMobile = screenWidth < 768;
-    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
+    // Responsive breakpoints
     final bool isDesktop = screenWidth >= 1024;
+    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
 
-    final double horizontalPadding = _getHorizontalPadding(context);
-    final double bannerHeight = isDesktop ? 300 : (isTablet ? 300 : 200);
+    // Responsive values
+    final double horizontalPadding = _responsiveValue(16, 24, 32);
+    final double adHeight = _responsiveValue(200, 300, 300);
+    final int gridColumns = _getGridColumns();
+    final double cardWidth = (screenWidth -
+            (horizontalPadding * 2) -
+            (_responsiveValue(12, 16, 20) * (gridColumns - 1))) /
+        gridColumns;
     final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
+    // Calculate header height
+    final double headerHeight = _responsiveValue(52, 58, 80);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F8FF),
+      backgroundColor: const Color(0xFFF6F9FF),
       body: Stack(
         children: [
           SafeArea(
             child: Column(
               children: [
-                // HEADER
+                // ===== HEADER =====
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: const Color(0xFF0052A2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
                       ),
                     ],
-                    borderRadius: isDesktop
-                        ? const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          )
-                        : null,
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding:
-                        EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _getHeaderHeight(context),
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    height: headerHeight,
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SizedBox(
-                          width: 40,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(
-                              Icons.arrow_back,
-                              size: 24,
-                              color: Colors.white,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                        // Back Button
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.arrow_back,
+                            size: _scale(24),
+                            color: Colors.white,
                           ),
                         ),
+                        // Title
                         Expanded(
                           child: Center(
                             child: Text(
                               'Courses',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: _getTitleFontSize(context),
-                                fontWeight: FontWeight.w600,
+                                fontSize: _responsiveValue(20, 22, 24),
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 40),
+                        // Spacer for symmetry
+                        SizedBox(width: _scale(40)),
                       ],
                     ),
                   ),
                 ),
 
-                // MAIN CONTENT
+                // ===== MAIN CONTENT =====
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Center(
-                      child: Container(
-                        constraints: BoxConstraints(
-                          maxWidth: maxContentWidth,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // TOP AUTO SCROLL AD BANNER
-                            Container(
-                              margin: EdgeInsets.only(
-                                top: isDesktop ? 8 : 0,
+                  child: _isLoading
+                      ? const Center(
+                          child: GlassLoader(
+                            message: 'Loading courses...',
+                          ),
+                        )
+                      : _errorMessage != null && courseCategories.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: Colors.red,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Error loading course categories',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _retryLoading,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0B5ED7),
+                                    ),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
                               ),
-                              decoration: BoxDecoration(
-                                borderRadius: isDesktop
-                                    ? BorderRadius.circular(12)
-                                    : null,
-                              ),
-                              child: ClipRRect(
-                                borderRadius: isDesktop
-                                    ? BorderRadius.circular(12)
-                                    : BorderRadius.zero,
-                                child: SizedBox(
-                                  height: bannerHeight,
-                                  child: PageView.builder(
-                                    controller: _adController,
-                                    itemCount: bannerAds.length,
-                                    onPageChanged: (index) {
-                                      setState(() {
-                                        _activeAd = index;
-                                      });
-                                    },
-                                    itemBuilder: (context, index) {
-                                      return Container(
-                                        width: screenWidth,
-                                        color: const Color(0xFFF0F0F0),
-                                        child: Image.network(
-                                          bannerAds[index],
-                                          fit: BoxFit.cover,
-                                          loadingBuilder: (context, child,
-                                              loadingProgress) {
-                                            if (loadingProgress == null)
-                                              return child;
-                                            return const Center(
-                                              child: CircularProgressIndicator(
-                                                  color: Color(0xFF0B5ED7)),
-                                            );
-                                          },
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            return Center(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
+                            )
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Center(
+                                        child: Container(
+                                          constraints: BoxConstraints(
+                                              maxWidth: maxContentWidth),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(
-                                                    Icons.image,
-                                                    size: 60,
-                                                    color:
-                                                        const Color(0xFF0B5ED7),
+                                                  // ===== ADVERTISEMENT BANNER =====
+                                                  if (adImages.isNotEmpty)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      child: PageView.builder(
+                                                        controller: _adController,
+                                                        itemCount: adImages.length,
+                                                        onPageChanged: (index) {
+                                                          setState(() {
+                                                            _activeAdIndex = index;
+                                                          });
+                                                        },
+                                                        itemBuilder: (context, index) {
+                                                          return Image.network(
+                                                            adImages[index],
+                                                            width: screenWidth,
+                                                            height: adHeight,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error, stackTrace) {
+                                                              return Container(
+                                                                width: screenWidth,
+                                                                height: adHeight,
+                                                                color: Colors.black12,
+                                                                child: const Center(
+                                                                  child: Icon(
+                                                                      Icons.broken_image,
+                                                                      color: Colors.grey),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        },
+                                                      ),
+                                                    )
+                                                  else if (_isAdsLoading)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child: CircularProgressIndicator(),
+                                                      ),
+                                                    )
+                                                  else
+                                                    const SizedBox.shrink(),
+
+                                                  // ===== PAGINATION DOTS =====
+                                                  if (adImages.length > 1)
+                                                    Container(
+                                                      color: Colors.white,
+                                                      padding: const EdgeInsets.symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment.center,
+                                                        children: List.generate(
+                                                            adImages.length, (index) {
+                                                          return AnimatedContainer(
+                                                            duration:
+                                                                const Duration(milliseconds: 300),
+                                                            width: _activeAdIndex == index
+                                                                ? _scale(20)
+                                                                : _scale(8),
+                                                            height: _scale(8),
+                                                            margin: EdgeInsets.symmetric(
+                                                                horizontal: _scale(4)),
+                                                            decoration: BoxDecoration(
+                                                              color: _activeAdIndex == index
+                                                                  ? const Color(0xFF0B5ED7)
+                                                                  : const Color(0xFFCCCCCC),
+                                                              borderRadius:
+                                                                  BorderRadius.circular(_scale(4)),
+                                                            ),
+                                                          );
+                                                        }),
+                                                      ),
+                                                    ),
+
+                                                  // ===== COURSE CATEGORIES SECTION =====
+                                                  Container(
+                                                    width: double.infinity,
+                                                    color: Colors.white,
+                                                    padding: EdgeInsets.fromLTRB(
+                                                      horizontalPadding,
+                                                      _responsiveValue(24, 28, 32),
+                                                      horizontalPadding,
+                                                      _responsiveValue(20, 24, 28),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        // Section Title
+                                                        Text(
+                                                          'Course Categories',
+                                                          style: TextStyle(
+                                                            fontSize: _responsiveValue(20, 22, 24),
+                                                            fontWeight: FontWeight.w700,
+                                                            color: const Color(0xFF003366),
+                                                          ),
+                                                        ),
+                                                        SizedBox(height: _scale(8)),
+
+                                                        // Section Subtitle with count
+                                                        Text(
+                                                          courseCategories.isNotEmpty
+                                                              ? '${courseCategories.length} course ${courseCategories.length == 1 ? 'category' : 'categories'} available'
+                                                              : 'Browse courses by category and find the right learning resources',
+                                                          style: TextStyle(
+                                                            fontSize: _responsiveValue(14, 15, 16),
+                                                            color: const Color(0xFF666666),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _responsiveValue(20, 24, 28)),
+
+                                                        // Grid View
+                                                        if (courseCategories.isEmpty)
+                                                          const Center(
+                                                            child: Padding(
+                                                              padding: EdgeInsets.all(20),
+                                                              child: Text(
+                                                                  'No course categories available'),
+                                                            ),
+                                                          )
+                                                        else
+                                                          Wrap(
+                                                            spacing: _responsiveValue(12, 16, 20),
+                                                            runSpacing: _responsiveValue(12, 16, 20),
+                                                            children: courseCategories
+                                                                .map((course) {
+                                                              return _buildCourseCard(
+                                                                course: course,
+                                                                width: cardWidth,
+                                                              );
+                                                            }).toList(),
+                                                          ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    'Advertisement ${index + 1}',
-                                                    style: const TextStyle(
-                                                      fontSize: 18,
-                                                      color: Color(0xFF0B5ED7),
-                                                      fontWeight:
-                                                          FontWeight.bold,
+
+                                                  // ===== BANNER SECTION =====
+                                                  Container(
+                                                    width: screenWidth,
+                                                    margin: EdgeInsets.symmetric(
+                                                      horizontal: horizontalPadding,
+                                                      vertical: _responsiveValue(20, 24, 28),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                        _responsiveValue(20, 24, 28)),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFF4C73AC),
+                                                      borderRadius:
+                                                          BorderRadius.circular(_scale(12)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black.withOpacity(0.1),
+                                                          blurRadius: _scale(6),
+                                                          offset: const Offset(0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          'Comprehensive Learning Resources',
+                                                          style: TextStyle(
+                                                            fontSize: _responsiveValue(18, 20, 22),
+                                                            fontWeight: FontWeight.w700,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(height: _scale(10)),
+                                                        Text(
+                                                          'Get course materials, video lectures, practice exercises, and more',
+                                                          style: TextStyle(
+                                                            fontSize: _responsiveValue(14, 15, 16),
+                                                            color: const Color(0xFFDCE8FF),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            );
-                                          },
+                                              // ===== YOUTUBE VIDEO SECTION =====
+                                              if (youtubeUrls.isNotEmpty)
+                                                Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding: EdgeInsets.symmetric(
+                                                        horizontal: horizontalPadding,
+                                                        vertical: _responsiveValue(16, 20, 24),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          const Icon(Icons.play_circle_fill,
+                                                              color: Colors.red),
+                                                          const SizedBox(width: 8),
+                                                          Text(
+                                                            'Video Tutorials',
+                                                            style: TextStyle(
+                                                              fontSize: _responsiveValue(18, 20, 22),
+                                                              fontWeight: FontWeight.w700,
+                                                              color: const Color(0xFF003366),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    ...youtubeUrls
+                                                        .map((url) => Container(
+                                                              width: screenWidth,
+                                                              margin: EdgeInsets.only(),
+                                                              child: CommonYoutubePlayer(
+                                                                youtubeUrl: url,
+                                                                height: isDesktop
+                                                                    ? 360
+                                                                    : (isTablet ? 320 : 220),
+                                                                placeholderThumbnail:
+                                                                    _getYoutubeThumbnail(url),
+                                                                borderRadius: 0,
+                                                              ),
+                                                            ))
+                                                        .toList(),
+                                                  ],
+                                                ),
+                                            ],
+                                          ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // Dots Indicator
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children:
-                                  List.generate(bannerAds.length, (index) {
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: _activeAd == index ? 24 : 8,
-                                  height: 8,
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 6),
-                                  decoration: BoxDecoration(
-                                    color: _activeAd == index
-                                        ? const Color(0xFF0B5ED7)
-                                        : const Color(0xFFCCCCCC),
-                                    borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
                                   ),
                                 );
-                              }),
+                              },
                             ),
-
-                            // BODY - Categories Section with API data
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isDesktop ? 0 : horizontalPadding,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Section Title
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      top: isTablet ? 20 : 16,
-                                      bottom: isTablet ? 16 : 12,
-                                      left: isDesktop ? horizontalPadding : 0,
-                                      right: isDesktop ? horizontalPadding : 0,
-                                    ),
-                                    child: Text(
-                                      'Course Categories',
-                                      style: TextStyle(
-                                        fontSize: isDesktop
-                                            ? 26
-                                            : (isTablet ? 24 : 20),
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0C2F63),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Categories Grid with Loading/Error states
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      left: isDesktop
-                                          ? horizontalPadding
-                                          : (isTablet ? 20 : 10),
-                                      right: isDesktop
-                                          ? horizontalPadding
-                                          : (isTablet ? 20 : 10),
-                                      bottom: isTablet ? 40 : 30,
-                                    ),
-                                    child: _buildCategoriesContent(
-                                      isTablet: isTablet,
-                                      isDesktop: isDesktop,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // ===== YOUTUBE VIDEO SECTION =====
-                            if (_youtubeUrls.isNotEmpty) ...[
-                              if (_youtubeUrls.length > 1)
-                                Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: horizontalPadding,
-                                    vertical: isTablet ? 16 : 12,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Course Videos',
-                                        style: TextStyle(
-                                          fontSize: isDesktop ? 22 : 18,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            onPressed: _previousVideo,
-                                            icon: const Icon(Icons.chevron_left,
-                                                color: Color(0xFF0B5ED7)),
-                                          ),
-                                          Text(
-                                            '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                            style: const TextStyle(
-                                              color: Color(0xFF0B5ED7),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            onPressed: _nextVideo,
-                                            icon: const Icon(
-                                                Icons.chevron_right,
-                                                color: Color(0xFF0B5ED7)),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  top: _youtubeUrls.length > 1
-                                      ? 0
-                                      : (isTablet ? 40 : 30),
-                                ),
-                                child: CommonYoutubePlayer(
-                                  youtubeUrl: _youtubeUrls[_currentVideoIndex],
-                                  height:
-                                      isDesktop ? 400 : (isTablet ? 320 : 250),
-                                  placeholderThumbnail: _getVideoThumbnail(
-                                      _youtubeUrls[_currentVideoIndex]),
-                                  borderRadius: 0,
-                                ),
-                              ),
-                            ] else
-                              // Default VIDEO - EDGE TO EDGE
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  top: isTablet ? 40 : 30,
-                                ),
-                                child: CommonYoutubePlayer(
-                                  youtubeUrl:
-                                      'https://www.youtube.com/embed/NONufn3jgXI',
-                                  height:
-                                      isDesktop ? 400 : (isTablet ? 320 : 250),
-                                  placeholderThumbnail:
-                                      'https://img.youtube.com/vi/NONufn3jgXI/maxresdefault.jpg',
-                                  borderRadius: 0,
-                                ),
-                              ),
-                            
-                            // Bottom padding
-                            SizedBox(height: isTablet ? 20 : 10),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
 
-                // FOOTER
+                // ===== FOOTER =====
                 Footer(
                   currentIndex: _footerIndex,
                   onItemTapped: (index) {
@@ -548,235 +606,107 @@ class _Course1ScreenState extends State<Course1Screen> {
               ],
             ),
           ),
-          if (_isLoading) const GlassLoader(message: 'Loading courses...'),
+
+          // Full screen loader for initial loading
+          if (_isLoading && courseCategories.isEmpty)
+            const GlassLoader(
+              message: 'Loading course categories...',
+            ),
         ],
       ),
     );
   }
 
-  // Method to build categories content with loading/error states
-  Widget _buildCategoriesContent({
-    required bool isTablet,
-    required bool isDesktop,
+  Widget _buildCourseCard({
+    required Map<String, dynamic> course,
+    required double width,
   }) {
-    if (_isLoading) {
-      return const SizedBox(height: 200); // Placeholder while loading
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Column(
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 60,
-                color: Colors.red[300],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load categories',
-                style: TextStyle(
-                  fontSize: isDesktop ? 18 : 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: isDesktop ? 14 : 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _fetchCourseCategories,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0052A2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_courseCategories.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Column(
-            children: [
-              Icon(
-                Icons.category_outlined,
-                size: 60,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No course categories available',
-                style: TextStyle(
-                  fontSize: isDesktop ? 18 : 16,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Build the categories grid
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double availableWidth = constraints.maxWidth;
-        final int crossAxisCount = isDesktop ? 4 : (isTablet ? 3 : 2);
-        final double spacing = isTablet ? 20 : 16;
-        final double runSpacing = isTablet ? 35 : 30;
-        final double totalSpacing = spacing * (crossAxisCount - 1);
-        final double itemWidth =
-            (availableWidth - totalSpacing) / crossAxisCount;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: runSpacing,
-          alignment: WrapAlignment.center,
-          children: _courseCategories.map((category) {
-            return SizedBox(
-              width: itemWidth,
-              child: _buildCategoryCard(
-                category: category,
-                isTablet: isTablet,
-                isDesktop: isDesktop,
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryCard({
-    required Map<String, dynamic> category,
-    required bool isTablet,
-    required bool isDesktop,
-  }) {
-    final String imageUrl = category['image']?.toString() ?? '';
-    final String categoryName = category['name']?.toString() ?? 'Unnamed Category';
-    final String description = category['description']?.toString() ?? 'Explore courses in this category';
+    // Check if we have an image from API and it's valid
+    bool hasValidImage =
+        course['image'] != null && course['image'].toString().isNotEmpty;
 
     return GestureDetector(
       onTap: () {
+        // Navigate to Course2 screen when card is tapped with the course data
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => Course2Screen(
-              categoryData: category,
+              categoryData: course,
             ),
-          ),
-        );
-        // Optional: Show snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Selected: $categoryName'),
-            duration: const Duration(seconds: 1),
           ),
         );
       },
       child: Container(
-        padding: EdgeInsets.all(isDesktop ? 20 : (isTablet ? 18 : 14)),
+        width: width * 0.9,
+        margin: EdgeInsets.symmetric(horizontal: width * 0.05), // Center the smaller card
+        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius:
-              BorderRadius.circular(isDesktop ? 20 : (isTablet ? 18 : 14)),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Category Image
-            if (imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(isDesktop ? 12 : 10),
-                child: Image.network(
-                  imageUrl,
-                  width: double.infinity,
-                  height: isDesktop ? 120 : (isTablet ? 100 : 80),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: isDesktop ? 120 : (isTablet ? 100 : 80),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0E0E0),
-                        borderRadius: BorderRadius.circular(isDesktop ? 12 : 10),
-                      ),
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: isDesktop ? 40 : (isTablet ? 35 : 30),
-                        color: Colors.grey.shade500,
-                      ),
-                    );
-                  },
-                ),
-              )
-            else
-              Container(
-                width: double.infinity,
-                height: isDesktop ? 120 : (isTablet ? 100 : 80),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
-                  borderRadius: BorderRadius.circular(isDesktop ? 12 : 10),
-                ),
-                child: Icon(
-                  Icons.category,
-                  size: isDesktop ? 40 : (isTablet ? 35 : 30),
-                  color: Colors.grey.shade500,
-                ),
+            // Logo Container - Bigger size
+            Container(
+              width: _responsiveValue(70, 80, 90), // Increased size
+              height: _responsiveValue(70, 80, 90), // Increased size
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_scale(16)),
+                image: hasValidImage
+                    ? DecorationImage(
+                        image: NetworkImage(course['image']),
+                        fit: BoxFit.cover,
+                        onError: (exception, stackTrace) {},
+                      )
+                    : null,
+                color: hasValidImage ? null : const Color(0xFFE6F0FF),
               ),
+              child: !hasValidImage
+                  ? Center(
+                      child: Icon(
+                        Icons.image,
+                        size: _responsiveValue(25, 30, 35),
+                        color: const Color(0xFF0052A2).withOpacity(0.5),
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(height: _scale(14)),
 
-            SizedBox(height: isDesktop ? 12 : (isTablet ? 10 : 8)),
-
-            // Category Name
+            // Title - Centered
             Text(
-              categoryName,
+              course['title'] as String,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: isDesktop ? 18 : (isTablet ? 16 : 14),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0C2F63),
+                fontSize: _responsiveValue(14, 16, 18),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: 1.2,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            SizedBox(height: _scale(4)),
 
-            SizedBox(height: isDesktop ? 6 : (isTablet ? 5 : 4)),
-
-            // Description
+            // Description - Centered
             Text(
-              description,
+              course['description'] as String,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: isDesktop ? 14 : (isTablet ? 13 : 12),
-                color: Colors.grey.shade600,
+                fontSize: _responsiveValue(11, 12, 13),
+                color: const Color(0xFF666666),
                 height: 1.3,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],
