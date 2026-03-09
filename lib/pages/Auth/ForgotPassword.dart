@@ -98,227 +98,357 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            children: [
-              Stack(
-                children: [
-                  ClipPath(
-                    clipper: SemicircleTopClipper(),
-                    child: Container(
-                      height: 220,
-                      width: size.width,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
+        child: isTablet
+            ? _buildTabletLayout()
+            : _buildPhoneLayout(size),
+      ),
+    );
+  }
+
+  // ─── TABLET LAYOUT ──────────────────────────────────────────────────────────
+  Widget _buildTabletLayout() {
+    return Row(
+      children: [
+        // Left blue panel
+        Expanded(
+          flex: 4,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0055AA), Color(0xFF0066BE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/master_logo.png',
+                      width: 140,
+                      height: 140,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.school,
+                        size: 120,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                  const Positioned(
-                    top: 80,
-                    left: 40,
-                    child: Text(
-                      "RESET",
+                    const SizedBox(height: 28),
+                    const Text(
+                      "Master Archieve",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
                       ),
                     ),
-                  ),
-                ],
-              ),
-
-              // Form content
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Forgot Password?",
+                    const SizedBox(height: 12),
+                    Text(
+                      "Your complete education platform",
                       style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E1E1E),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Enter your details to reset your password",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    InputField(
-                      icon: Icons.phone,
-                      placeholder: "Phone Number",
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      prefixWidget: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F7FF),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                  color:
-                                      const Color(0xFF0066BE).withOpacity(0.2)),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: selectedCountryCode,
-                                isDense: true,
-                                icon: const Icon(Icons.arrow_drop_down,
-                                    color: Color(0xFF0066BE)),
-                                items: ["+91", "+1", "+44", "+971"]
-                                    .map((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(
-                                      "IND $value",
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0066BE),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setState(() {
-                                      selectedCountryCode = newValue;
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            height: 20,
-                            width: 1,
-                            color: Colors.black.withOpacity(0.1),
-                          ),
-                        ],
-                      ),
-                      maxLength: 10,
-                    ),
-                    InputField(
-                      icon: Icons.lock,
-                      placeholder: "New Password",
-                      controller: newPasswordController,
-                      isPassword: true,
-                      obscureText: obscureNewPassword,
-                      onToggleObscure: () {
-                        setState(() {
-                          obscureNewPassword = !obscureNewPassword;
-                        });
-                      },
-                    ),
-                    InputField(
-                      icon: Icons.lock_clock,
-                      placeholder: "Confirm Password",
-                      controller: confirmPasswordController,
-                      isPassword: true,
-                      obscureText: obscureConfirmPassword,
-                      onToggleObscure: () {
-                        setState(() {
-                          obscureConfirmPassword = !obscureConfirmPassword;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 25),
-                    GestureDetector(
-                      onTap: loading ? null : handleResetPassword,
-                      child: Container(
-                        height: 52,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0066BE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: loading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  "Reset Password",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Text(
-                          "Back to Login",
-                          style: TextStyle(
-                            color: Color(0xFF0066BE),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 15,
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+        // Right form panel
+        Expanded(
+          flex: 5,
+          child: Container(
+            color: const Color(0xFFF4F8FF),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Back button
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back_ios,
+                                color: Color(0xFF0066BE), size: 18),
+                            const Text(
+                              "Back to Login",
+                              style: TextStyle(
+                                color: Color(0xFF0066BE),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      const Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E1E1E),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Enter your details to reset your password",
+                        style: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                      const SizedBox(height: 30),
+                      _buildFormFields(),
+                      const SizedBox(height: 24),
+                      _buildResetButton(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-              const SizedBox(height: 20),
-
-              // Bottom Semicircle
+  // ─── PHONE LAYOUT ────────────────────────────────────────────────────────────
+  Widget _buildPhoneLayout(Size size) {
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        children: [
+          Stack(
+            children: [
               ClipPath(
-                clipper: SemicircleBottomClipper(),
+                clipper: SemicircleTopClipper(),
                 child: Container(
-                  height: 140,
+                  height: 220,
                   width: size.width,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                      colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                   ),
                 ),
               ),
+              const Positioned(
+                top: 80,
+                left: 40,
+                child: Text(
+                  "RESET",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
             ],
           ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Forgot Password?",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E1E1E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Enter your details to reset your password",
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const SizedBox(height: 30),
+                _buildFormFields(),
+                const SizedBox(height: 25),
+                _buildResetButton(),
+                const SizedBox(height: 20),
+                Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text(
+                      "Back to Login",
+                      style: TextStyle(
+                        color: Color(0xFF0066BE),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          ClipPath(
+            clipper: SemicircleBottomClipper(),
+            child: Container(
+              height: 140,
+              width: size.width,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── SHARED WIDGETS ──────────────────────────────────────────────────────────
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        InputField(
+          icon: Icons.phone,
+          placeholder: "Phone Number",
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          prefixWidget: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F7FF),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: const Color(0xFF0066BE).withOpacity(0.2)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedCountryCode,
+                    isDense: true,
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: Color(0xFF0066BE)),
+                    items: ["+91"].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(
+                          "IND $value",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0066BE),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedCountryCode = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                height: 20,
+                width: 1,
+                color: Colors.black.withOpacity(0.1),
+              ),
+            ],
+          ),
+          maxLength: 10,
+        ),
+        InputField(
+          icon: Icons.lock,
+          placeholder: "New Password",
+          controller: newPasswordController,
+          isPassword: true,
+          obscureText: obscureNewPassword,
+          onToggleObscure: () {
+            setState(() {
+              obscureNewPassword = !obscureNewPassword;
+            });
+          },
+        ),
+        InputField(
+          icon: Icons.lock_clock,
+          placeholder: "Confirm Password",
+          controller: confirmPasswordController,
+          isPassword: true,
+          obscureText: obscureConfirmPassword,
+          onToggleObscure: () {
+            setState(() {
+              obscureConfirmPassword = !obscureConfirmPassword;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResetButton() {
+    return GestureDetector(
+      onTap: loading ? null : handleResetPassword,
+      child: Container(
+        height: 52,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0066BE),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: loading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  "Reset Password",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         ),
       ),
     );
   }
 }
 
+// ─── INPUT FIELD ─────────────────────────────────────────────────────────────
 class InputField extends StatelessWidget {
   final IconData icon;
   final String placeholder;
@@ -404,14 +534,13 @@ class InputField extends StatelessWidget {
   }
 }
 
+// ─── CLIPPERS ────────────────────────────────────────────────────────────────
 class SemicircleTopClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
     double w = size.width;
     double h = size.height;
-
-    // Semicircle sitting on top, flat top
     path.addArc(Rect.fromLTWH(-w * 0.1, -h, w * 1.2, h * 2), 3.14, -3.14);
     path.close();
     return path;
@@ -427,8 +556,6 @@ class SemicircleBottomClipper extends CustomClipper<Path> {
     Path path = Path();
     double w = size.width;
     double h = size.height;
-
-    // Semicircle sitting at bottom, flat bottom
     path.addArc(Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 3.14, 3.14);
     path.close();
     return path;

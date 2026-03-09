@@ -18,7 +18,6 @@ class _AuthScreenState extends State<AuthScreen>
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  // Form controllers
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -166,267 +165,177 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isTablet = size.width > 600;
+    // Max width for content on tablet
+    final contentWidth = isTablet ? 520.0 : size.width;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F8FF),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            children: [
-              // Header with Tabs
-              Stack(
-                children: [
-                  AnimatedBuilder(
-                    animation: _animation,
-                    builder: (context, child) {
-                      return ClipPath(
-                        clipper: TopWaveClipper(_animation.value),
-                        child: Container(
-                          height: 220,
-                          width: size.width,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  Positioned(
-                    top: 60,
-                    left: 0,
-                    right: 0,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: () => switchTo("login"),
-                            child: AnimatedBuilder(
-                              animation: _animation,
-                              builder: (context, child) {
-                                return Text(
-                                  "LOGIN",
-                                  style: TextStyle(
-                                    color: Color.lerp(
-                                      const Color(0xFF1E1E1E),
-                                      Colors.white,
-                                      _animation.value,
-                                    ),
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => switchTo("register"),
-                            child: AnimatedBuilder(
-                              animation: _animation,
-                              builder: (context, child) {
-                                return Text(
-                                  "REGISTER",
-                                  style: TextStyle(
-                                    color: Color.lerp(
-                                      Colors.white,
-                                      const Color(0xFF1E1E1E),
-                                      _animation.value,
-                                    ),
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        child: isTablet
+            ? _buildTabletLayout(size, contentWidth)
+            : _buildPhoneLayout(size),
+      ),
+    );
+  }
 
-              // Form content
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+  // ─── TABLET LAYOUT ──────────────────────────────────────────────────────────
+  Widget _buildTabletLayout(Size size, double contentWidth) {
+    return Row(
+      children: [
+        // Left panel - decorative blue side
+        Expanded(
+          flex: 4,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0055AA), Color(0xFF0066BE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (mode == "register")
-                      InputField(
-                        icon: Icons.person,
-                        placeholder: "User Name",
-                        controller: usernameController,
-                      ),
-                    InputField(
-                      icon: Icons.phone,
-                      placeholder: "Phone Number",
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      prefixWidget: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F7FF),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                  color:
-                                      const Color(0xFF0066BE).withOpacity(0.2)),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: selectedCountryCode,
-                                isDense: true,
-                                icon: const Icon(Icons.arrow_drop_down,
-                                    color: Color(0xFF0066BE)),
-                                items: ["+91"].map((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(
-                                      "IND $value",
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0066BE),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setState(() {
-                                      selectedCountryCode = newValue;
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            height: 20,
-                            width: 1,
-                            color: Colors.black.withOpacity(0.1),
-                          ),
-                        ],
-                      ),
-                      maxLength: 10,
-                    ),
-                    if (mode == "register") ...[
-                      InputField(
-                        icon: Icons.email,
-                        placeholder: "Email",
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                    ],
-                    InputField(
-                      icon: Icons.lock,
-                      placeholder: "Password",
-                      controller: passwordController,
-                      isPassword: true,
-                      obscureText: obscurePassword,
-                      onToggleObscure: () {
-                        setState(() {
-                          obscurePassword = !obscurePassword;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 25),
-                    GestureDetector(
-                      onTap: loading ? null : handleAuth,
-                      child: Container(
-                        height: 52,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0066BE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: loading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  mode == "login" ? "Login" : "Register",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                        ),
+                    Image.asset(
+                      'assets/master_logo.png',
+                      width: 140,
+                      height: 140,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.school,
+                        size: 120,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    if (mode == "login") ...[
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/forgot-password');
-                        },
-                        child: const Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Color(0xFF0066BE),
-                            fontSize: 16,
-                          ),
-                        ),
+                    const SizedBox(height: 28),
+                    const Text(
+                      "Master Archieve",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Don't you have an account yet? ",
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          GestureDetector(
-                            onTap: () => switchTo("register"),
-                            child: const Text(
-                              "Sign Up",
-                              style: TextStyle(
-                                color: Color(0xFF0066BE),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Your complete education platform",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 15,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+        // Right panel - form
+        Expanded(
+          flex: 5,
+          child: Container(
+            color: const Color(0xFFF4F8FF),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Tab switcher
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            _tabButton("LOGIN", "login"),
+                            _tabButton("REGISTER", "register"),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Form fields
+                      _buildFormFields(),
+                      const SizedBox(height: 24),
+                      // Submit button
+                      _buildSubmitButton(),
+                      const SizedBox(height: 20),
+                      // Bottom links
+                      if (mode == "login") _buildLoginLinks(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-              // Bottom Wave
+  Widget _tabButton(String label, String targetMode) {
+    final isActive = mode == targetMode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => switchTo(targetMode),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF0066BE) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black54,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── PHONE LAYOUT ────────────────────────────────────────────────────────────
+  Widget _buildPhoneLayout(Size size) {
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: Column(
+        children: [
+          // Header with Tabs
+          Stack(
+            children: [
               AnimatedBuilder(
                 animation: _animation,
                 builder: (context, child) {
                   return ClipPath(
-                    clipper: BottomWaveClipper(_animation.value),
+                    clipper: TopWaveClipper(_animation.value),
                     child: Container(
-                      height: 140,
+                      height: 220,
                       width: size.width,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                          colors: [Color(0xFF0066BE), Color(0xFF005DAE)],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
@@ -435,14 +344,267 @@ class _AuthScreenState extends State<AuthScreen>
                   );
                 },
               ),
+              Positioned(
+                top: 60,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => switchTo("login"),
+                        child: AnimatedBuilder(
+                          animation: _animation,
+                          builder: (context, child) {
+                            return Text(
+                              "LOGIN",
+                              style: TextStyle(
+                                color: Color.lerp(
+                                  const Color(0xFF1E1E1E),
+                                  Colors.white,
+                                  _animation.value,
+                                ),
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => switchTo("register"),
+                        child: AnimatedBuilder(
+                          animation: _animation,
+                          builder: (context, child) {
+                            return Text(
+                              "REGISTER",
+                              style: TextStyle(
+                                color: Color.lerp(
+                                  Colors.white,
+                                  const Color(0xFF1E1E1E),
+                                  _animation.value,
+                                ),
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
+
+          // Form content
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+            child: Column(
+              children: [
+                _buildFormFields(),
+                const SizedBox(height: 25),
+                _buildSubmitButton(),
+                const SizedBox(height: 20),
+                if (mode == "login") _buildLoginLinks(),
+              ],
+            ),
+          ),
+
+          // Bottom Wave
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return ClipPath(
+                clipper: BottomWaveClipper(_animation.value),
+                child: Container(
+                  height: 140,
+                  width: size.width,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF005DAE), Color(0xFF0066BE)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── SHARED FORM WIDGETS ─────────────────────────────────────────────────────
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        if (mode == "register")
+          InputField(
+            icon: Icons.person,
+            placeholder: "User Name",
+            controller: usernameController,
+          ),
+        InputField(
+          icon: Icons.phone,
+          placeholder: "Phone Number",
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          prefixWidget: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F7FF),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: const Color(0xFF0066BE).withOpacity(0.2)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedCountryCode,
+                    isDense: true,
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: Color(0xFF0066BE)),
+                    items: ["+91"].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(
+                          "IND $value",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0066BE),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedCountryCode = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                height: 20,
+                width: 1,
+                color: Colors.black.withOpacity(0.1),
+              ),
+            ],
+          ),
+          maxLength: 10,
+        ),
+        if (mode == "register")
+          InputField(
+            icon: Icons.email,
+            placeholder: "Email",
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+          ),
+        InputField(
+          icon: Icons.lock,
+          placeholder: "Password",
+          controller: passwordController,
+          isPassword: true,
+          obscureText: obscurePassword,
+          onToggleObscure: () {
+            setState(() {
+              obscurePassword = !obscurePassword;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: loading ? null : handleAuth,
+      child: Container(
+        height: 52,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0066BE),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: loading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  mode == "login" ? "Login" : "Register",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         ),
       ),
     );
   }
+
+  Widget _buildLoginLinks() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/forgot-password');
+          },
+          child: const Text(
+            "Forgot Password?",
+            style: TextStyle(
+              color: Color(0xFF0066BE),
+              fontSize: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Don't you have an account yet? ",
+              style: TextStyle(fontSize: 14),
+            ),
+            GestureDetector(
+              onTap: () => switchTo("register"),
+              child: const Text(
+                "Sign Up",
+                style: TextStyle(
+                  color: Color(0xFF0066BE),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
+// ─── INPUT FIELD ─────────────────────────────────────────────────────────────
 class InputField extends StatelessWidget {
   final IconData icon;
   final String placeholder;
@@ -528,6 +690,7 @@ class InputField extends StatelessWidget {
   }
 }
 
+// ─── CLIPPERS ────────────────────────────────────────────────────────────────
 class TopWaveClipper extends CustomClipper<Path> {
   final double value;
   TopWaveClipper(this.value);
@@ -538,12 +701,9 @@ class TopWaveClipper extends CustomClipper<Path> {
     double w = size.width;
     double h = size.height;
 
-    // Semicircle with flat top, curving below
     if (value < 0.5) {
-      // Login mode: Semicircle on the right (covers REGISTER)
       path.addArc(Rect.fromLTWH(w * 0.4, -h, w * 1.2, h * 2), 3.14, -3.14);
     } else {
-      // Register mode: Semicircle on the left (covers LOGIN)
       path.addArc(Rect.fromLTWH(-w * 0.6, -h, w * 1.2, h * 2), 0, 3.14);
     }
 
@@ -565,7 +725,6 @@ class BottomWaveClipper extends CustomClipper<Path> {
     double w = size.width;
     double h = size.height;
 
-    // Semicircle with flat bottom, curving above
     path.addArc(Rect.fromLTWH(-w * 0.1, 0, w * 1.2, h * 2), 3.14, 3.14);
     path.close();
 
