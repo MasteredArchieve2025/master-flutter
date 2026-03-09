@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../api/baseurl.dart';
-import 'IQResult.dart';
+import './IQResult.dart';
 
 class IQ3Screen extends StatefulWidget {
   final Map<String, dynamic> testData;

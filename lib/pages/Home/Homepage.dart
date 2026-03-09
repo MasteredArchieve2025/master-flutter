@@ -40,10 +40,7 @@ class CustomHeader extends StatelessWidget {
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(
-                bottom: BorderSide(
-                  color: Color(0xFFEEEEEE),
-                  width: 1,
-                ),
+                bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
               ),
             ),
             child: Row(
@@ -57,7 +54,8 @@ class CustomHeader extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: isIOS ? 18 : 19,
-                        fontWeight: isIOS ? FontWeight.w600 : FontWeight.w700,
+                        fontWeight:
+                            isIOS ? FontWeight.w600 : FontWeight.w700,
                         color: const Color(0xFF043771),
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -72,36 +70,31 @@ class CustomHeader extends StatelessWidget {
                     children: [
                       if (!isSmallScreen) ...[
                         _buildIconButton(
-                          icon: Icons.search,
-                          size: 22,
-                          onPressed: onSearchPressed,
-                        ),
+                            icon: Icons.search,
+                            size: 22,
+                            onPressed: onSearchPressed),
                         const SizedBox(width: 14),
                         _buildIconButton(
-                          icon: Icons.notifications_outlined,
-                          size: 22,
-                          onPressed: onNotificationPressed,
-                        ),
+                            icon: Icons.notifications_outlined,
+                            size: 22,
+                            onPressed: onNotificationPressed),
                         const SizedBox(width: 14),
                       ] else ...[
                         _buildIconButton(
-                          icon: Icons.search,
-                          size: 20,
-                          onPressed: onSearchPressed,
-                        ),
+                            icon: Icons.search,
+                            size: 20,
+                            onPressed: onSearchPressed),
                         const SizedBox(width: 10),
                         _buildIconButton(
-                          icon: Icons.person_outline,
-                          size: 24,
-                          onPressed: onProfilePressed,
-                        ),
+                            icon: Icons.person_outline,
+                            size: 24,
+                            onPressed: onProfilePressed),
                       ],
                       if (!isSmallScreen)
                         _buildIconButton(
-                          icon: Icons.person_outline,
-                          size: 26,
-                          onPressed: onProfilePressed,
-                        ),
+                            icon: Icons.person_outline,
+                            size: 26,
+                            onPressed: onProfilePressed),
                     ],
                   ),
                 ),
@@ -122,14 +115,29 @@ class CustomHeader extends StatelessWidget {
       onTap: onPressed ?? () {},
       child: Container(
         padding: const EdgeInsets.all(4),
-        child: Icon(
-          icon,
-          size: size,
-          color: const Color(0xFF083467),
-        ),
+        child: Icon(icon, size: size, color: const Color(0xFF083467)),
       ),
     );
   }
+}
+
+// ==================== TOP RATED COLLEGE MODEL ====================
+class TopRatedCollege {
+  final int id;
+  final String name;
+  final String location;
+  final String category;
+  final double averageRating;
+  final int totalReviews;
+
+  const TopRatedCollege({
+    required this.id,
+    required this.name,
+    required this.location,
+    required this.category,
+    required this.averageRating,
+    required this.totalReviews,
+  });
 }
 
 // ==================== HOME SCREEN ====================
@@ -141,6 +149,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const String _baseUrl = 'https://master-backend-18ik.onrender.com';
+
   final ScrollController _scrollController = ScrollController();
   final PageController _bannerController = PageController();
   int _currentBannerIndex = 0;
@@ -187,7 +197,12 @@ class _HomeScreenState extends State<HomeScreen> {
       "screen": "/college1"
     },
     {"id": 3, "title": "Course", "icon": Icons.laptop, "screen": "/course1"},
-    {"id": 4, "title": "Exam", "icon": Icons.edit_document, "screen": "/exam1"},
+    {
+      "id": 4,
+      "title": "Exam",
+      "icon": Icons.edit_document,
+      "screen": "/exam1"
+    },
     {"id": 5, "title": "IQ", "icon": Icons.psychology, "screen": "/iq1"},
     {
       "id": 6,
@@ -202,42 +217,210 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isBlogsLoading = true;
   String? _blogsErrorMessage;
 
-  // Colleges Data
-  final List<Map<String, dynamic>> collegesData = [
-    {"id": 1, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 2, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 3, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 4, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 5, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 6, "name": "Arunachala College\nOf Engineering For Women"},
-    {"id": 7, "name": "Arunachala College\nOf Engineering For Women"},
-  ];
+  // ─── Top Rated Colleges (from reviews) ────────────────────────────────────
+  List<TopRatedCollege> _topRatedColleges = [];
+  bool _isLoadingTopColleges = true;
+  String? _topCollegesError;
 
   List<Map<String, String>> get displayBanners {
     if (_adImages.isNotEmpty) {
-      // Create banner items from API images
-      return _adImages.map((imageUrl) {
-        return {
-          "title": "Welcome to",
-          "line1": "MASTER ARCHIVE",
-          "line2": "EDUCATION",
-          "info": "Your Gateway to Success",
-          "imageUrl": imageUrl,
-        };
-      }).toList();
+      return _adImages
+          .map((imageUrl) => {
+                "title": "Welcome to",
+                "line1": "MASTER ARCHIVE",
+                "line2": "EDUCATION",
+                "info": "Your Gateway to Success",
+                "imageUrl": imageUrl,
+              })
+          .toList();
     }
     return bannerData;
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   void initState() {
     super.initState();
     _loadAdvertisements();
     _loadHomeBlogs();
+    _fetchTopRatedColleges();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startAutoScroll();
     });
   }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _bannerController.dispose();
+    super.dispose();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FETCH TOP RATED COLLEGES (via college list + reviews)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _fetchTopRatedColleges() async {
+    setState(() {
+      _isLoadingTopColleges = true;
+      _topCollegesError = null;
+    });
+
+    try {
+      // Step 1 – Fetch colleges list
+      final collegesResponse = await http.get(
+        Uri.parse('$_baseUrl/api/colleges'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (collegesResponse.statusCode != 200) {
+        setState(() {
+          _topCollegesError =
+              'Failed to load colleges (${collegesResponse.statusCode})';
+          _isLoadingTopColleges = false;
+        });
+        return;
+      }
+
+      final dynamic collegesBody = jsonDecode(collegesResponse.body);
+
+      // Support both plain list and { data: [...] } shaped responses
+      List<dynamic> rawColleges = [];
+      if (collegesBody is List) {
+        rawColleges = collegesBody;
+      } else if (collegesBody is Map && collegesBody['data'] is List) {
+        rawColleges = collegesBody['data'] as List<dynamic>;
+      } else if (collegesBody is Map && collegesBody['colleges'] is List) {
+        rawColleges = collegesBody['colleges'] as List<dynamic>;
+      }
+
+      if (rawColleges.isEmpty) {
+        setState(() {
+          _topRatedColleges = [];
+          _isLoadingTopColleges = false;
+        });
+        return;
+      }
+
+      // Step 2 – Fetch reviews for each college concurrently (cap at 20)
+      final toFetch = rawColleges.take(20).toList();
+      final List<Future<TopRatedCollege?>> futures =
+          toFetch.map((college) => _fetchCollegeWithRating(college)).toList();
+
+      final results = await Future.wait(futures);
+
+      // Step 3 – Filter colleges that have at least 1 review, sort by rating
+      final rated = results
+          .whereType<TopRatedCollege>()
+          .where((c) => c.totalReviews > 0)
+          .toList()
+        ..sort((a, b) {
+          // Primary sort: average rating desc
+          final ratingCmp = b.averageRating.compareTo(a.averageRating);
+          if (ratingCmp != 0) return ratingCmp;
+          // Secondary sort: total reviews desc
+          return b.totalReviews.compareTo(a.totalReviews);
+        });
+
+      if (mounted) {
+        setState(() {
+          _topRatedColleges = rated;
+          _isLoadingTopColleges = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching top rated colleges: $e');
+      if (mounted) {
+        setState(() {
+          _topCollegesError = 'Error loading top rated colleges';
+          _isLoadingTopColleges = false;
+        });
+      }
+    }
+  }
+
+  /// Fetch reviews for one college and return a [TopRatedCollege] with rating.
+  Future<TopRatedCollege?> _fetchCollegeWithRating(
+      dynamic college) async {
+    try {
+      if (college is! Map) return null;
+
+      final rawId = college['id'];
+      int? collegeId;
+      if (rawId is int) {
+        collegeId = rawId;
+      } else if (rawId is String) {
+        collegeId = int.tryParse(rawId);
+      }
+      if (collegeId == null) return null;
+
+      final String name =
+          college['name']?.toString() ?? 'Unknown College';
+      final String location =
+          college['location']?.toString() ?? '';
+      final String category =
+          college['category']?.toString() ?? '';
+
+      final reviewsResponse = await http.get(
+        Uri.parse('$_baseUrl/api/college-reviews/$collegeId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      double averageRating = 0.0;
+      int totalReviews = 0;
+
+      if (reviewsResponse.statusCode == 200) {
+        final dynamic reviewsBody = jsonDecode(reviewsResponse.body);
+
+        List<dynamic> reviewsList = [];
+        if (reviewsBody is Map) {
+          if (reviewsBody['reviews'] is List) {
+            reviewsList = reviewsBody['reviews'] as List<dynamic>;
+            totalReviews =
+                reviewsBody['totalReviews'] as int? ?? reviewsList.length;
+          } else if (reviewsBody['data'] is List) {
+            reviewsList = reviewsBody['data'] as List<dynamic>;
+            totalReviews = reviewsList.length;
+          }
+        } else if (reviewsBody is List) {
+          reviewsList = reviewsBody;
+          totalReviews = reviewsList.length;
+        }
+
+        if (reviewsList.isNotEmpty) {
+          double sum = 0.0;
+          for (final r in reviewsList) {
+            if (r is Map) {
+              final raw = r['rating'];
+              if (raw is int) sum += raw.toDouble();
+              else if (raw is double) sum += raw;
+              else if (raw is String) sum += double.tryParse(raw) ?? 0.0;
+            }
+          }
+          averageRating = sum / reviewsList.length;
+        }
+      }
+
+      return TopRatedCollege(
+        id: collegeId,
+        name: name,
+        location: location,
+        category: category,
+        averageRating: averageRating,
+        totalReviews: totalReviews,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Error fetching rating for college: $e');
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BLOGS
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _loadHomeBlogs() async {
     setState(() {
@@ -270,6 +453,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  ADS
+  // ═══════════════════════════════════════════════════════════════════════════
+
   Future<void> _loadAdvertisements() async {
     debugPrint('🔄 Loading advertisements for homepage...');
 
@@ -278,41 +465,29 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=homepage'),
       );
 
-      debugPrint('📡 API Response Status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        debugPrint('📦 API Response: $data');
 
         if (data['success'] == true && data['data'] != null) {
           final apiData = data['data'];
-          debugPrint('✅ API Data found');
-
           setState(() {
-            // Parse images
             if (apiData['images'] != null && apiData['images'] is List) {
               _adImages = List<String>.from(apiData['images']);
-              debugPrint('🖼️ Loaded ${_adImages.length} images from API');
             }
-
-            // Parse youtube URLs
             if (apiData['youtube_urls'] != null &&
                 apiData['youtube_urls'] is List) {
               _youtubeUrls = List<String>.from(apiData['youtube_urls']);
-              debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
             }
             _adsLoaded = true;
             _apiCallFailed = false;
           });
         } else {
-          debugPrint('⚠️ API returned success false or no data');
           setState(() {
             _adsLoaded = true;
             _apiCallFailed = true;
           });
         }
       } else {
-        debugPrint('⚠️ Unexpected status code: ${response.statusCode}');
         setState(() {
           _adsLoaded = true;
           _apiCallFailed = true;
@@ -324,10 +499,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _adsLoaded = true;
         _apiCallFailed = true;
       });
-    } finally {
-      debugPrint('✅ Using ${displayBanners.length} banners');
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  AUTO SCROLL
+  // ═══════════════════════════════════════════════════════════════════════════
 
   void _startAutoScroll() {
     if (_isAutoScrollStarted) return;
@@ -341,16 +518,13 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_bannerController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
         if (nextPage >= displayBanners.length) nextPage = 0;
-
         _bannerController
-            .animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        )
+            .animateToPage(nextPage,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut)
             .then((_) {
           if (mounted) _autoScrollNext();
-        }).catchError((e) {
+        }).catchError((_) {
           _isAutoScrollStarted = false;
         });
       } else {
@@ -375,25 +549,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _nextVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    // Handle video navigation if needed
-  }
-
-  String _getVideoThumbnail(String url) {
-    if (url.contains('youtube.com/embed/')) {
-      final videoId = url.split('/').last;
-      return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
-    }
-    return url;
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _bannerController.dispose();
-    super.dispose();
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -406,20 +564,15 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            const CustomHeader(
-              title: "Master Archive",
-            ),
-
+            const CustomHeader(title: "Master Archive"),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Banner with API images
                     _buildCollegeBanner(),
 
-                    // Info message when using fallback
                     if (_apiCallFailed && _adImages.isEmpty)
                       Container(
                         margin: EdgeInsets.symmetric(
@@ -441,19 +594,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Text(
                                 'Using default banners',
                                 style: TextStyle(
-                                  color: Colors.orange[700],
-                                  fontSize: 12,
-                                ),
+                                    color: Colors.orange[700], fontSize: 12),
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                    // Choice Section
                     _buildChoiceSection(),
-
-                    // Blogs Section
                     _buildBlogsSection(),
 
                     // View Jobs Button
@@ -468,9 +616,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const Job1Screen(),
-                              ),
+                                  builder: (context) => const Job1Screen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -488,46 +634,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.work_outline,
-                                size: isLargeScreen ? 22 : 20,
-                                color: Colors.white,
-                              ),
+                              Icon(Icons.work_outline,
+                                  size: isLargeScreen ? 22 : 20,
+                                  color: Colors.white),
                               const SizedBox(width: 10),
-                              Text(
-                                "View Jobs",
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 18 : 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              Text("View Jobs",
+                                  style: TextStyle(
+                                      fontSize: isLargeScreen ? 18 : 16,
+                                      fontWeight: FontWeight.w600)),
                               const SizedBox(width: 8),
-                              Icon(
-                                Icons.arrow_forward,
-                                size: isLargeScreen ? 20 : 18,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
+                              Icon(Icons.arrow_forward,
+                                  size: isLargeScreen ? 20 : 18,
+                                  color: Colors.white.withOpacity(0.9)),
                             ],
                           ),
                         ),
                       ),
                     ),
 
-                    // Top Colleges Section
-                    _buildTopCollegesSection(),
+                    // ── TOP RATED COLLEGES (from reviews) ──────────────────
+                    _buildTopRatedCollegesSection(),
                   ],
                 ),
               ),
             ),
 
-            // Footer pinned at bottom
             Footer(
               currentIndex: _footerIndex,
               onItemTapped: (index) {
                 if (mounted) {
-                  setState(() {
-                    _footerIndex = index;
-                  });
+                  setState(() => _footerIndex = index);
                   _handleFooterNavigation(index, context);
                 }
               },
@@ -537,6 +673,320 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  TOP RATED COLLEGES SECTION (dynamic, from reviews)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildTopRatedCollegesSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isLargeScreen ? 40 : 20,
+        vertical: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header row ────────────────────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "TOP RATED COLLEGES",
+                style: TextStyle(
+                  fontSize: isLargeScreen ? 22 : 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF003366),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/college1'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF003366),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 6),
+                ),
+                child: const Text(
+                  "View All",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ── Body ──────────────────────────────────────────────────────────
+          if (_isLoadingTopColleges)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: GlassLoader(),
+              ),
+            )
+          else if (_topCollegesError != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline,
+                        color: Colors.red[300], size: 40),
+                    const SizedBox(height: 8),
+                    Text(
+                      _topCollegesError!,
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    TextButton(
+                      onPressed: _fetchTopRatedColleges,
+                      child: const Text("Retry"),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_topRatedColleges.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    Icon(Icons.rate_review_outlined,
+                        size: 48, color: Colors.grey[400]),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No rated colleges yet',
+                      style: TextStyle(
+                          color: Colors.grey[600], fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // Show top 5 (or 4 on large screens to make 2-column grid)
+            isLargeScreen
+                ? Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: _topRatedColleges.take(4).map((college) {
+                      return SizedBox(
+                        width:
+                            (MediaQuery.of(context).size.width - 96) /
+                                    2 -
+                                8,
+                        child: _buildRatedCollegeItem(college),
+                      );
+                    }).toList(),
+                  )
+                : Column(
+                    children: _topRatedColleges
+                        .take(5)
+                        .map((c) => _buildRatedCollegeItem(c))
+                        .toList(),
+                  ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatedCollegeItem(TopRatedCollege college) {
+    // Determine medal color based on rank
+    final rank = _topRatedColleges.indexOf(college) + 1;
+    final Color rankColor = rank == 1
+        ? const Color(0xFFFFD700) // Gold
+        : rank == 2
+            ? const Color(0xFFC0C0C0) // Silver
+            : rank == 3
+                ? const Color(0xFFCD7F32) // Bronze
+                : const Color(0xFF0052A2); // Blue for rest
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          // ── Rank + icon ─────────────────────────────────────────────────
+          Container(
+            width: isLargeScreen ? 80 : 70,
+            margin: EdgeInsets.only(right: isLargeScreen ? 16 : 12),
+            child: Row(
+              children: [
+                // Rank number badge
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: rankColor,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$rank',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Image.asset(
+                  'assets/collegeicon.png',
+                  width: isLargeScreen ? 38 : 32,
+                  height: isLargeScreen ? 38 : 32,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: isLargeScreen ? 38 : 32,
+                      height: isLargeScreen ? 38 : 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0175D3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "AC",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // ── College info card ────────────────────────────────────────────
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(isLargeScreen ? 14 : 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + location
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          college.name,
+                          style: TextStyle(
+                            fontSize: isLargeScreen ? 14 : 12,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF003366),
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (college.location.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: isLargeScreen ? 13 : 11,
+                                  color: Colors.grey[500]),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  college.location,
+                                  style: TextStyle(
+                                    fontSize: isLargeScreen ? 12 : 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Rating block
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Star + average
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star,
+                              color: Color(0xFFFFB703), size: 16),
+                          const SizedBox(width: 2),
+                          Text(
+                            college.averageRating.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: isLargeScreen ? 15 : 14,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF003366),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      // Star row (visual)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(5, (i) {
+                          return Icon(
+                            i < college.averageRating.round()
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: const Color(0xFFFFB703),
+                            size: isLargeScreen ? 12 : 10,
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 3),
+                      // Review count
+                      Text(
+                        '${college.totalReviews} review${college.totalReviews == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          fontSize: isLargeScreen ? 11 : 10,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BANNER
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildCollegeBanner() {
     double bannerHeight = isLargeScreen ? 300 : 200;
@@ -553,169 +1003,88 @@ class _HomeScreenState extends State<HomeScreen> {
             child: PageView.builder(
               controller: _bannerController,
               itemCount: displayBanners.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentBannerIndex = index;
-                });
-              },
+              onPageChanged: (index) =>
+                  setState(() => _currentBannerIndex = index),
               itemBuilder: (context, index) {
                 final item = displayBanners[index];
 
                 if (useApiImages && item.containsKey('imageUrl')) {
-                  // Show API image
-                  return Container(
+                  return Image.network(
+                    item['imageUrl']!,
                     width: double.infinity,
-                    child: Image.network(
-                      item['imageUrl']!,
-                      width: double.infinity,
-                      height: bannerHeight,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: double.infinity,
-                          height: bannerHeight,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF0175D3), Color(0xFF014B85)],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image,
-                                  size: 50,
-                                  color: Colors.white.withOpacity(0.5),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Advertisement ${index + 1}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: double.infinity,
-                          height: bannerHeight,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF0175D3), Color(0xFF014B85)],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  // Show default banner with text
-                  return Container(
-                    width: double.infinity,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF0175D3), Color(0xFF014B85)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                      padding: EdgeInsets.all(isLargeScreen ? 24 : 16),
-                      child: Stack(
-                        children: [
-                          // Background Image
-                          Positioned(
-                            right: isLargeScreen ? -20 : -20,
-                            bottom: isLargeScreen ? -40 : -60,
-                            child: Image.asset(
-                              'assets/Global.png',
-                              width: isLargeScreen ? 400 : 250,
-                              height: isLargeScreen ? 300 : 200,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: isLargeScreen ? 400 : 250,
-                                  height: isLargeScreen ? 300 : 200,
-                                  color: Colors.transparent,
-                                );
-                              },
-                            ),
-                          ),
-
-                          // Text Content
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                item["title"]!,
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 24 : 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFD0F1FB),
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                item["line1"]!,
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 24 : 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  height: 1.1,
-                                ),
-                              ),
-                              Text(
-                                item["line2"]!,
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 24 : 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                item["info"]!,
-                                style: TextStyle(
-                                  fontSize: isLargeScreen ? 14 : 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    height: bannerHeight,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        _bannerFallback(index, bannerHeight),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return _bannerLoading(bannerHeight, loadingProgress);
+                    },
                   );
                 }
+
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0175D3), Color(0xFF014B85)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  padding: EdgeInsets.all(isLargeScreen ? 24 : 16),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -20,
+                        bottom: isLargeScreen ? -40 : -60,
+                        child: Image.asset(
+                          'assets/Global.png',
+                          width: isLargeScreen ? 400 : 250,
+                          height: isLargeScreen ? 300 : 200,
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const SizedBox(),
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(item["title"]!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 24 : 20,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFD0F1FB),
+                                height: 1.1,
+                              )),
+                          const SizedBox(height: 8),
+                          Text(item["line1"]!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 24 : 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.1,
+                              )),
+                          Text(item["line2"]!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 24 : 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.1,
+                              )),
+                          const SizedBox(height: 10),
+                          Text(item["info"]!,
+                              style: TextStyle(
+                                fontSize: isLargeScreen ? 14 : 12,
+                                color: Colors.white,
+                              )),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
-
-          // Pagination Dots
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -738,12 +1107,61 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _bannerFallback(int index, double height) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0175D3), Color(0xFF014B85)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image,
+                size: 50, color: Colors.white.withOpacity(0.5)),
+            const SizedBox(height: 8),
+            Text('Advertisement ${index + 1}',
+                style: const TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bannerLoading(double height, ImageChunkEvent progress) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0175D3), Color(0xFF014B85)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Center(
+        child: CircularProgressIndicator(
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+          value: progress.expectedTotalBytes != null
+              ? progress.cumulativeBytesLoaded /
+                  progress.expectedTotalBytes!
+              : null,
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  CHOICE SECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
   Widget _buildChoiceSection() {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isLargeScreen ? 40 : 20,
-        vertical: 20,
-      ),
+          horizontal: isLargeScreen ? 40 : 20, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -768,7 +1186,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildChoiceItem(Map<String, dynamic> choice, int index, bool isEven) {
+  Widget _buildChoiceItem(
+      Map<String, dynamic> choice, int index, bool isEven) {
     double ribbonWidth = isLargeScreen ? 160 : 230;
     double ribbonHeight = isLargeScreen ? 56 : 46;
     double cardHeight = isLargeScreen ? 70 : 59;
@@ -776,8 +1195,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return GestureDetector(
       onTap: () {
-        print("Tapped: ${choice["title"]}");
-
         if (choice["screen"] != null) {
           Navigator.pushNamed(context, choice["screen"] as String);
         }
@@ -808,10 +1225,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
-                      child: Text(
-                        "🎀",
-                        style: TextStyle(fontSize: isLargeScreen ? 24 : 20),
-                      ),
+                      child: Text("🎀",
+                          style: TextStyle(
+                              fontSize: isLargeScreen ? 24 : 20)),
                     ),
                   );
                 },
@@ -820,9 +1236,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               height: cardHeight,
               margin: EdgeInsets.only(
-                left: isEven ? 35 : 0,
-                right: isEven ? 0 : 35,
-              ),
+                  left: isEven ? 35 : 0, right: isEven ? 0 : 35),
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F5F5),
                 borderRadius: BorderRadius.circular(12),
@@ -840,11 +1254,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(
                     width: isLargeScreen ? 50 : 40,
                     child: !isEven
-                        ? Icon(
-                            choice["icon"] as IconData,
+                        ? Icon(choice["icon"] as IconData,
                             size: iconSize,
-                            color: const Color(0xFF1a73e8),
-                          )
+                            color: const Color(0xFF1a73e8))
                         : null,
                   ),
                   Expanded(
@@ -861,11 +1273,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(
                     width: isLargeScreen ? 50 : 40,
                     child: isEven
-                        ? Icon(
-                            choice["icon"] as IconData,
+                        ? Icon(choice["icon"] as IconData,
                             size: iconSize,
-                            color: const Color(0xFF1a73e8),
-                          )
+                            color: const Color(0xFF1a73e8))
                         : null,
                   ),
                 ],
@@ -877,11 +1287,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BLOGS SECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
   Widget _buildBlogsSection() {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isLargeScreen ? 40 : 20,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 40 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -898,40 +1310,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BlogsScreen(),
-                    ),
-                  );
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => BlogsScreen()));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF003366),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
+                      borderRadius: BorderRadius.circular(4)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 ),
-                child: const Text(
-                  "View All",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
+                child: const Text("View All",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
               ),
             ],
           ),
           const SizedBox(height: 16),
           if (_isBlogsLoading && blogsData.isEmpty)
-            Center(
-              child: Container(
+            const Center(
+              child: SizedBox(
                 height: 150,
-                child: const Center(
+                child: Center(
                   child: CircularProgressIndicator(
                     valueColor:
                         AlwaysStoppedAnimation<Color>(Color(0xFF003366)),
@@ -943,13 +1345,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Center(
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                  const Icon(Icons.error_outline,
+                      color: Colors.red, size: 40),
                   const SizedBox(height: 8),
                   Text(_blogsErrorMessage!),
                   TextButton(
-                    onPressed: _loadHomeBlogs,
-                    child: const Text("Retry"),
-                  ),
+                      onPressed: _loadHomeBlogs,
+                      child: const Text("Retry")),
                 ],
               ),
             )
@@ -961,7 +1363,8 @@ class _HomeScreenState extends State<HomeScreen> {
               runSpacing: 16,
               children: blogsData.take(4).map((blog) {
                 return SizedBox(
-                  width: (MediaQuery.of(context).size.width - 96) / 2 - 8,
+                  width:
+                      (MediaQuery.of(context).size.width - 96) / 2 - 8,
                   child: _buildBlogCard(blog),
                 );
               }).toList(),
@@ -971,13 +1374,16 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 250,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: blogsData.length > 5 ? 5 : blogsData.length,
+                itemCount:
+                    blogsData.length > 5 ? 5 : blogsData.length,
                 itemBuilder: (context, index) {
                   return Container(
                     width: 200,
                     margin: EdgeInsets.only(
                       right: index <
-                              (blogsData.length > 5 ? 4 : blogsData.length - 1)
+                              (blogsData.length > 5
+                                  ? 4
+                                  : blogsData.length - 1)
                           ? 16
                           : 0,
                     ),
@@ -997,15 +1403,13 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => BlogDetailScreen(blog: blog),
-          ),
+              builder: (context) => BlogDetailScreen(blog: blog)),
         );
       },
       child: Card(
         elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1014,7 +1418,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 height: isLargeScreen ? 150 : 120,
                 child: Image.network(
@@ -1023,10 +1427,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Container(
-                      color: const Color(0xFF0175D3).withOpacity(0.1),
+                      color:
+                          const Color(0xFF0175D3).withOpacity(0.1),
                       child: Center(
                         child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
+                          value: loadingProgress.expectedTotalBytes !=
+                                  null
                               ? loadingProgress.cumulativeBytesLoaded /
                                   loadingProgress.expectedTotalBytes!
                               : null,
@@ -1036,13 +1442,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: const Color(0xFF0175D3).withOpacity(0.1),
+                      color:
+                          const Color(0xFF0175D3).withOpacity(0.1),
                       child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 40,
-                          color: Color(0xFF0175D3),
-                        ),
+                        child: Icon(Icons.image_not_supported,
+                            size: 40, color: Color(0xFF0175D3)),
                       ),
                     );
                   },
@@ -1059,9 +1463,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: blog.type == "NEWS"
                               ? const Color(0xFFF0F7FF)
@@ -1082,9 +1484,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         blog.time,
                         style: TextStyle(
-                          fontSize: isLargeScreen ? 12 : 10,
-                          color: const Color(0xFF666666),
-                        ),
+                            fontSize: isLargeScreen ? 12 : 10,
+                            color: const Color(0xFF666666)),
                       ),
                     ],
                   ),
@@ -1103,18 +1504,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
-                        Icons.document_scanner_outlined,
-                        size: isLargeScreen ? 14 : 12,
-                        color: const Color(0xFF666666),
-                      ),
+                      Icon(Icons.document_scanner_outlined,
+                          size: isLargeScreen ? 14 : 12,
+                          color: const Color(0xFF666666)),
                       const SizedBox(width: 4),
                       Text(
                         blog.category,
                         style: TextStyle(
-                          fontSize: isLargeScreen ? 12 : 10,
-                          color: const Color(0xFF666666),
-                        ),
+                            fontSize: isLargeScreen ? 12 : 10,
+                            color: const Color(0xFF666666)),
                       ),
                     ],
                   ),
@@ -1123,176 +1521,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTopCollegesSection() {
-    final topColleges = isLargeScreen
-        ? collegesData.take(4).toList()
-        : collegesData.take(3).toList();
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isLargeScreen ? 40 : 20,
-        vertical: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "TOP RATED COLLEGES",
-                style: TextStyle(
-                  fontSize: isLargeScreen ? 22 : 18,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF003366),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF003366),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                ),
-                child: const Text(
-                  "View All",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (isLargeScreen)
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: topColleges.map((college) {
-                return SizedBox(
-                  width: (MediaQuery.of(context).size.width - 96) / 2 - 8,
-                  child: _buildCollegeItem(college),
-                );
-              }).toList(),
-            )
-          else
-            Column(
-              children: topColleges
-                  .map((college) => _buildCollegeItem(college))
-                  .toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollegeItem(Map<String, dynamic> college) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: isLargeScreen ? 80 : 70,
-            margin: EdgeInsets.only(right: isLargeScreen ? 16 : 12),
-            child: Row(
-              children: [
-                Text(
-                  "▲",
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: isLargeScreen ? 20 : 18,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Image.asset(
-                  'assets/collegeicon.png',
-                  width: isLargeScreen ? 48 : 42,
-                  height: isLargeScreen ? 48 : 42,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: isLargeScreen ? 48 : 42,
-                      height: isLargeScreen ? 48 : 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0175D3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "AC",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(isLargeScreen ? 16 : 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(2, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      college["name"] as String,
-                      style: TextStyle(
-                        fontSize: isLargeScreen ? 14 : 12,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF003366),
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        college["id"].toString(),
-                        style: TextStyle(
-                          fontSize: isLargeScreen ? 16 : 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        "🏆",
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

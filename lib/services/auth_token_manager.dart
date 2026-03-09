@@ -1,13 +1,15 @@
 // lib/services/auth_token_manager.dart
 //
 // Clean-architecture facade for all authentication token operations.
-// All sensitive data (token, user profile) is stored exclusively via
-// SecureStorageService — never in SharedPreferences or plain text.
+// All sensitive data (token, user profile, IQ results) is stored exclusively
+// via SecureStorageService — never in SharedPreferences or plain text.
 //
 // Usage:
 //   await AuthTokenManager.instance.saveToken(token);
 //   final token = await AuthTokenManager.instance.getToken();
 //   final exists = await AuthTokenManager.instance.hasToken();
+//   await AuthTokenManager.instance.saveIQResult(resultData);
+//   final iq = await AuthTokenManager.instance.getIQResult();
 //   await AuthTokenManager.instance.clearAll(); // on logout
 
 import 'dart:convert';
@@ -22,6 +24,7 @@ class _AuthKeys {
   static const String username    = 'auth_username';
   static const String email       = 'auth_email';
   static const String phone       = 'auth_phone';
+  static const String iqResult    = 'auth_iq_result'; // ← NEW
 }
 
 class AuthTokenManager {
@@ -133,6 +136,35 @@ class AuthTokenManager {
     return _storage.read(key: _AuthKeys.phone);
   }
 
+  // ─── IQ Result Operations ─────────────────────────────────────────────────
+
+  /// Saves the full [resultData] map from IQResultScreen securely.
+  /// Overwrites any previously stored IQ result.
+  /// Throws [StorageException] on failure.
+  Future<void> saveIQResult(Map<String, dynamic> resultData) async {
+    await _storage.write(
+      key: _AuthKeys.iqResult,
+      value: jsonEncode(resultData),
+    );
+  }
+
+  /// Returns the last saved IQ result as a [Map], or `null` if none exists.
+  /// Throws [StorageException] on failure.
+  Future<Map<String, dynamic>?> getIQResult() async {
+    final raw = await _storage.read(key: _AuthKeys.iqResult);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Deletes the stored IQ result (e.g. when user resets progress).
+  Future<void> deleteIQResult() async {
+    await _storage.delete(key: _AuthKeys.iqResult);
+  }
+
   // ─── Logout ───────────────────────────────────────────────────────────────
 
   /// Clears ALL authentication data from secure storage.
@@ -144,6 +176,7 @@ class AuthTokenManager {
       _storage.delete(key: _AuthKeys.username),
       _storage.delete(key: _AuthKeys.email),
       _storage.delete(key: _AuthKeys.phone),
+      _storage.delete(key: _AuthKeys.iqResult), // ← NEW
     ]);
   }
 }
