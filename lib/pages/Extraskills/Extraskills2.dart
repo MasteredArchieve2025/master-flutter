@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../widgets/footer.dart';
+import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
 import 'Extraskills3.dart';
@@ -23,26 +23,19 @@ class Extraskills2Screen extends StatefulWidget {
 }
 
 class _Extraskills2ScreenState extends State<Extraskills2Screen> {
-  int _currentCarouselIndex = 0;
-  int _currentVideoIndex = 0;
-  final PageController _pageController = PageController();
+  int _activeAdIndex = 0;
+  final PageController _adController = PageController();
+  Timer? _adTimer;
 
   // Loading states
   bool _isLoading = true;
-  bool _isLoadingAds = true;
+  bool _isAdsLoading = true;
   String? _errorMessage;
 
   // API Data
-  List<Map<String, dynamic>> _skillTypes = [];
-  List<String> _adImages = [];
-  List<String> _youtubeUrls = [];
-
-  // Default banner ads (fallback if API fails)
-  final List<String> _defaultBannerAds = [
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&h=400&fit=crop",
-  ];
+  List<Map<String, dynamic>> skillTypes = [];
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   // Fallback icons for when images fail to load
   final Map<String, IconData> _fallbackIcons = {
@@ -87,102 +80,93 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
     "Film Making": Icons.videocam,
   };
 
-  List<String> get bannerAds =>
-      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
-
-  // Get skill types to display
-  List<Map<String, dynamic>> get _displaySkillTypes {
-    if (_skillTypes.isNotEmpty) {
-      return _skillTypes;
-    }
-    return [];
-  }
-
   @override
   void initState() {
     super.initState();
-    _loadAdvertisements();
+    _fetchAdvertisements();
     if (widget.categoryId != null) {
-      _loadSkillTypes(widget.categoryId!);
+      _fetchSkillTypes(widget.categoryId!);
     } else {
       setState(() {
         _isLoading = false;
       });
-      _startAutoScroll();
     }
+
+    // Auto scroll ads
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
+        int nextPage = _activeAdIndex + 1;
+        if (nextPage >= adImages.length) nextPage = 0;
+        _adController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
-  Future<void> _loadAdvertisements() async {
+  Future<void> _fetchAdvertisements() async {
     debugPrint('🔄 Loading advertisements for extraskillpage2...');
-
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=extraskillpage2'),
+        headers: {'Content-Type': 'application/json'},
       );
 
-      debugPrint('📡 Ads API Response Status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-
+        final data = json.decode(response.body);
         if (data['success'] == true && data['data'] != null) {
-          final apiData = data['data'];
-
           setState(() {
-            if (apiData['images'] != null && apiData['images'] is List) {
-              _adImages = List<String>.from(apiData['images']);
-              debugPrint('🖼️ Loaded ${_adImages.length} images from API');
-            }
-
-            if (apiData['youtube_urls'] != null &&
-                apiData['youtube_urls'] is List) {
-              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
-              debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
-            }
-            _isLoadingAds = false;
+            adImages = List<String>.from(data['data']['images'] ?? []);
+            youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+            _isAdsLoading = false;
           });
         }
-      } else {
-        debugPrint('⚠️ Ads API error: ${response.statusCode}');
-        setState(() {
-          _isLoadingAds = false;
-        });
       }
     } catch (e) {
       debugPrint('❌ Error loading advertisements: $e');
       setState(() {
-        _isLoadingAds = false;
+        _isAdsLoading = false;
       });
     }
   }
 
-  Future<void> _loadSkillTypes(int categoryId) async {
+  Future<void> _fetchSkillTypes(int categoryId) async {
     debugPrint('🔄 Loading skill types for category $categoryId...');
 
     try {
       final response = await http.get(
-        Uri.parse(
-            '${BaseUrl.baseUrl}/api/extra-skill-types/category/$categoryId'),
+        Uri.parse('${BaseUrl.baseUrl}/api/extra-skill-types/category/$categoryId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       );
 
       debugPrint('📡 Skill Types API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        List<dynamic> data = json.decode(response.body);
         debugPrint('📦 Loaded ${data.length} skill types');
 
         setState(() {
-          _skillTypes = data.map((item) {
-            // Fix image URL if it's a placeholder
+          skillTypes = data.map((item) {
+            // Fix image URL if needed
             String? imageUrl = item['image'];
-            if (imageUrl != null && imageUrl.contains('example.com')) {
-              imageUrl = null; // Don't use placeholder images
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              if (!imageUrl.startsWith('http')) {
+                imageUrl = '${BaseUrl.baseUrl}$imageUrl';
+              }
+              // Don't use placeholder images
+              if (imageUrl.contains('example.com')) {
+                imageUrl = null;
+              }
             }
 
             return {
-              'id': item['id'] ?? 0, // Make sure ID is present
-              'name': item['name'] ?? 'Unknown Skill',
-              'shortDescription':
+              'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
+              'title': item['name'] ?? 'Unknown Skill',
+              'description':
                   item['shortDescription'] ?? 'Explore this skill',
               'image': imageUrl,
             };
@@ -190,9 +174,8 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
           _isLoading = false;
         });
       } else {
-        debugPrint('⚠️ Skill Types API error: ${response.statusCode}');
         setState(() {
-          _errorMessage = 'Failed to load skill types';
+          _errorMessage = 'Failed to load skill types. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
@@ -202,255 +185,36 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
-    } finally {
-      _startAutoScroll();
     }
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void _retryLoading() {
+    setState(() {
+      _isLoading = true;
+      _isAdsLoading = true;
+      _errorMessage = null;
+    });
+    _fetchAdvertisements();
+    if (widget.categoryId != null) {
+      _fetchSkillTypes(widget.categoryId!);
+    }
   }
 
-  void _startAutoScroll() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (_pageController.hasClients && mounted) {
-        int nextPage = _currentCarouselIndex + 1;
-        if (nextPage >= bannerAds.length) {
-          nextPage = 0;
-        }
-        _pageController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-        _startAutoScroll();
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
       }
-    });
-  }
-
-  void _nextVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
-    });
-  }
-
-  void _previousVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex =
-          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
-    });
-  }
-
-  String _getVideoThumbnail(String url) {
-    if (url.contains('youtube.com/embed/')) {
-      final videoId = url.split('/').last;
       return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
-    }
-    return url;
-  }
-
-  // Function to generate default skill types if API fails
-  List<Map<String, dynamic>> _getDefaultSkillTypes() {
-    switch (widget.categoryTitle) {
-      case 'Fine Arts':
-        return [
-          {
-            'id': 1,
-            'name': 'Arts',
-            'shortDescription': 'Explore creative and practical skills',
-            'image': null
-          },
-          {
-            'id': 2,
-            'name': 'Basic Drawing & Sketching',
-            'shortDescription': 'Drawing fundamentals',
-            'image': null
-          },
-          {
-            'id': 3,
-            'name': 'Creative Art & Imagination Drawing',
-            'shortDescription': 'Creative expression',
-            'image': null
-          },
-          {
-            'id': 4,
-            'name': 'Professional Art Techniques',
-            'shortDescription': 'Advanced art skills',
-            'image': null
-          },
-        ];
-      case 'Driving Class':
-        return [
-          {
-            'id': 5,
-            'name': 'Two Wheeler',
-            'shortDescription': 'Bike driving skills',
-            'image': null
-          },
-          {
-            'id': 6,
-            'name': 'Four Wheeler',
-            'shortDescription': 'Car driving training',
-            'image': null
-          },
-          {
-            'id': 7,
-            'name': 'Driving Rules',
-            'shortDescription': 'Traffic rules & safety',
-            'image': null
-          },
-          {
-            'id': 8,
-            'name': 'Practical Lessons',
-            'shortDescription': 'Hands-on driving practice',
-            'image': null
-          },
-        ];
-      case 'Athlete':
-        return [
-          {
-            'id': 9,
-            'name': 'Track Running',
-            'shortDescription': 'Speed and endurance training',
-            'image': null
-          },
-          {
-            'id': 10,
-            'name': 'Marathon Prep',
-            'shortDescription': 'Long-distance running prep',
-            'image': null
-          },
-          {
-            'id': 11,
-            'name': 'High Jump',
-            'shortDescription': 'Jumping techniques',
-            'image': null
-          },
-          {
-            'id': 12,
-            'name': 'Long Jump',
-            'shortDescription': 'Distance jumping skills',
-            'image': null
-          },
-        ];
-      case 'Sports & Fitness':
-        return [
-          {
-            'id': 13,
-            'name': 'Football',
-            'shortDescription': 'Football skills training',
-            'image': null
-          },
-          {
-            'id': 14,
-            'name': 'Cricket',
-            'shortDescription': 'Cricket coaching',
-            'image': null
-          },
-          {
-            'id': 15,
-            'name': 'Yoga',
-            'shortDescription': 'Mind & body wellness',
-            'image': null
-          },
-          {
-            'id': 16,
-            'name': 'Gym',
-            'shortDescription': 'Strength & fitness training',
-            'image': null
-          },
-          {
-            'id': 17,
-            'name': 'Swimming',
-            'shortDescription': 'Swimming techniques',
-            'image': null
-          },
-        ];
-      case 'Home Science':
-        return [
-          {
-            'id': 18,
-            'name': 'Cooking',
-            'shortDescription': 'Cooking fundamentals',
-            'image': null
-          },
-          {
-            'id': 19,
-            'name': 'Sewing',
-            'shortDescription': 'Stitching & tailoring',
-            'image': null
-          },
-          {
-            'id': 20,
-            'name': 'Home Management',
-            'shortDescription': 'Household management',
-            'image': null
-          },
-          {
-            'id': 21,
-            'name': 'Interior Design',
-            'shortDescription': 'Interior design basics',
-            'image': null
-          },
-        ];
-      case 'Other Classes':
-        return [
-          {
-            'id': 22,
-            'name': 'Music Production',
-            'shortDescription': 'Create and mix music',
-            'image': null
-          },
-          {
-            'id': 23,
-            'name': 'Creative Writing',
-            'shortDescription': 'Writing & storytelling',
-            'image': null
-          },
-          {
-            'id': 24,
-            'name': 'Photography',
-            'shortDescription': 'Photography skills',
-            'image': null
-          },
-          {
-            'id': 25,
-            'name': 'Film Making',
-            'shortDescription': 'Film creation basics',
-            'image': null
-          },
-        ];
-      default:
-        return [
-          {
-            'id': 26,
-            'name': 'Arts',
-            'shortDescription': 'Explore creative and practical skills',
-            'image': null
-          },
-          {
-            'id': 27,
-            'name': 'Music',
-            'shortDescription': 'Learn musical instruments and vocals',
-            'image': null
-          },
-          {
-            'id': 28,
-            'name': 'Dance',
-            'shortDescription': 'Various dance forms',
-            'image': null
-          },
-          {
-            'id': 29,
-            'name': 'Sports',
-            'shortDescription': 'Physical activities and games',
-            'image': null
-          },
-        ];
+    } catch (e) {
+      return '';
     }
   }
 
@@ -471,35 +235,58 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
     return _fallbackIcons[matchingKey]!;
   }
 
+  @override
+  void dispose() {
+    _adTimer?.cancel();
+    _adController.dispose();
+    super.dispose();
+  }
+
+  // Scale function for responsive sizing
+  double _scale(double size) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return size * 1.2; // Desktop
+    if (screenWidth >= 768) return size * 1.1; // Tablet
+    return size; // Mobile
+  }
+
   // Responsive value function
   double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return desktop;
-    if (screenWidth >= 768) return tablet;
-    return mobile;
+    if (screenWidth >= 1024) return desktop; // Desktop
+    if (screenWidth >= 768) return tablet; // Tablet
+    return mobile; // Mobile
+  }
+
+  // Calculate grid columns
+  int _getGridColumns() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return 4; // Desktop
+    if (screenWidth >= 768) return 3; // Tablet
+    return 2; // Mobile
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
 
+    // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    final int numColumns = isDesktop ? 4 : (isTablet ? 3 : 2);
-    final double videoHeight = isMobile ? 250 : (isTablet ? 320 : 400);
-
+    final double adHeight = _responsiveValue(200, 300, 300);
+    final int gridColumns = _getGridColumns();
     final double cardWidth = (screenWidth -
             (horizontalPadding * 2) -
-            (_responsiveValue(12, 16, 20) * (numColumns - 1))) /
-        numColumns;
+            (_responsiveValue(12, 16, 20) * (gridColumns - 1))) /
+        gridColumns;
+    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
 
-    List<Map<String, dynamic>> skillsToDisplay = _displaySkillTypes.isNotEmpty
-        ? _displaySkillTypes
-        : (!_isLoading && _errorMessage != null ? _getDefaultSkillTypes() : []);
+    // Calculate header height
+    final double headerHeight = _responsiveValue(52, 58, 80);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -508,7 +295,7 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
           SafeArea(
             child: Column(
               children: [
-                // Header
+                // ===== HEADER =====
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -525,36 +312,39 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     padding:
                         EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _responsiveValue(52, 72, 80),
+                    height: headerHeight,
                     child: Row(
                       children: [
+                        // Back Button
                         IconButton(
                           onPressed: () => Navigator.pop(context),
                           icon: Icon(
                             Icons.arrow_back,
-                            size: _responsiveValue(24, 26, 28),
+                            size: _scale(24),
                             color: Colors.white,
                           ),
                         ),
+                        // Title
                         Expanded(
                           child: Center(
                             child: Text(
                               widget.categoryTitle,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: _responsiveValue(18, 22, 24),
+                                fontSize: _responsiveValue(20, 22, 24),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(width: _responsiveValue(40, 44, 48)),
+                        // Spacer for symmetry
+                        SizedBox(width: _scale(40)),
                       ],
                     ),
                   ),
                 ),
 
-                // Main Content
+                // ===== MAIN CONTENT =====
                 Expanded(
                   child: _isLoading
                       ? const Center(
@@ -562,663 +352,530 @@ class _Extraskills2ScreenState extends State<Extraskills2Screen> {
                             message: 'Loading skills...',
                           ),
                         )
-                      : SingleChildScrollView(
-                          child: Center(
-                            child: Container(
-                              constraints:
-                                  BoxConstraints(maxWidth: maxContentWidth),
+                      : _errorMessage != null && skillTypes.isEmpty
+                          ? Center(
                               child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Banner Carousel
-                                  SizedBox(
-                                    height: _responsiveValue(200, 280, 300),
-                                    child: PageView.builder(
-                                      controller: _pageController,
-                                      itemCount: bannerAds.length,
-                                      onPageChanged: (index) {
-                                        setState(() {
-                                          _currentCarouselIndex = index;
-                                        });
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return Container(
-                                          width: double.infinity,
-                                          child: Image.network(
-                                            bannerAds[index],
-                                            width: double.infinity,
-                                            height:
-                                                _responsiveValue(200, 280, 300),
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                              return Container(
-                                                width: double.infinity,
-                                                height: _responsiveValue(
-                                                    200, 280, 300),
-                                                color: const Color(0xFF0052A2),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.broken_image,
-                                                        size: 50,
-                                                        color: Colors.white
-                                                            .withOpacity(0.5),
-                                                      ),
-                                                      const SizedBox(height: 8),
-                                                      Text(
-                                                        'Advertisement ${index + 1}',
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 16,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            loadingBuilder: (context, child,
-                                                loadingProgress) {
-                                              if (loadingProgress == null)
-                                                return child;
-                                              return Container(
-                                                width: double.infinity,
-                                                height: _responsiveValue(
-                                                    200, 280, 300),
-                                                color: const Color(0xFF0052A2),
-                                                child: Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    valueColor:
-                                                        const AlwaysStoppedAnimation<
-                                                                Color>(
-                                                            Colors.white),
-                                                    value: loadingProgress
-                                                                .expectedTotalBytes !=
-                                                            null
-                                                        ? loadingProgress
-                                                                .cumulativeBytesLoaded /
-                                                            loadingProgress
-                                                                .expectedTotalBytes!
-                                                        : null,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: Colors.red,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Error loading skill types',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-
-                                  // Dots Indicator
-                                  SizedBox(
-                                      height: _responsiveValue(12, 16, 20)),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children:
-                                        bannerAds.asMap().entries.map((entry) {
-                                      return AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        width:
-                                            _currentCarouselIndex == entry.key
-                                                ? _responsiveValue(20, 22, 24)
-                                                : _responsiveValue(8, 9, 10),
-                                        height: _responsiveValue(8, 9, 10),
-                                        margin: EdgeInsets.symmetric(
-                                          horizontal: _responsiveValue(4, 5, 6),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              _currentCarouselIndex == entry.key
-                                                  ? const Color(0xFF0B5ED7)
-                                                  : const Color(0xFFCCCCCC),
-                                          borderRadius: BorderRadius.circular(
-                                              _responsiveValue(4, 5, 6)),
-                                        ),
-                                      );
-                                    }).toList(),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-
-                                  // Fallback banner message
-                                  if (_adImages.isEmpty && !_isLoadingAds)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange[50],
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          border:
-                                              Border.all(color: Colors.orange),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.info_outline,
-                                              size: 14,
-                                              color: Colors.orange[700],
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'Using default banners',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.orange[700],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _retryLoading,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0B5ED7),
                                     ),
-
-                                  // Skill Types Section
-                                  if (skillsToDisplay.isNotEmpty)
-                                    Column(
-                                      children: [
-                                        // Section Header
-                                        Container(
-                                          margin: EdgeInsets.all(
-                                              _responsiveValue(16, 20, 24)),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFCFE5FA),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                            vertical:
-                                                _responsiveValue(16, 18, 20),
-                                            horizontal:
-                                                _responsiveValue(20, 24, 28),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '${widget.categoryTitle} Skills',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(
-                                                    18, 20, 22),
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF0B5AA7),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-
-                                        // Skill Cards Grid
-                                        Container(
-                                          width: double.infinity,
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: horizontalPadding,
-                                            vertical:
-                                                _responsiveValue(8, 12, 16),
-                                          ),
-                                          child: Wrap(
-                                            spacing:
-                                                _responsiveValue(12, 16, 20),
-                                            runSpacing:
-                                                _responsiveValue(12, 16, 20),
-                                            children:
-                                                skillsToDisplay.map((skill) {
-                                              final skillName =
-                                                  skill['name'] as String;
-                                              final skillId = skill['id']
-                                                  as int; // Get the actual ID
-                                              final imageUrl =
-                                                  skill['image'] as String?;
-                                              final fallbackIcon =
-                                                  _getFallbackIcon(skillName);
-
-                                              return _buildSkillCard(
-                                                title: skillName,
-                                                description:
-                                                    skill['shortDescription'] ??
-                                                        'Explore this skill',
-                                                imageUrl: imageUrl,
-                                                fallbackIcon: fallbackIcon,
-                                                skillId: skillId, // Pass the ID
-                                                width: cardWidth,
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                  // Error message with retry
-                                  if (_errorMessage != null &&
-                                      skillsToDisplay.isEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.error_outline,
-                                            size: 48,
-                                            color: Colors.red,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Error loading skills',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _errorMessage!,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[600],
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          const SizedBox(height: 16),
-                                          if (widget.categoryId != null)
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                setState(() {
-                                                  _isLoading = true;
-                                                  _errorMessage = null;
-                                                });
-                                                _loadSkillTypes(
-                                                    widget.categoryId!);
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    const Color(0xFF0B5ED7),
-                                              ),
-                                              child: const Text('Retry'),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-
-                                  // YouTube Video Section
-                                  if (_youtubeUrls.isNotEmpty) ...[
-                                    if (_youtubeUrls.length > 1)
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: horizontalPadding,
-                                          vertical:
-                                              _responsiveValue(12, 16, 20),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Videos',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(
-                                                    18, 20, 22),
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  onPressed: _previousVideo,
-                                                  icon: const Icon(
-                                                      Icons.chevron_left,
-                                                      color: Color(0xFF0B5ED7)),
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                                Text(
-                                                  '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                                  style: const TextStyle(
-                                                    color: Color(0xFF0B5ED7),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  onPressed: _nextVideo,
-                                                  icon: const Icon(
-                                                      Icons.chevron_right,
-                                                      color: Color(0xFF0B5ED7)),
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    Container(
-                                      width: double.infinity,
-                                      height: videoHeight,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black,
-                                        image: DecorationImage(
-                                          image: NetworkImage(
-                                            _getVideoThumbnail(_youtubeUrls[
-                                                _currentVideoIndex]),
-                                          ),
-                                          fit: BoxFit.cover,
-                                          onError: (exception, stackTrace) {},
-                                        ),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          Center(
-                                            child: GestureDetector(
-                                              onTap: () => _showUrlDialog(
-                                                  _youtubeUrls[
-                                                      _currentVideoIndex]),
-                                              child: Container(
-                                                width: 60,
-                                                height: 60,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(30),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withOpacity(0.3),
-                                                      blurRadius: 10,
-                                                      spreadRadius: 2,
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: const Icon(
-                                                  Icons.play_arrow,
-                                                  size: 40,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          if (_youtubeUrls.length > 1)
-                                            Positioned(
-                                              right: 16,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black
-                                                      .withOpacity(0.7),
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    IconButton(
-                                                      onPressed: _previousVideo,
-                                                      icon: const Icon(
-                                                          Icons.chevron_left,
-                                                          color: Colors.white,
-                                                          size: 20),
-                                                      constraints:
-                                                          const BoxConstraints(),
-                                                      padding: EdgeInsets.zero,
-                                                    ),
-                                                    Text(
-                                                      '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                    IconButton(
-                                                      onPressed: _nextVideo,
-                                                      icon: const Icon(
-                                                          Icons.chevron_right,
-                                                          color: Colors.white,
-                                                          size: 20),
-                                                      constraints:
-                                                          const BoxConstraints(),
-                                                      padding: EdgeInsets.zero,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ] else
-                                    // Fallback video
-                                    Container(
-                                      margin: EdgeInsets.only(
-                                        top: _responsiveValue(20, 30, 40),
-                                      ),
-                                      width: double.infinity,
-                                      height: videoHeight,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black,
-                                        image: DecorationImage(
-                                          image: NetworkImage(
-                                            'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                          ),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: GestureDetector(
-                                          onTap: () => _showUrlDialog(
-                                              'https://www.youtube.com/embed/L2zqTYgcpfg'),
-                                          child: Container(
-                                            width: 60,
-                                            height: 60,
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.3),
-                                                  blurRadius: 10,
-                                                  spreadRadius: 2,
-                                                ),
-                                              ],
-                                            ),
-                                            child: const Icon(
-                                              Icons.play_arrow,
-                                              size: 40,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                    child: const Text('Retry'),
+                                  ),
                                 ],
                               ),
+                            )
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Center(
+                                        child: Container(
+                                          constraints: BoxConstraints(
+                                              maxWidth: maxContentWidth),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // ===== ADVERTISEMENT BANNER =====
+                                                  if (adImages.isNotEmpty)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      child: PageView.builder(
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
+                                                        onPageChanged: (index) {
+                                                          setState(() {
+                                                            _activeAdIndex =
+                                                                index;
+                                                          });
+                                                        },
+                                                        itemBuilder:
+                                                            (context, index) {
+                                                          return Image.network(
+                                                            adImages[index],
+                                                            width: screenWidth,
+                                                            height: adHeight,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error,
+                                                                    stackTrace) {
+                                                              return Container(
+                                                                width:
+                                                                    screenWidth,
+                                                                height:
+                                                                    adHeight,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        },
+                                                      ),
+                                                    )
+                                                  else if (_isAdsLoading)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
+                                                    )
+                                                  else
+                                                    const SizedBox.shrink(),
+
+                                                  // ===== PAGINATION DOTS =====
+                                                  if (adImages.length > 1)
+                                                    Container(
+                                                      color: Colors.white,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: List.generate(
+                                                            adImages.length,
+                                                            (index) {
+                                                          return AnimatedContainer(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(20)
+                                                                    : _scale(8),
+                                                            height: _scale(8),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
+                                                            ),
+                                                          );
+                                                        }),
+                                                      ),
+                                                    ),
+
+                                                  // ===== SKILL TYPES SECTION =====
+                                                  Container(
+                                                    width: double.infinity,
+                                                    color: Colors.white,
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          24, 28, 32),
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          20, 24, 28),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Section Title
+                                                        Text(
+                                                          '${widget.categoryTitle} Skills',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    20, 22, 24),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: const Color(
+                                                                0xFF003366),
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _scale(8)),
+
+                                                        // Section Subtitle with count
+                                                        Text(
+                                                          skillTypes
+                                                                  .isNotEmpty
+                                                              ? '${skillTypes.length} skill ${skillTypes.length == 1 ? 'type' : 'types'} available'
+                                                              : 'Browse skills and find the right learning resources',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFF666666),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height:
+                                                                _responsiveValue(
+                                                                    20,
+                                                                    24,
+                                                                    28)),
+
+                                                        // Grid View
+                                                        if (skillTypes
+                                                            .isEmpty)
+                                                          const Center(
+                                                            child: Padding(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(20),
+                                                              child: Text(
+                                                                  'No skill types available'),
+                                                            ),
+                                                          )
+                                                        else
+                                                          Wrap(
+                                                            spacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            runSpacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            children:
+                                                                skillTypes
+                                                                    .map(
+                                                                        (skill) {
+                                                              return _buildSkillCard(
+                                                                skill: skill,
+                                                                width:
+                                                                    cardWidth,
+                                                              );
+                                                            }).toList(),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  // ===== BANNER SECTION =====
+                                                  Container(
+                                                    width: screenWidth,
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              20, 24, 28),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFF4C73AC),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              _scale(12)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
+                                                          blurRadius: _scale(6),
+                                                          offset: const Offset(
+                                                              0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Master Your Skills',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _scale(10)),
+                                                        Text(
+                                                          'Get tutorials, practice materials, and expert guidance',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFFDCE8FF),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              // ===== YOUTUBE VIDEO SECTION =====
+                                              if (youtubeUrls.isNotEmpty)
+                                                Column(
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                16, 20, 24),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color:
+                                                                  Colors.red),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Text(
+                                                            'Video Tutorials',
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    ...youtubeUrls
+                                                        .map((url) => Container(
+                                                              width:
+                                                                  screenWidth,
+                                                              margin:
+                                                                  EdgeInsets
+                                                                      .only(),
+                                                              child:
+                                                                  CommonYoutubePlayer(
+                                                                youtubeUrl: url,
+                                                                height: isDesktop
+                                                                    ? 360
+                                                                    : (isTablet
+                                                                        ? 320
+                                                                        : 220),
+                                                                placeholderThumbnail:
+                                                                    _getYoutubeThumbnail(
+                                                                        url),
+                                                                borderRadius: 0,
+                                                              ),
+                                                            ))
+                                                        .toList(),
+                                                  ],
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                        ),
                 ),
               ],
             ),
           ),
 
-          // Full screen loader
-          if (_isLoading && widget.categoryId != null)
+          // Full screen loader for initial loading
+          if (_isLoading && skillTypes.isEmpty)
             const GlassLoader(
-              message: 'Loading skills...',
+              message: 'Loading skill types...',
             ),
         ],
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 
   Widget _buildSkillCard({
-    required String title,
-    required String description,
-    String? imageUrl,
-    required IconData fallbackIcon,
-    required int skillId, // Add this parameter
+    required Map<String, dynamic> skill,
     required double width,
   }) {
+    // Check if we have an image from API and it's valid
+    bool hasValidImage =
+        skill['image'] != null && skill['image'].toString().isNotEmpty;
+
+    // Get fallback icon based on skill title
+    IconData fallbackIcon = _getFallbackIcon(skill['title'] as String);
+
     return GestureDetector(
       onTap: () {
-        debugPrint('👉 Navigating to skill: $title with ID: $skillId');
+        // Navigate to Extraskills3 screen when card is tapped with the skill data
+        debugPrint('👉 Navigating to skill: ${skill['title']} with ID: ${skill['id']}');
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => Extraskills3Screen(
-              skillTitle: title,
-              skillDescription: description,
-              typeId: skillId, // Pass the actual skill ID
+              skillTitle: skill['title'] as String,
+              skillDescription: skill['description'] as String,
+              typeId: skill['id'] as int?,
             ),
           ),
         );
       },
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          width: width,
-          padding: EdgeInsets.all(_responsiveValue(16, 18, 20)),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: const Color(0xFFF0F0F0),
-              width: 1,
+      child: Container(
+        width: width * 0.9,
+        margin: EdgeInsets.symmetric(
+            horizontal: width * 0.05), // Center the smaller card
+        padding:
+            EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Image/Icon Container
-              Container(
-                width: _responsiveValue(56, 64, 72),
-                height: _responsiveValue(56, 64, 72),
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(_responsiveValue(12, 14, 16)),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2295D2), Color(0xFF284598)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: imageUrl != null && !imageUrl.contains('example.com')
-                    ? ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(_responsiveValue(12, 14, 16)),
-                        child: Image.network(
-                          imageUrl,
-                          width: _responsiveValue(56, 64, 72),
-                          height: _responsiveValue(56, 64, 72),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            // If image fails to load, show fallback icon
-                            return Center(
-                              child: Icon(
-                                fallbackIcon,
-                                size: _responsiveValue(28, 32, 36),
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                    Colors.white),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    : Center(
-                        child: Icon(
-                          fallbackIcon,
-                          size: _responsiveValue(28, 32, 36),
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
-
-              SizedBox(height: _responsiveValue(12, 14, 16)),
-
-              // Title
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: _responsiveValue(16, 17, 18),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF004780),
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              SizedBox(height: _responsiveValue(8, 9, 10)),
-
-              // Description
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: _responsiveValue(12, 13, 14),
-                  color: const Color(0xFF555555),
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+          ],
         ),
-      ),
-    );
-  }
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo Container - Bigger size
+            Container(
+              width: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
+              height: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(
+                    _scale(16)), // Slightly larger border radius
+                gradient: !hasValidImage
+                    ? const LinearGradient(
+                        colors: [Color(0xFF2295D2), Color(0xFF284598)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                image: hasValidImage
+                    ? DecorationImage(
+                        image: NetworkImage(skill['image']),
+                        fit: BoxFit.cover,
+                        onError: (exception, stackTrace) {},
+                      )
+                    : null,
+                color: hasValidImage ? null : const Color(0xFFE6F0FF),
+              ),
+              child: !hasValidImage
+                  ? Center(
+                      child: Icon(
+                        fallbackIcon,
+                        size: _responsiveValue(
+                            25, 30, 35), // Icon size for fallback
+                        color: Colors.white,
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(height: _scale(14)), // Slightly increased spacing
 
-  void _showUrlDialog(String url) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('External Link'),
-        content: Text('Would you like to open the video?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Opening video: $url')),
-              );
-            },
-            child: const Text('Open'),
-          ),
-        ],
+            // Title - Centered
+            Text(
+              skill['title'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _responsiveValue(14, 16, 18),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: 1.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: _scale(4)),
+
+            // Description - Centered
+            Text(
+              skill['description'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _responsiveValue(11, 12, 13),
+                color: const Color(0xFF666666),
+                height: 1.3,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
