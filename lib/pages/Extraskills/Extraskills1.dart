@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import '../../Widgets/CommonYoutubePlayer.dart';
 
-import '../../widgets/footer.dart';
 import '../../Api/baseurl.dart';
 import '../../components/glass_loader.dart';
 import 'Extraskills2.dart';
@@ -19,163 +17,85 @@ class Extraskills1Screen extends StatefulWidget {
 }
 
 class _Extraskills1ScreenState extends State<Extraskills1Screen> {
-  int _currentCarouselIndex = 0;
-  int _currentVideoIndex = 0;
-  final PageController _pageController = PageController();
-  bool _isAutoScrollStarted = false;
+  int _activeAdIndex = 0;
+  final PageController _adController = PageController();
+  Timer? _adTimer;
 
   // Loading states
   bool _isLoading = true;
-  bool _isLoadingAds = true;
+  bool _isAdsLoading = true;
   String? _errorMessage;
-  bool _apiCallFailed = false;
 
   // API Data
-  List<Map<String, dynamic>> _categories = [];
-  List<String> _adImages = [];
-  List<String> _youtubeUrls = [];
-
-  // Default banner ads (fallback if API fails)
-  final List<String> _defaultBannerAds = [
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&h=400&fit=crop",
-    "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&h=400&fit=crop",
-  ];
-
-  // Default activities (fallback if API fails)
-  final List<Map<String, dynamic>> _defaultActivities = [
-    {
-      'id': 1,
-      'title': 'Fine Arts',
-      'icon': Icons.palette,
-      'description': 'Drawing, Painting, Sculpture',
-      'image': null,
-    },
-    {
-      'id': 2,
-      'title': 'Driving Class',
-      'icon': Icons.directions_car,
-      'description': 'Learn driving skills',
-      'image': null,
-    },
-    {
-      'id': 3,
-      'title': 'Athlete',
-      'icon': Icons.directions_run,
-      'description': 'Sports and athletics',
-      'image': null,
-    },
-    {
-      'id': 4,
-      'title': 'Sports & Fitness',
-      'icon': Icons.sports_soccer,
-      'description': 'Football, Cricket, Yoga',
-      'image': null,
-    },
-    {
-      'id': 5,
-      'title': 'Home Science',
-      'icon': Icons.local_laundry_service,
-      'description': 'Cooking, Sewing, Home Management',
-      'image': null,
-    },
-    {
-      'id': 6,
-      'title': 'Other Classes',
-      'icon': Icons.library_music,
-      'description': 'Music, Photography, Writing',
-      'image': null,
-    },
-  ];
-
-  List<String> get bannerAds =>
-      _adImages.isNotEmpty ? _adImages : _defaultBannerAds;
-  List<Map<String, dynamic>> get activities =>
-      _categories.isNotEmpty ? _categories : _defaultActivities;
+  List<Map<String, dynamic>> skillCategories = [];
+  List<String> adImages = [];
+  List<String> youtubeUrls = [];
 
   @override
   void initState() {
     super.initState();
-    _loadAdvertisements();
-    _loadCategories();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startAutoScroll();
+    _fetchSkillCategories();
+    _fetchAdvertisements();
+
+    // Auto scroll ads
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && adImages.isNotEmpty) {
+        int nextPage = _activeAdIndex + 1;
+        if (nextPage >= adImages.length) nextPage = 0;
+        _adController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
-  Future<void> _loadAdvertisements() async {
+  Future<void> _fetchAdvertisements() async {
     debugPrint('🔄 Loading advertisements for extraskillpage1...');
-
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=extraskillpage1'),
+        headers: {'Content-Type': 'application/json'},
       );
 
-      debugPrint('📡 Ads API Response Status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-
+        final data = json.decode(response.body);
         if (data['success'] == true && data['data'] != null) {
-          final apiData = data['data'];
-
           setState(() {
-            if (apiData['images'] != null && apiData['images'] is List) {
-              _adImages = List<String>.from(apiData['images']);
-              debugPrint('🖼️ Loaded ${_adImages.length} images from API');
-            }
-
-            if (apiData['youtube_urls'] != null &&
-                apiData['youtube_urls'] is List) {
-              _youtubeUrls = List<String>.from(apiData['youtube_urls']);
-              debugPrint('🎥 Loaded ${_youtubeUrls.length} videos from API');
-            }
-            _isLoadingAds = false;
-            _apiCallFailed = false;
-          });
-        } else {
-          setState(() {
-            _isLoadingAds = false;
-            _apiCallFailed = true;
+            adImages = List<String>.from(data['data']['images'] ?? []);
+            youtubeUrls = List<String>.from(data['data']['youtube_urls'] ?? []);
+            _isAdsLoading = false;
           });
         }
-      } else if (response.statusCode == 404) {
-        debugPrint('⚠️ Page "extraskillpage1" not found in backend (404)');
-        setState(() {
-          _isLoadingAds = false;
-          _apiCallFailed = true;
-        });
-      } else {
-        setState(() {
-          _isLoadingAds = false;
-          _apiCallFailed = true;
-        });
       }
     } catch (e) {
       debugPrint('❌ Error loading advertisements: $e');
       setState(() {
-        _isLoadingAds = false;
-        _apiCallFailed = true;
+        _isAdsLoading = false;
       });
     }
   }
 
-  Future<void> _loadCategories() async {
-    debugPrint('🔄 Loading extra skill categories...');
+  Future<void> _fetchSkillCategories() async {
+    debugPrint('🔄 Loading skill categories...');
 
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/extra-skill-categories'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       );
 
-      debugPrint('📡 Categories API Response Status: ${response.statusCode}');
+      debugPrint('📡 Skill Categories API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        debugPrint('📦 Loaded ${data.length} categories');
+        List<dynamic> data = json.decode(response.body);
+        debugPrint('📦 Loaded ${data.length} skill categories');
 
         setState(() {
-          _categories = data.map((item) {
+          skillCategories = data.map((item) {
             // Fix image URL if needed
             String? imageUrl = item['image'];
             if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -187,23 +107,23 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
 
             return {
               'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
-              'title': item['name'] ?? 'Unknown',
+              'title': item['name'] ?? 'Unknown Skill',
               'description':
-                  item['shortDescription'] ?? 'Explore this skill category',
+                  item['shortDescription'] ?? 'No description available',
               'image': imageUrl,
-              'icon': _getIconForCategory(item['name'] ?? ''),
             };
           }).toList();
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = 'Failed to load categories';
+          _errorMessage =
+              'Failed to load skill categories. Status: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('❌ Error loading categories: $e');
+      debugPrint('❌ Error loading skill categories: $e');
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -211,158 +131,86 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
     }
   }
 
-  IconData _getIconForCategory(String name) {
-    final lowerName = name.toLowerCase();
-    if (lowerName.contains('fine arts') || lowerName.contains('art')) {
-      return Icons.palette;
-    } else if (lowerName.contains('driving')) {
-      return Icons.directions_car;
-    } else if (lowerName.contains('athlete') || lowerName.contains('sports')) {
-      return Icons.directions_run;
-    } else if (lowerName.contains('fitness')) {
-      return Icons.sports_soccer;
-    } else if (lowerName.contains('home science')) {
-      return Icons.local_laundry_service;
-    } else if (lowerName.contains('music')) {
-      return Icons.library_music;
-    } else if (lowerName.contains('photography')) {
-      return Icons.photo_camera;
-    } else if (lowerName.contains('writing')) {
-      return Icons.edit;
-    } else if (lowerName.contains('programming') ||
-        lowerName.contains('coding')) {
-      return Icons.code;
-    } else {
-      return Icons.star;
-    }
+  void _retryLoading() {
+    setState(() {
+      _isLoading = true;
+      _isAdsLoading = true;
+      _errorMessage = null;
+    });
+    _fetchSkillCategories();
+    _fetchAdvertisements();
   }
 
-  Future<void> _launchVideo(String url) async {
+  String _getYoutubeThumbnail(String url) {
     try {
-      // Convert YouTube embed URL to watch URL if needed
-      String videoUrl = url;
-      if (url.contains('youtube.com/embed/')) {
-        final videoId = url.split('/').last;
-        videoUrl = 'https://www.youtube.com/watch?v=$videoId';
-      }
-
-      final Uri uri = Uri.parse(videoUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Could not launch $videoUrl'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        videoId = url.split('/').last.split('?').first;
       }
-    } catch (e) {
-      debugPrint('Error launching URL: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error opening video'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _nextVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex = (_currentVideoIndex + 1) % _youtubeUrls.length;
-    });
-  }
-
-  void _previousVideo() {
-    if (_youtubeUrls.isEmpty) return;
-    setState(() {
-      _currentVideoIndex =
-          (_currentVideoIndex - 1 + _youtubeUrls.length) % _youtubeUrls.length;
-    });
-  }
-
-  String _getVideoThumbnail(String url) {
-    if (url.contains('youtube.com/embed/')) {
-      final videoId = url.split('/').last;
       return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
     }
-    return url;
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _adTimer?.cancel();
+    _adController.dispose();
     super.dispose();
   }
 
-  void _startAutoScroll() {
-    if (_isAutoScrollStarted) return;
-    _isAutoScrollStarted = true;
-    _autoScrollNext();
-  }
-
-  void _autoScrollNext() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      if (_pageController.hasClients) {
-        int nextPage = _currentCarouselIndex + 1;
-        if (nextPage >= bannerAds.length) {
-          nextPage = 0;
-        }
-
-        _pageController
-            .animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        )
-            .then((_) {
-          if (mounted) _autoScrollNext();
-        }).catchError((e) {
-          _isAutoScrollStarted = false;
-        });
-      } else {
-        _isAutoScrollStarted = false;
-      }
-    });
+  // Scale function for responsive sizing
+  double _scale(double size) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return size * 1.2; // Desktop
+    if (screenWidth >= 768) return size * 1.1; // Tablet
+    return size; // Mobile
   }
 
   // Responsive value function
   double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return desktop;
-    if (screenWidth >= 768) return tablet;
-    return mobile;
+    if (screenWidth >= 1024) return desktop; // Desktop
+    if (screenWidth >= 768) return tablet; // Tablet
+    return mobile; // Mobile
+  }
+
+  // Calculate grid columns
+  int _getGridColumns() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return 4; // Desktop
+    if (screenWidth >= 768) return 3; // Tablet
+    return 2; // Mobile
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // Responsive breakpoints
     final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isDesktop = screenWidth >= 1024;
 
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
-    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
-    final int numColumns = isDesktop ? 4 : (isTablet ? 3 : 2);
-
-    // Updated banner heights to match consistent pattern
-    final double bannerHeight = _responsiveValue(200, 300, 300);
-    final double videoHeight = _responsiveValue(250, 320, 400);
-
-    // Card dimensions
+    final double adHeight = _responsiveValue(200, 300, 300);
+    final int gridColumns = _getGridColumns();
     final double cardWidth = (screenWidth -
             (horizontalPadding * 2) -
-            (_responsiveValue(12, 16, 20) * (numColumns - 1))) /
-        numColumns;
+            (_responsiveValue(12, 16, 20) * (gridColumns - 1))) /
+        gridColumns;
+    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
+
+    // Calculate header height
+    final double headerHeight = _responsiveValue(52, 58, 80);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -388,7 +236,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     padding:
                         EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    height: _responsiveValue(52, 72, 80),
+                    height: headerHeight,
                     child: Row(
                       children: [
                         // Back Button
@@ -396,7 +244,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                           onPressed: () => Navigator.pop(context),
                           icon: Icon(
                             Icons.arrow_back,
-                            size: _responsiveValue(24, 26, 28),
+                            size: _scale(24),
                             color: Colors.white,
                           ),
                         ),
@@ -414,7 +262,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                           ),
                         ),
                         // Spacer for symmetry
-                        SizedBox(width: _responsiveValue(40, 44, 48)),
+                        SizedBox(width: _scale(40)),
                       ],
                     ),
                   ),
@@ -428,7 +276,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                             message: 'Loading skills...',
                           ),
                         )
-                      : _errorMessage != null && _categories.isEmpty
+                      : _errorMessage != null && skillCategories.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -440,7 +288,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Error loading categories',
+                                    'Error loading skill categories',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
@@ -457,13 +305,7 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                   ),
                                   const SizedBox(height: 16),
                                   ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _isLoading = true;
-                                        _errorMessage = null;
-                                      });
-                                      _loadCategories();
-                                    },
+                                    onPressed: _retryLoading,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF0B5ED7),
                                     ),
@@ -472,380 +314,363 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
                                 ],
                               ),
                             )
-                          : SingleChildScrollView(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // ===== BANNER CAROUSEL (Full width - no padding) =====
-                                  SizedBox(
-                                    height: bannerHeight,
-                                    child: PageView.builder(
-                                      controller: _pageController,
-                                      itemCount: bannerAds.length,
-                                      onPageChanged: (index) {
-                                        setState(() {
-                                          _currentCarouselIndex = index;
-                                        });
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return Container(
-                                          width: double.infinity,
-                                          child: Image.network(
-                                            bannerAds[index],
-                                            width: double.infinity,
-                                            height: bannerHeight,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
-                                              return Container(
-                                                width: double.infinity,
-                                                height: bannerHeight,
-                                                color: const Color(0xFF0052A2),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.broken_image,
-                                                        size: 50,
-                                                        color: Colors.white
-                                                            .withOpacity(0.5),
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: constraints.maxHeight,
+                                    ),
+                                    child: IntrinsicHeight(
+                                      child: Center(
+                                        child: Container(
+                                          constraints: BoxConstraints(
+                                              maxWidth: maxContentWidth),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // ===== ADVERTISEMENT BANNER =====
+                                                  if (adImages.isNotEmpty)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      child: PageView.builder(
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
+                                                        onPageChanged: (index) {
+                                                          setState(() {
+                                                            _activeAdIndex =
+                                                                index;
+                                                          });
+                                                        },
+                                                        itemBuilder:
+                                                            (context, index) {
+                                                          return Image.network(
+                                                            adImages[index],
+                                                            width: screenWidth,
+                                                            height: adHeight,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error,
+                                                                    stackTrace) {
+                                                              return Container(
+                                                                width:
+                                                                    screenWidth,
+                                                                height:
+                                                                    adHeight,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
+                                                                  child: Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        },
                                                       ),
-                                                      const SizedBox(height: 8),
-                                                      Text(
-                                                        'Advertisement ${index + 1}',
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 16,
+                                                    )
+                                                  else if (_isAdsLoading)
+                                                    Container(
+                                                      width: screenWidth,
+                                                      height: adHeight,
+                                                      color: Colors.grey[200],
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
+                                                    )
+                                                  else
+                                                    const SizedBox.shrink(),
+
+                                                  // ===== PAGINATION DOTS =====
+                                                  if (adImages.length > 1)
+                                                    Container(
+                                                      color: Colors.white,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: List.generate(
+                                                            adImages.length,
+                                                            (index) {
+                                                          return AnimatedContainer(
+                                                            duration:
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(20)
+                                                                    : _scale(8),
+                                                            height: _scale(8),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
+                                                            ),
+                                                          );
+                                                        }),
+                                                      ),
+                                                    ),
+
+                                                  // ===== SKILL CATEGORIES SECTION =====
+                                                  Container(
+                                                    width: double.infinity,
+                                                    color: Colors.white,
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          24, 28, 32),
+                                                      horizontalPadding,
+                                                      _responsiveValue(
+                                                          20, 24, 28),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Section Title
+                                                        Text(
+                                                          'Skill Categories',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    20, 22, 24),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: const Color(
+                                                                0xFF003366),
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            loadingBuilder: (context, child,
-                                                loadingProgress) {
-                                              if (loadingProgress == null)
-                                                return child;
-                                              return Container(
-                                                width: double.infinity,
-                                                height: bannerHeight,
-                                                color: const Color(0xFF0052A2),
-                                                child: Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    valueColor:
-                                                        const AlwaysStoppedAnimation<
-                                                                Color>(
-                                                            Colors.white),
-                                                    value: loadingProgress
-                                                                .expectedTotalBytes !=
-                                                            null
-                                                        ? loadingProgress
-                                                                .cumulativeBytesLoaded /
-                                                            loadingProgress
-                                                                .expectedTotalBytes!
-                                                        : null,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
+                                                        SizedBox(
+                                                            height: _scale(8)),
 
-                                  // Dots Indicator
-                                  SizedBox(
-                                      height: _responsiveValue(12, 16, 20)),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children:
-                                        bannerAds.asMap().entries.map((entry) {
-                                      return AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        width:
-                                            _currentCarouselIndex == entry.key
-                                                ? _responsiveValue(20, 22, 24)
-                                                : _responsiveValue(8, 9, 10),
-                                        height: _responsiveValue(8, 9, 10),
-                                        margin: EdgeInsets.symmetric(
-                                          horizontal: _responsiveValue(4, 5, 6),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              _currentCarouselIndex == entry.key
-                                                  ? const Color(0xFF0B5ED7)
-                                                  : const Color(0xFFCCCCCC),
-                                          borderRadius: BorderRadius.circular(
-                                              _responsiveValue(4, 5, 6)),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                                        // Section Subtitle with count
+                                                        Text(
+                                                          skillCategories
+                                                                  .isNotEmpty
+                                                              ? '${skillCategories.length} skill ${skillCategories.length == 1 ? 'category' : 'categories'} available'
+                                                              : 'Browse skills by category and find the right learning resources',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFF666666),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height:
+                                                                _responsiveValue(
+                                                                    20,
+                                                                    24,
+                                                                    28)),
 
-                                  // Fallback banner message
-                                  if (_adImages.isEmpty &&
-                                      !_isLoadingAds &&
-                                      _apiCallFailed)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange[50],
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          border:
-                                              Border.all(color: Colors.orange),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.info_outline,
-                                              size: 14,
-                                              color: Colors.orange[700],
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'Using default banners',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.orange[700],
+                                                        // Grid View
+                                                        if (skillCategories
+                                                            .isEmpty)
+                                                          const Center(
+                                                            child: Padding(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(20),
+                                                              child: Text(
+                                                                  'No skill categories available'),
+                                                            ),
+                                                          )
+                                                        else
+                                                          Wrap(
+                                                            spacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            runSpacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            children:
+                                                                skillCategories
+                                                                    .map(
+                                                                        (skill) {
+                                                              return _buildSkillCard(
+                                                                skill: skill,
+                                                                width:
+                                                                    cardWidth,
+                                                              );
+                                                            }).toList(),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+
+                                                  // ===== BANNER SECTION =====
+                                                  Container(
+                                                    width: screenWidth,
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              20, 24, 28),
+                                                    ),
+                                                    padding: EdgeInsets.all(
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFF4C73AC),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              _scale(12)),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
+                                                          blurRadius: _scale(6),
+                                                          offset: const Offset(
+                                                              0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Comprehensive Skill Development',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(
+                                                            height: _scale(10)),
+                                                        Text(
+                                                          'Get tutorials, practice materials, and expert guidance',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFFDCE8FF),
+                                                            height: 1.5,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                  // ===== ACTIVITIES GRID =====
-                                  Container(
-                                    width: double.infinity,
-                                    color: Colors.white,
-                                    padding: EdgeInsets.fromLTRB(
-                                      horizontalPadding,
-                                      _responsiveValue(24, 28, 32),
-                                      horizontalPadding,
-                                      _responsiveValue(24, 28, 32),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Section Title
-                                        Text(
-                                          'Skill Categories',
-                                          style: TextStyle(
-                                            fontSize:
-                                                _responsiveValue(20, 22, 24),
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF003366),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                            height:
-                                                _responsiveValue(8, 10, 12)),
-
-                                        // Section Subtitle with count - FIXED STRING
-                                        Text(
-                                          _categories.isNotEmpty
-                                              ? '${_categories.length} skill ${_categories.length == 1 ? 'category' : 'categories'} available'
-                                              : 'Explore different skill categories to enhance your abilities',
-                                          style: TextStyle(
-                                            fontSize:
-                                                _responsiveValue(14, 15, 16),
-                                            color: const Color(0xFF666666),
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                            height:
-                                                _responsiveValue(20, 24, 28)),
-
-                                        // Grid View
-                                        if (activities.isEmpty)
-                                          const Center(
-                                            child: Padding(
-                                              padding: EdgeInsets.all(20),
-                                              child: Text(
-                                                  'No skill categories available'),
-                                            ),
-                                          )
-                                        else
-                                          Wrap(
-                                            spacing:
-                                                _responsiveValue(12, 16, 20),
-                                            runSpacing:
-                                                _responsiveValue(12, 16, 20),
-                                            children:
-                                                activities.map((activity) {
-                                              return _buildActivityCard(
-                                                activity: activity,
-                                                width: cardWidth,
-                                              );
-                                            }).toList(),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // ===== YOUTUBE VIDEO SECTION (Full width - no padding, no border radius) =====
-                                  if (_youtubeUrls.isNotEmpty) ...[
-                                    if (_youtubeUrls.length > 1)
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: horizontalPadding,
-                                          vertical:
-                                              _responsiveValue(12, 16, 20),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Videos',
-                                              style: TextStyle(
-                                                fontSize: _responsiveValue(
-                                                    18, 20, 22),
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  onPressed: _previousVideo,
-                                                  icon: const Icon(
-                                                      Icons.chevron_left,
-                                                      color: Color(0xFF0B5ED7)),
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                                Text(
-                                                  '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                                  style: const TextStyle(
-                                                    color: Color(0xFF0B5ED7),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  onPressed: _nextVideo,
-                                                  icon: const Icon(
-                                                      Icons.chevron_right,
-                                                      color: Color(0xFF0B5ED7)),
-                                                  constraints:
-                                                      const BoxConstraints(),
-                                                  padding: EdgeInsets.zero,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                    // Video Container
-                                    Container(
-                                      width: double.infinity,
-                                      height: videoHeight,
-                                      margin: EdgeInsets.only(),
-                                      child: Stack(
-                                        children: [
-                                          CommonYoutubePlayer(
-                                            youtubeUrl: _youtubeUrls[
-                                                _currentVideoIndex],
-                                            height: videoHeight,
-                                            placeholderThumbnail:
-                                                _getVideoThumbnail(_youtubeUrls[
-                                                    _currentVideoIndex]),
-                                            borderRadius: 0,
-                                          ),
-                                          // Navigation Controls
-                                          if (_youtubeUrls.length > 1)
-                                            Positioned(
-                                              right: 16,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black
-                                                      .withOpacity(0.7),
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
+                                              // ===== YOUTUBE VIDEO SECTION =====
+                                              if (youtubeUrls.isNotEmpty)
+                                                Column(
                                                   children: [
-                                                    IconButton(
-                                                      onPressed: _previousVideo,
-                                                      icon: const Icon(
-                                                          Icons.chevron_left,
-                                                          color: Colors.white,
-                                                          size: 20),
-                                                      constraints:
-                                                          const BoxConstraints(),
-                                                      padding: EdgeInsets.zero,
-                                                      iconSize: 20,
-                                                    ),
-                                                    Text(
-                                                      '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 14,
+                                                    Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                16, 20, 24),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color:
+                                                                  Colors.red),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Text(
+                                                            'Video Tutorials',
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                    IconButton(
-                                                      onPressed: _nextVideo,
-                                                      icon: const Icon(
-                                                          Icons.chevron_right,
-                                                          color: Colors.white,
-                                                          size: 20),
-                                                      constraints:
-                                                          const BoxConstraints(),
-                                                      padding: EdgeInsets.zero,
-                                                      iconSize: 20,
-                                                    ),
+                                                    ...youtubeUrls
+                                                        .map((url) => Container(
+                                                              width:
+                                                                  screenWidth,
+                                                              margin:
+                                                                  EdgeInsets
+                                                                      .only(),
+                                                              child:
+                                                                  CommonYoutubePlayer(
+                                                                youtubeUrl: url,
+                                                                height: isDesktop
+                                                                    ? 360
+                                                                    : (isTablet
+                                                                        ? 320
+                                                                        : 220),
+                                                                placeholderThumbnail:
+                                                                    _getYoutubeThumbnail(
+                                                                        url),
+                                                                borderRadius: 0,
+                                                              ),
+                                                            ))
+                                                        .toList(),
                                                   ],
                                                 ),
-                                              ),
-                                            ),
-                                        ],
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ] else
-                                    // Fallback video
-                                    Container(
-                                      width: double.infinity,
-                                      height: videoHeight,
-                                      margin: EdgeInsets.only(
-                                        top: _responsiveValue(20, 30, 40),
-                                      ),
-                                      child: CommonYoutubePlayer(
-                                        youtubeUrl:
-                                            'https://www.youtube.com/embed/L2zqTYgcpfx',
-                                        height: videoHeight,
-                                        placeholderThumbnail:
-                                            'https://img.youtube.com/vi/L2zqTYgcpfg/maxresdefault.jpg',
-                                        borderRadius: 0,
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                  ),
+                                );
+                              },
                             ),
                 ),
               ],
@@ -853,127 +678,115 @@ class _Extraskills1ScreenState extends State<Extraskills1Screen> {
           ),
 
           // Full screen loader for initial loading
-          if (_isLoading && _categories.isEmpty)
+          if (_isLoading && skillCategories.isEmpty)
             const GlassLoader(
-              message: 'Loading extra skills...',
+              message: 'Loading skill categories...',
             ),
         ],
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 
-  Widget _buildActivityCard({
-    required Map<String, dynamic> activity,
+  Widget _buildSkillCard({
+    required Map<String, dynamic> skill,
     required double width,
   }) {
     // Check if we have an image from API and it's valid
-    bool hasValidImage = activity['image'] != null &&
-        activity['image'].toString().isNotEmpty &&
-        !activity['image'].toString().contains('example.com');
+    bool hasValidImage =
+        skill['image'] != null && skill['image'].toString().isNotEmpty;
 
     return GestureDetector(
       onTap: () {
+        // Navigate to Extraskills2 screen when card is tapped with the skill data
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => Extraskills2Screen(
-              categoryTitle: activity['title'] as String,
-              categoryId: activity['id'] as int?,
+              categoryTitle: skill['title'] as String,
+              categoryId: skill['id'] as int?,
             ),
           ),
         );
       },
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          width: width,
-          padding: EdgeInsets.all(_responsiveValue(16, 18, 20)),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: const Color(0xFFF0F0F0),
-              width: 1,
+      child: Container(
+        width: width * 0.9,
+        margin: EdgeInsets.symmetric(
+            horizontal: width * 0.05), // Center the smaller card
+        padding:
+            EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icon/Image Container
-              Container(
-                width: _responsiveValue(56, 64, 72),
-                height: _responsiveValue(56, 64, 72),
-                decoration: BoxDecoration(
-                  gradient: hasValidImage
-                      ? null
-                      : const LinearGradient(
-                          colors: [Color(0xFF2295D2), Color(0xFF284598)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                  borderRadius:
-                      BorderRadius.circular(_responsiveValue(12, 14, 16)),
-                  image: hasValidImage
-                      ? DecorationImage(
-                          image: NetworkImage(activity['image']),
-                          fit: BoxFit.cover,
-                          onError: (exception, stackTrace) {
-                            // Fallback to gradient on error
-                          },
-                        )
-                      : null,
-                ),
-                child: !hasValidImage
-                    ? Center(
-                        child: Icon(
-                          activity['icon'] as IconData,
-                          size: _responsiveValue(28, 32, 36),
-                          color: Colors.white,
-                        ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo Container - Bigger size
+            Container(
+              width: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
+              height: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(
+                    _scale(16)), // Slightly larger border radius
+                image: hasValidImage
+                    ? DecorationImage(
+                        image: NetworkImage(skill['image']),
+                        fit: BoxFit.cover,
+                        onError: (exception, stackTrace) {},
                       )
                     : null,
+                color: hasValidImage ? null : const Color(0xFFE6F0FF),
               ),
+              child: !hasValidImage
+                  ? Center(
+                      child: Icon(
+                        Icons.star,
+                        size: _responsiveValue(
+                            25, 30, 35), // Icon size for fallback
+                        color: const Color(0xFF0052A2).withOpacity(0.5),
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(height: _scale(14)), // Slightly increased spacing
 
-              SizedBox(height: _responsiveValue(12, 14, 16)),
-
-              // Title
-              Text(
-                activity['title'] as String,
-                style: TextStyle(
-                  fontSize: _responsiveValue(16, 17, 18),
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF004780),
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            // Title - Centered
+            Text(
+              skill['title'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _responsiveValue(14, 16, 18),
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: 1.2,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: _scale(4)),
 
-              SizedBox(height: _responsiveValue(8, 9, 10)),
-
-              // Description
-              Text(
-                activity['description'] as String,
-                style: TextStyle(
-                  fontSize: _responsiveValue(12, 13, 14),
-                  color: const Color(0xFF555555),
-                  height: 1.4,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            // Description - Centered
+            Text(
+              skill['description'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _responsiveValue(11, 12, 13),
+                color: const Color(0xFF666666),
+                height: 1.3,
               ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

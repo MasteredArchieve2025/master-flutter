@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../Widgets/Footer.dart';
-
 import '../../Api/baseurl.dart';
 import '../../services/auth_token_manager.dart';
 import '../../Api/ExtraSkill/extra_skill_review_service.dart';
@@ -25,10 +23,11 @@ class Extraskills4Screen extends StatefulWidget {
 }
 
 class _Extraskills4ScreenState extends State<Extraskills4Screen> {
-  int _currentBannerIndex = 0;
+  int _activeAdIndex = 0;
   int _currentVideoIndex = 0;
   int _rating = 0;
-  final PageController _bannerController = PageController();
+  final PageController _adController = PageController();
+  Timer? _adTimer;
   final TextEditingController _reviewController = TextEditingController();
 
   // Loading states
@@ -70,9 +69,21 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
   void initState() {
     super.initState();
     _checkAuthStatus();
-    _loadAdvertisements();
+    _fetchAdvertisements();
     _loadReviews();
-    _startBannerAutoScroll();
+
+    // Auto scroll ads
+    _adTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_adController.hasClients && mounted && bannerAds.isNotEmpty) {
+        int nextPage = _activeAdIndex + 1;
+        if (nextPage >= bannerAds.length) nextPage = 0;
+        _adController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   Future<void> _checkAuthStatus() async {
@@ -102,12 +113,13 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     }
   }
 
-  Future<void> _loadAdvertisements() async {
+  Future<void> _fetchAdvertisements() async {
     debugPrint('🔄 Loading advertisements for extraskillpage4...');
 
     try {
       final response = await http.get(
         Uri.parse('${BaseUrl.baseUrl}/api/advertisements?page=extraskillpage4'),
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -133,22 +145,6 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
             _isLoadingAds = false;
             _apiCallFailed = true;
           });
-        }
-      } else if (response.statusCode == 404) {
-        debugPrint('⚠️ Page "extraskillpage4" not found in backend (404)');
-        setState(() {
-          _isLoadingAds = false;
-          _apiCallFailed = true;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Advertisement page not configured in backend'),
-              duration: Duration(seconds: 2),
-              backgroundColor: Colors.orange,
-            ),
-          );
         }
       } else {
         setState(() {
@@ -386,26 +382,10 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
 
   @override
   void dispose() {
-    _bannerController.dispose();
+    _adTimer?.cancel();
+    _adController.dispose();
     _reviewController.dispose();
     super.dispose();
-  }
-
-  void _startBannerAutoScroll() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (_bannerController.hasClients && mounted) {
-        int nextPage = _currentBannerIndex + 1;
-        if (nextPage >= bannerAds.length) {
-          nextPage = 0;
-        }
-        _bannerController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-        _startBannerAutoScroll();
-      }
-    });
   }
 
   void _nextVideo() {
@@ -436,10 +416,6 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
   void _handleWebsite() {
     final website = widget.institution['websiteUrl'] ?? 'www.example.com';
     _showUrlDialog('Website', 'Would open: $website');
-  }
-
-  void _handleVideo(String url) {
-    _showUrlDialog('External Link', 'Would you like to open the video?');
   }
 
   void _showUrlDialog(String title, String message) {
@@ -496,12 +472,22 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     return 'Not available';
   }
 
-  String _getVideoThumbnail(String url) {
-    if (url.contains('youtube.com/embed/')) {
-      final videoId = url.split('/').last;
+  String _getYoutubeThumbnail(String url) {
+    try {
+      String videoId = '';
+      if (url.contains('embed/')) {
+        videoId = url.split('embed/').last.split('?').first;
+      } else if (url.contains('v=')) {
+        videoId = url.split('v=').last.split('&').first;
+      } else if (url.contains('youtu.be/')) {
+        videoId = url.split('youtu.be/').last.split('?').first;
+      } else {
+        videoId = url.split('/').last.split('?').first;
+      }
       return 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    } catch (e) {
+      return '';
     }
-    return url;
   }
 
   String _formatDate(String dateString) {
@@ -528,28 +514,41 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
     }
   }
 
-  // Responsive value function (copied from Extraskills3)
+  // Scale function for responsive sizing
+  double _scale(double size) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1024) return size * 1.2; // Desktop
+    if (screenWidth >= 768) return size * 1.1; // Tablet
+    return size; // Mobile
+  }
+
+  // Responsive value function
   double _responsiveValue(double mobile, double tablet, double desktop) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return desktop;
-    if (screenWidth >= 768) return tablet;
-    return mobile;
+    if (screenWidth >= 1024) return desktop; // Desktop
+    if (screenWidth >= 768) return tablet; // Tablet
+    return mobile; // Mobile
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-    final isTablet = screenWidth >= 768 && screenWidth < 1024;
-    final isDesktop = screenWidth >= 1024;
 
-    final double responsiveBannerHeight =
-        _responsiveValue(200, 300, 300); // Updated to match Extraskills3
-    final double videoHeight =
-        _responsiveValue(250, 320, 400); // Updated to match Extraskills3
+    // Responsive breakpoints
+    final bool isMobile = screenWidth < 768;
+    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
+    final bool isDesktop = screenWidth >= 1024;
+
+    // Responsive values
+    final double horizontalPadding = _responsiveValue(16, 24, 32);
+    final double adHeight = _responsiveValue(200, 300, 300);
+    final double maxContentWidth = isDesktop ? 1400 : double.infinity;
+
+    // Calculate header height
+    final double headerHeight = _responsiveValue(52, 58, 80);
+
     final double heroCardHeight = _responsiveValue(240, 260, 280);
     final double galleryImageSize = _responsiveValue(100, 130, 160);
-    final double horizontalPadding = _responsiveValue(16, 20, 24);
     final double cardPadding = _responsiveValue(16, 20, 24);
     final double cardRadius = _responsiveValue(16, 18, 20);
     final double bodyFontSize = _responsiveValue(14, 15, 16);
@@ -575,1109 +574,1267 @@ class _Extraskills4ScreenState extends State<Extraskills4Screen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
-      body: Column(
+      body: Stack(
         children: [
-          // Header
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0052A2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                height: _responsiveValue(
-                    52, 72, 80), // Updated to match Extraskills3
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.arrow_back,
-                        size: _responsiveValue(
-                            24, 26, 28), // Updated to match Extraskills3
-                        color: Colors.white,
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Institution Details',
-                          style: TextStyle(
-                            fontSize: _responsiveValue(
-                                18, 22, 24), // Updated to match Extraskills3
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                        width: _responsiveValue(
-                            40, 44, 48)), // Updated to match Extraskills3
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Main Content
-          Expanded(
-            child: Stack(
+          SafeArea(
+            child: Column(
               children: [
-                SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Banner Carousel - Updated to match Extraskills3
-                      SizedBox(
-                        height: responsiveBannerHeight,
-                        child: PageView.builder(
-                          controller: _bannerController,
-                          itemCount: bannerAds.length,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _currentBannerIndex = index;
-                            });
-                          },
-                          itemBuilder: (context, index) {
-                            return Container(
-                              width: double.infinity,
-                              child: Image.network(
-                                bannerAds[index],
-                                width: double.infinity,
-                                height: responsiveBannerHeight,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: double.infinity,
-                                    height: responsiveBannerHeight,
-                                    color: const Color(0xFF0052A2),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.broken_image,
-                                            size: 50,
-                                            color:
-                                                Colors.white.withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Advertisement ${index + 1}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    width: double.infinity,
-                                    height: responsiveBannerHeight,
-                                    color: const Color(0xFF0052A2),
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            const AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                        value: loadingProgress
-                                                    .expectedTotalBytes !=
-                                                null
-                                            ? loadingProgress
-                                                    .cumulativeBytesLoaded /
-                                                loadingProgress
-                                                    .expectedTotalBytes!
-                                            : null,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      // Dots Indicator - Updated to match Extraskills3
-                      SizedBox(height: _responsiveValue(12, 16, 20)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: bannerAds.asMap().entries.map((entry) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: _currentBannerIndex == entry.key
-                                ? _responsiveValue(20, 22, 24)
-                                : _responsiveValue(8, 9, 10),
-                            height: _responsiveValue(8, 9, 10),
-                            margin: EdgeInsets.symmetric(
-                              horizontal: _responsiveValue(4, 5, 6),
-                            ),
-                            decoration: BoxDecoration(
-                              color: _currentBannerIndex == entry.key
-                                  ? const Color(0xFF0B5ED7)
-                                  : const Color(0xFFCCCCCC),
-                              borderRadius: BorderRadius.circular(
-                                  _responsiveValue(4, 5, 6)),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-
-                      // Fallback banner message - Added to match Extraskills3
-                      if (_adImages.isEmpty && !_isLoadingAds && _apiCallFailed)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange[50],
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.orange),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 14,
-                                  color: Colors.orange[700],
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Using default banners',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                      // Main Content
-                      Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: horizontalPadding),
-                        child: Column(
-                          children: [
-                            // Hero Card
-                            Container(
-                              width: double.infinity,
-                              height: heroCardHeight,
-                              margin: EdgeInsets.only(
-                                top: _responsiveValue(16, 20, 24),
-                              ),
-                              padding: EdgeInsets.all(cardPadding),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4C73AC),
-                                borderRadius: BorderRadius.circular(cardRadius),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: _responsiveValue(90, 110, 130),
-                                    height: _responsiveValue(90, 110, 130),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                      image: imageUrl != null
-                                          ? DecorationImage(
-                                              image: NetworkImage(imageUrl),
-                                              fit: BoxFit.cover,
-                                              onError:
-                                                  (exception, stackTrace) {},
-                                            )
-                                          : null,
-                                    ),
-                                    child: imageUrl == null
-                                        ? Icon(
-                                            Icons.business,
-                                            size: 60,
-                                            color: const Color(0xFF4C73AC),
-                                          )
-                                        : null,
-                                  ),
-
-                                  SizedBox(
-                                      height: _responsiveValue(12, 14, 16)),
-
-                                  Text(
-                                    institutionName,
-                                    style: TextStyle(
-                                      fontSize: _responsiveValue(20, 22, 24),
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-
-                                  SizedBox(height: _responsiveValue(4, 6, 8)),
-
-                                  // Rating with review count
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.star,
-                                        size: 20,
-                                        color: Color(0xFFFFD700),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        displayRating.toStringAsFixed(1),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFFFFF9E6),
-                                        ),
-                                      ),
-                                      if (_totalReviews > 0) ...[
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '($_totalReviews)',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFFE8F0FF),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-
-                                  SizedBox(height: _responsiveValue(8, 10, 12)),
-
-                                  // Location
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.location_on,
-                                        size: _responsiveValue(16, 18, 20),
-                                        color: const Color(0xFFE8F0FF),
-                                      ),
-                                      SizedBox(
-                                          width: _responsiveValue(6, 8, 10)),
-                                      Flexible(
-                                        child: Text(
-                                          location,
-                                          style: TextStyle(
-                                            fontSize:
-                                                _responsiveValue(12, 13, 14),
-                                            color: const Color(0xFFE8F0FF),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // About Institution
-                            _buildSectionCard(
-                              title: 'About Institution',
-                              content: Text(
-                                about,
-                                style: TextStyle(
-                                  fontSize: bodyFontSize,
-                                  color: const Color(0xFF5F6F81),
-                                  height: 1.5,
-                                ),
-                              ),
-                              padding: cardPadding,
-                              radius: cardRadius,
-                              topMargin: _responsiveValue(16, 20, 24),
-                            ),
-
-                            // We Offer
-                            _buildSectionCard(
-                              title: 'We Offer',
-                              content: Wrap(
-                                spacing: _responsiveValue(8, 10, 12),
-                                runSpacing: _responsiveValue(8, 10, 12),
-                                children: weOffer.map((offer) {
-                                  return Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: _responsiveValue(12, 14, 16),
-                                      vertical: _responsiveValue(6, 8, 10),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE8F0FF),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      offer,
-                                      style: TextStyle(
-                                        fontSize: smallFontSize,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF0B5ED7),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                              padding: cardPadding,
-                              radius: cardRadius,
-                            ),
-
-                            // Website
-                            if (widget.institution['websiteUrl'] != null)
-                              _buildSectionCard(
-                                title: 'Website',
-                                content: GestureDetector(
-                                  onTap: _handleWebsite,
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.language,
-                                        size: _responsiveValue(16, 18, 20),
-                                        color: const Color(0xFF0B5ED7),
-                                      ),
-                                      SizedBox(
-                                          width: _responsiveValue(8, 10, 12)),
-                                      Expanded(
-                                        child: Text(
-                                          websiteUrl,
-                                          style: TextStyle(
-                                            fontSize: bodyFontSize,
-                                            color: const Color(0xFF0B5ED7),
-                                            fontWeight: FontWeight.w600,
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                padding: cardPadding,
-                                radius: cardRadius,
-                              ),
-
-                            // Gallery
-                            if (gallery.isNotEmpty)
-                              _buildSectionCard(
-                                title: 'Gallery',
-                                content: SizedBox(
-                                  height: galleryImageSize,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: gallery.length,
-                                    itemBuilder: (context, index) {
-                                      final imageUrl = gallery[index];
-                                      String fullImageUrl = imageUrl;
-                                      if (!imageUrl.startsWith('http')) {
-                                        fullImageUrl =
-                                            '${BaseUrl.baseUrl}/$imageUrl';
-                                      }
-
-                                      return GestureDetector(
-                                        onTap: () {
-                                          final galleryList =
-                                              (widget.institution['gallery']
-                                                      as List)
-                                                  .map((e) => e.toString())
-                                                  .toList();
-                                          showImageGallery(
-                                              context, galleryList, index);
-                                        },
-                                        child: Container(
-                                          width: galleryImageSize,
-                                          height: galleryImageSize,
-                                          margin: EdgeInsets.only(
-                                            right: _responsiveValue(10, 14, 18),
-                                          ),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: const Color(0xFFE8F0FF),
-                                            border: Border.all(
-                                              color: Colors.grey.shade200,
-                                              width: 1,
-                                            ),
-                                            image: DecorationImage(
-                                              image: NetworkImage(fullImageUrl),
-                                              fit: BoxFit.cover,
-                                              onError:
-                                                  (exception, stackTrace) {},
-                                            ),
-                                          ),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              color:
-                                                  Colors.black.withOpacity(0.1),
-                                            ),
-                                            child: const Icon(
-                                              Icons.photo,
-                                              size: 40,
-                                              color: Color(0xFF4C73AC),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                padding: cardPadding,
-                                radius: cardRadius,
-                              ),
-
-                            // About Our Trainers
-                            _buildSectionCard(
-                              title: 'About Our Trainers',
-                              content: Text(
-                                aboutTrainers,
-                                style: TextStyle(
-                                  fontSize: bodyFontSize,
-                                  color: const Color(0xFF5F6F81),
-                                  height: 1.5,
-                                ),
-                              ),
-                              padding: cardPadding,
-                              radius: cardRadius,
-                            ),
-
-                            // Rate & Review Section
-                            _buildSectionCard(
-                              title: 'Rate & Review',
-                              content: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const SizedBox.shrink(),
-                                      if (!_isLoggedIn && !_isAuthChecking)
-                                        TextButton(
-                                          onPressed: _navigateToLogin,
-                                          child: const Text(
-                                            'Login to review',
-                                            style: TextStyle(
-                                                color: Color(0xFF0B5ED7)),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  if (_isAuthChecking)
-                                    const Center(
-                                        child: Padding(
-                                      padding: EdgeInsets.all(20),
-                                      child: GlassLoader(),
-                                    ))
-                                  else if (!_isLoggedIn)
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Column(
-                                        children: [
-                                          const Text(
-                                            'Login to share your experience',
-                                            style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          ElevatedButton(
-                                            onPressed: _navigateToLogin,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF0B5ED7),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                              ),
-                                            ),
-                                            child:
-                                                const Text('Login to review'),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (_hasUserReviewed)
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange[50],
-                                        borderRadius: BorderRadius.circular(8),
-                                        border:
-                                            Border.all(color: Colors.orange),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(Icons.info_outline,
-                                                  color: Colors.orange[700]),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  'You have already reviewed this institution',
-                                                  style: TextStyle(
-                                                    color: Colors.orange[700],
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Each user can only post one review per institution. Thank you for your feedback!',
-                                            style: TextStyle(
-                                              color: Colors.orange[700],
-                                              fontSize: 12,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (!_hasUserReviewed &&
-                                      _isLoggedIn) ...[
-                                    Text(
-                                      'Rate your experience',
-                                      style: TextStyle(
-                                        fontSize: _responsiveValue(14, 15, 16),
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: List.generate(5, (index) {
-                                        return IconButton(
-                                          onPressed: _isSubmittingReview
-                                              ? null
-                                              : () => setState(
-                                                  () => _rating = index + 1),
-                                          icon: Icon(
-                                            index < _rating
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            size: _responsiveValue(32, 34, 36),
-                                            color: const Color(0xFFFFD700),
-                                          ),
-                                          constraints: const BoxConstraints(),
-                                          padding: EdgeInsets.zero,
-                                        );
-                                      }),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF8FAFF),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: const Color(0xFFE0E7FF)),
-                                      ),
-                                      child: TextField(
-                                        controller: _reviewController,
-                                        maxLines: 4,
-                                        minLines: 3,
-                                        enabled: !_isSubmittingReview,
-                                        decoration: InputDecoration(
-                                          hintText: 'Share your experience...',
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize:
-                                                _responsiveValue(14, 15, 16),
-                                          ),
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.all(
-                                              _responsiveValue(12, 14, 16)),
-                                        ),
-                                        style: TextStyle(
-                                          fontSize:
-                                              _responsiveValue(14, 15, 16),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: _isSubmittingReview
-                                            ? null
-                                            : _submitReview,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF0B5ED7),
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                          ),
-                                          padding: EdgeInsets.symmetric(
-                                            vertical:
-                                                _responsiveValue(14, 15, 16),
-                                          ),
-                                          elevation: 2,
-                                        ),
-                                        child: _isSubmittingReview
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child: GlassLoader(),
-                                              )
-                                            : Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.send,
-                                                    size: _responsiveValue(
-                                                        18, 19, 20),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    'Submit Review',
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          _responsiveValue(
-                                                              14, 15, 16),
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              padding: cardPadding,
-                              radius: cardRadius,
-                            ),
-
-                            // Reviews List Section
-                            _buildSectionCard(
-                              title: 'User Reviews (${_reviews.length})',
-                              content: _isLoadingReviews
-                                  ? const Center(
-                                      child: Padding(
-                                      padding: EdgeInsets.all(20),
-                                      child: GlassLoader(),
-                                    ))
-                                  : _reviews.isEmpty
-                                      ? Container(
-                                          padding: const EdgeInsets.all(20),
-                                          child: Center(
-                                            child: Column(
-                                              children: [
-                                                Icon(
-                                                  Icons.rate_review_outlined,
-                                                  size: 48,
-                                                  color: Colors.grey[400],
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  'No reviews yet',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                if (_isLoggedIn &&
-                                                    !_hasUserReviewed)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            top: 8),
-                                                    child: Text(
-                                                      'Be the first to review!',
-                                                      style: TextStyle(
-                                                        color: Colors.grey[500],
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                      : Column(
-                                          children: _reviews.map((review) {
-                                            return Container(
-                                              margin: EdgeInsets.only(
-                                                  bottom: _responsiveValue(
-                                                      10, 12, 14)),
-                                              padding: EdgeInsets.all(
-                                                  _responsiveValue(12, 14, 16)),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF8FAFF),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(
-                                                          review['name'],
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                _responsiveValue(
-                                                                    14, 15, 16),
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            color: const Color(
-                                                                0xFF004780),
-                                                          ),
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ),
-                                                      Row(
-                                                        children: List.generate(
-                                                            5, (index) {
-                                                          return Icon(
-                                                            index <
-                                                                    review[
-                                                                        'rating']
-                                                                ? Icons.star
-                                                                : Icons
-                                                                    .star_outline,
-                                                            color: const Color(
-                                                                0xFFFFD700),
-                                                            size:
-                                                                _responsiveValue(
-                                                                    14, 15, 16),
-                                                          );
-                                                        }),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Text(
-                                                    review['comment'],
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          _responsiveValue(
-                                                              13, 14, 15),
-                                                      color: const Color(
-                                                          0xFF5F6F81),
-                                                      height: 1.5,
-                                                    ),
-                                                  ),
-                                                  if (review['createdAt'] !=
-                                                      null)
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              top: 8),
-                                                      child: Text(
-                                                        _formatDate(review[
-                                                            'createdAt']),
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          color:
-                                                              Colors.grey[500],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                              padding: cardPadding,
-                              radius: cardRadius,
-                            ),
-
-                            // Call & WhatsApp Buttons
-                            Container(
-                              margin: EdgeInsets.only(
-                                top: _responsiveValue(16, 20, 24),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: _handleCall,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFFE51515),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical:
-                                              _responsiveValue(14, 16, 18),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.call,
-                                            size: _responsiveValue(18, 20, 22),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'Call',
-                                            style: TextStyle(
-                                              fontSize: bodyFontSize,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: _responsiveValue(8, 10, 12)),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: _handleWhatsApp,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF25D366),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical:
-                                              _responsiveValue(14, 16, 18),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.chat,
-                                            size: _responsiveValue(18, 20, 22),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'WhatsApp',
-                                            style: TextStyle(
-                                              fontSize: bodyFontSize,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Video Section - Updated to match Extraskills3
-                            if (_youtubeUrls.isNotEmpty) ...[
-                              if (_youtubeUrls.length > 1)
-                                Padding(
-                                  padding: EdgeInsets.only(
-                                      top: _responsiveValue(20, 24, 28)),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Videos',
-                                        style: TextStyle(
-                                          fontSize:
-                                              _responsiveValue(18, 20, 22),
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            onPressed: _previousVideo,
-                                            icon: const Icon(Icons.chevron_left,
-                                                color: Color(0xFF0B5ED7)),
-                                            constraints: const BoxConstraints(),
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                          Text(
-                                            '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                            style: const TextStyle(
-                                              color: Color(0xFF0B5ED7),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            onPressed: _nextVideo,
-                                            icon: const Icon(
-                                                Icons.chevron_right,
-                                                color: Color(0xFF0B5ED7)),
-                                            constraints: const BoxConstraints(),
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              Container(
-                                width: double.infinity,
-                                height: videoHeight,
-                                margin: EdgeInsets.only(
-                                  top: _responsiveValue(12, 16, 20),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                ),
-                                child: Stack(
-                                  children: [
-                                    CommonYoutubePlayer(
-                                      youtubeUrl:
-                                          _youtubeUrls[_currentVideoIndex],
-                                      height: videoHeight,
-                                      placeholderThumbnail: _getVideoThumbnail(
-                                          _youtubeUrls[_currentVideoIndex]),
-                                      borderRadius: 0,
-                                    ),
-                                    if (_youtubeUrls.length > 1)
-                                      Positioned(
-                                        right: 16,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.black.withOpacity(0.7),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              IconButton(
-                                                onPressed: _previousVideo,
-                                                icon: const Icon(
-                                                    Icons.chevron_left,
-                                                    color: Colors.white,
-                                                    size: 20),
-                                                constraints:
-                                                    const BoxConstraints(),
-                                                padding: EdgeInsets.zero,
-                                              ),
-                                              Text(
-                                                '${_currentVideoIndex + 1}/${_youtubeUrls.length}',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                              IconButton(
-                                                onPressed: _nextVideo,
-                                                icon: const Icon(
-                                                    Icons.chevron_right,
-                                                    color: Colors.white,
-                                                    size: 20),
-                                                constraints:
-                                                    const BoxConstraints(),
-                                                padding: EdgeInsets.zero,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ] else
-                              // Fallback video
-                              Container(
-                                margin: EdgeInsets.only(
-                                  top: _responsiveValue(20, 30, 40),
-                                ),
-                                width: double.infinity,
-                                height: videoHeight,
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                ),
-                                child: CommonYoutubePlayer(
-                                  youtubeUrl:
-                                      'https://www.youtube.com/embed/L2zqTYgcpfx',
-                                  height: videoHeight,
-                                  placeholderThumbnail:
-                                      'https://img.youtube.com/vi/L2zqTYgcpfx/maxresdefault.jpg',
-                                  borderRadius: 0,
-                                ),
-                              ),
-                          ],
-                        ),
+                // ===== HEADER =====
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0052A2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ),
-
-                // Loading overlay for ads
-                if (_isLoadingAds)
-                  Container(
-                    color: Colors.black.withOpacity(0.3),
-                    child: const Center(
-                      child: GlassLoader(
-                        message: 'Loading...',
-                        size: 80,
-                      ),
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: maxContentWidth),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    height: headerHeight,
+                    child: Row(
+                      children: [
+                        // Back Button
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(
+                            Icons.arrow_back,
+                            size: _scale(24),
+                            color: Colors.white,
+                          ),
+                        ),
+                        // Title
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Institution Details',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: _responsiveValue(20, 22, 24),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Spacer for symmetry
+                        SizedBox(width: _scale(40)),
+                      ],
                     ),
                   ),
+                ),
+
+                // ===== MAIN CONTENT =====
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: IntrinsicHeight(
+                            child: Center(
+                              child: Container(
+                                constraints: BoxConstraints(
+                                    maxWidth: maxContentWidth),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // ===== ADVERTISEMENT BANNER =====
+                                        if (bannerAds.isNotEmpty)
+                                          Container(
+                                            width: screenWidth,
+                                            height: adHeight,
+                                            child: PageView.builder(
+                                              controller: _adController,
+                                              itemCount: bannerAds.length,
+                                              onPageChanged: (index) {
+                                                setState(() {
+                                                  _activeAdIndex = index;
+                                                });
+                                              },
+                                              itemBuilder: (context, index) {
+                                                return Image.network(
+                                                  bannerAds[index],
+                                                  width: screenWidth,
+                                                  height: adHeight,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error,
+                                                          stackTrace) =>
+                                                      Container(
+                                                    width: screenWidth,
+                                                    height: adHeight,
+                                                    color: Colors.black12,
+                                                    child: const Center(
+                                                      child: Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.grey),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        else if (_isLoadingAds)
+                                          Container(
+                                            width: screenWidth,
+                                            height: adHeight,
+                                            color: Colors.grey[200],
+                                            child: const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                          )
+                                        else
+                                          const SizedBox.shrink(),
+
+                                        // ===== PAGINATION DOTS =====
+                                        if (bannerAds.length > 1)
+                                          Container(
+                                            color: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: List.generate(
+                                                  bannerAds.length, (index) {
+                                                return AnimatedContainer(
+                                                  duration: const Duration(
+                                                      milliseconds: 300),
+                                                  width: _activeAdIndex == index
+                                                      ? _scale(20)
+                                                      : _scale(8),
+                                                  height: _scale(8),
+                                                  margin: EdgeInsets.symmetric(
+                                                      horizontal: _scale(4)),
+                                                  decoration: BoxDecoration(
+                                                    color: _activeAdIndex ==
+                                                            index
+                                                        ? const Color(0xFF0B5ED7)
+                                                        : const Color(
+                                                            0xFFCCCCCC),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            _scale(4)),
+                                                  ),
+                                                );
+                                              }),
+                                            ),
+                                          ),
+
+                                        // ===== MAIN CONTENT WITH PADDING =====
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: horizontalPadding),
+                                          child: Column(
+                                            children: [
+                                              // Hero Card
+                                              Container(
+                                                width: double.infinity,
+                                                height: heroCardHeight,
+                                                margin: EdgeInsets.only(
+                                                  top: _responsiveValue(
+                                                      16, 20, 24),
+                                                ),
+                                                padding:
+                                                    EdgeInsets.all(cardPadding),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF4C73AC),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          cardRadius),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withOpacity(0.1),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(0, 4),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Container(
+                                                      width: _responsiveValue(
+                                                          90, 110, 130),
+                                                      height: _responsiveValue(
+                                                          90, 110, 130),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 2,
+                                                        ),
+                                                        image: imageUrl != null
+                                                            ? DecorationImage(
+                                                                image:
+                                                                    NetworkImage(
+                                                                        imageUrl),
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                onError: (exception,
+                                                                        stackTrace) {},
+                                                              )
+                                                            : null,
+                                                      ),
+                                                      child: imageUrl == null
+                                                          ? Icon(
+                                                              Icons.business,
+                                                              size: 60,
+                                                              color:
+                                                                  const Color(
+                                                                      0xFF4C73AC),
+                                                            )
+                                                          : null,
+                                                    ),
+
+                                                    SizedBox(
+                                                        height: _responsiveValue(
+                                                            12, 14, 16)),
+
+                                                    Text(
+                                                      institutionName,
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            _responsiveValue(
+                                                                20, 22, 24),
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: Colors.white,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+
+                                                    SizedBox(
+                                                        height:
+                                                            _responsiveValue(
+                                                                4, 6, 8)),
+
+                                                    // Rating with review count
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.star,
+                                                          size: 20,
+                                                          color:
+                                                              Color(0xFFFFD700),
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          displayRating
+                                                              .toStringAsFixed(
+                                                                  1),
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Color(
+                                                                0xFFFFF9E6),
+                                                          ),
+                                                        ),
+                                                        if (_totalReviews >
+                                                            0) ...[
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Text(
+                                                            '($_totalReviews)',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 14,
+                                                              color: Color(
+                                                                  0xFFE8F0FF),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+
+                                                    SizedBox(
+                                                        height:
+                                                            _responsiveValue(
+                                                                8, 10, 12)),
+
+                                                    // Location
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.location_on,
+                                                          size:
+                                                              _responsiveValue(
+                                                                  16, 18, 20),
+                                                          color: const Color(
+                                                              0xFFE8F0FF),
+                                                        ),
+                                                        SizedBox(
+                                                            width:
+                                                                _responsiveValue(
+                                                                    6, 8, 10)),
+                                                        Flexible(
+                                                          child: Text(
+                                                            location,
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      12,
+                                                                      13,
+                                                                      14),
+                                                              color:
+                                                                  const Color(
+                                                                      0xFFE8F0FF),
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // About Institution
+                                              _buildSectionCard(
+                                                title: 'About Institution',
+                                                content: Text(
+                                                  about,
+                                                  style: TextStyle(
+                                                    fontSize: bodyFontSize,
+                                                    color: const Color(
+                                                        0xFF5F6F81),
+                                                    height: 1.5,
+                                                  ),
+                                                ),
+                                                padding: cardPadding,
+                                                radius: cardRadius,
+                                                topMargin: _responsiveValue(
+                                                    16, 20, 24),
+                                              ),
+
+                                              // We Offer
+                                              _buildSectionCard(
+                                                title: 'We Offer',
+                                                content: Wrap(
+                                                  spacing: _responsiveValue(
+                                                      8, 10, 12),
+                                                  runSpacing: _responsiveValue(
+                                                      8, 10, 12),
+                                                  children: weOffer
+                                                      .map((offer) {
+                                                    return Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            _responsiveValue(
+                                                                12, 14, 16),
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                6, 8, 10),
+                                                      ),
+                                                      decoration:
+                                                          BoxDecoration(
+                                                        color: const Color(
+                                                            0xFFE8F0FF),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                      ),
+                                                      child: Text(
+                                                        offer,
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              smallFontSize,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: const Color(
+                                                              0xFF0B5ED7),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                                ),
+                                                padding: cardPadding,
+                                                radius: cardRadius,
+                                              ),
+
+                                              // Website
+                                              if (widget.institution[
+                                                      'websiteUrl'] !=
+                                                  null)
+                                                _buildSectionCard(
+                                                  title: 'Website',
+                                                  content: GestureDetector(
+                                                    onTap: _handleWebsite,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.language,
+                                                          size:
+                                                              _responsiveValue(
+                                                                  16, 18, 20),
+                                                          color: const Color(
+                                                              0xFF0B5ED7),
+                                                        ),
+                                                        SizedBox(
+                                                            width:
+                                                                _responsiveValue(
+                                                                    8, 10, 12)),
+                                                        Expanded(
+                                                          child: Text(
+                                                            websiteUrl,
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  bodyFontSize,
+                                                              color:
+                                                                  const Color(
+                                                                      0xFF0B5ED7),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  padding: cardPadding,
+                                                  radius: cardRadius,
+                                                ),
+
+                                              // Gallery
+                                              if (gallery.isNotEmpty)
+                                                _buildSectionCard(
+                                                  title: 'Gallery',
+                                                  content: SizedBox(
+                                                    height: galleryImageSize,
+                                                    child: ListView.builder(
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      itemCount: gallery.length,
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        final imageUrl =
+                                                            gallery[index];
+                                                        String fullImageUrl =
+                                                            imageUrl;
+                                                        if (!imageUrl
+                                                            .startsWith(
+                                                                'http')) {
+                                                          fullImageUrl =
+                                                              '${BaseUrl.baseUrl}/$imageUrl';
+                                                        }
+
+                                                        return GestureDetector(
+                                                          onTap: () {
+                                                            final galleryList =
+                                                                (widget
+                                                                            .institution[
+                                                                        'gallery']
+                                                                    as List)
+                                                                    .map((e) =>
+                                                                        e.toString())
+                                                                    .toList();
+                                                            showImageGallery(
+                                                                context,
+                                                                galleryList,
+                                                                index);
+                                                          },
+                                                          child: Container(
+                                                            width:
+                                                                galleryImageSize,
+                                                            height:
+                                                                galleryImageSize,
+                                                            margin:
+                                                                EdgeInsets.only(
+                                                              right:
+                                                                  _responsiveValue(
+                                                                      10,
+                                                                      14,
+                                                                      18),
+                                                            ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12),
+                                                              color: const Color(
+                                                                  0xFFE8F0FF),
+                                                              border: Border.all(
+                                                                color: Colors
+                                                                    .grey
+                                                                    .shade200,
+                                                                width: 1,
+                                                              ),
+                                                            ),
+                                                            child: Image.network(
+                                                              fullImageUrl,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder: (context,
+                                                                      error,
+                                                                      stackTrace) =>
+                                                                  Container(
+                                                                decoration: BoxDecoration(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                          12),
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withOpacity(
+                                                                          0.1),
+                                                                ),
+                                                                child: const Icon(
+                                                                  Icons.photo,
+                                                                  size: 40,
+                                                                  color: Color(
+                                                                      0xFF4C73AC),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  padding: cardPadding,
+                                                  radius: cardRadius,
+                                                ),
+
+                                              // About Our Trainers
+                                              _buildSectionCard(
+                                                title: 'About Our Trainers',
+                                                content: Text(
+                                                  aboutTrainers,
+                                                  style: TextStyle(
+                                                    fontSize: bodyFontSize,
+                                                    color: const Color(
+                                                        0xFF5F6F81),
+                                                    height: 1.5,
+                                                  ),
+                                                ),
+                                                padding: cardPadding,
+                                                radius: cardRadius,
+                                              ),
+
+                                              // Rate & Review Section
+                                              _buildSectionCard(
+                                                title: 'Rate & Review',
+                                                content: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children: [
+                                                        const SizedBox.shrink(),
+                                                        if (!_isLoggedIn &&
+                                                            !_isAuthChecking)
+                                                          TextButton(
+                                                            onPressed:
+                                                                _navigateToLogin,
+                                                            child: const Text(
+                                                              'Login to review',
+                                                              style: TextStyle(
+                                                                  color: Color(
+                                                                      0xFF0B5ED7)),
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    if (_isAuthChecking)
+                                                      const Center(
+                                                          child: Padding(
+                                                        padding:
+                                                            EdgeInsets.all(20),
+                                                        child: GlassLoader(),
+                                                      ))
+                                                    else if (!_isLoggedIn)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(16.0),
+                                                        child: Column(
+                                                          children: [
+                                                            const Text(
+                                                              'Login to share your experience',
+                                                              style: TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Colors
+                                                                      .grey),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 8),
+                                                            ElevatedButton(
+                                                              onPressed:
+                                                                  _navigateToLogin,
+                                                              style: ElevatedButton
+                                                                  .styleFrom(
+                                                                backgroundColor:
+                                                                    const Color(
+                                                                        0xFF0B5ED7),
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              20),
+                                                                ),
+                                                              ),
+                                                              child: const Text(
+                                                                  'Login to review'),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      )
+                                                    else if (_hasUserReviewed)
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(16),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors
+                                                              .orange[50],
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                          border: Border.all(
+                                                              color:
+                                                                  Colors.orange),
+                                                        ),
+                                                        child: Column(
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                Icon(Icons
+                                                                    .info_outline,
+                                                                    color: Colors
+                                                                            .orange[
+                                                                        700]),
+                                                                const SizedBox(
+                                                                    width: 8),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    'You have already reviewed this institution',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                              .orange[
+                                                                          700],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      fontSize:
+                                                                          14,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 8),
+                                                            Text(
+                                                              'Each user can only post one review per institution. Thank you for your feedback!',
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                        .orange[
+                                                                    700],
+                                                                fontSize: 12,
+                                                              ),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      )
+                                                    else if (!_hasUserReviewed &&
+                                                        _isLoggedIn) ...[
+                                                      Text(
+                                                        'Rate your experience',
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              _responsiveValue(
+                                                                  14, 15, 16),
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors
+                                                              .grey[700],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 8),
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: List.generate(
+                                                            5, (index) {
+                                                          return IconButton(
+                                                            onPressed:
+                                                                _isSubmittingReview
+                                                                    ? null
+                                                                    : () =>
+                                                                        setState(
+                                                                            () => _rating =
+                                                                                index + 1),
+                                                            icon: Icon(
+                                                              index < _rating
+                                                                  ? Icons.star
+                                                                  : Icons
+                                                                      .star_border,
+                                                              size:
+                                                                  _responsiveValue(
+                                                                      32,
+                                                                      34,
+                                                                      36),
+                                                              color: const Color(
+                                                                  0xFFFFD700),
+                                                            ),
+                                                            constraints:
+                                                                const BoxConstraints(),
+                                                            padding:
+                                                                EdgeInsets
+                                                                    .zero,
+                                                          );
+                                                        }),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 12),
+                                                      Container(
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: const Color(
+                                                              0xFFF8FAFF),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(12),
+                                                          border: Border.all(
+                                                              color: const Color(
+                                                                  0xFFE0E7FF)),
+                                                        ),
+                                                        child: TextField(
+                                                          controller:
+                                                              _reviewController,
+                                                          maxLines: 4,
+                                                          minLines: 3,
+                                                          enabled:
+                                                              !_isSubmittingReview,
+                                                          decoration:
+                                                              InputDecoration(
+                                                            hintText:
+                                                                'Share your experience...',
+                                                            hintStyle:
+                                                                TextStyle(
+                                                              color: Colors
+                                                                      .grey[
+                                                                  400],
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      14,
+                                                                      15,
+                                                                      16),
+                                                            ),
+                                                            border:
+                                                                InputBorder.none,
+                                                            contentPadding:
+                                                                EdgeInsets.all(
+                                                                    _responsiveValue(
+                                                                        12,
+                                                                        14,
+                                                                        16)),
+                                                          ),
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14,
+                                                                    15,
+                                                                    16),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 12),
+                                                      SizedBox(
+                                                        width:
+                                                            double.infinity,
+                                                        child: ElevatedButton(
+                                                          onPressed:
+                                                              _isSubmittingReview
+                                                                  ? null
+                                                                  : _submitReview,
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                const Color(
+                                                                    0xFF0B5ED7),
+                                                            foregroundColor:
+                                                                Colors.white,
+                                                            shape:
+                                                                RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          30),
+                                                            ),
+                                                            padding: EdgeInsets
+                                                                .symmetric(
+                                                              vertical:
+                                                                  _responsiveValue(
+                                                                      14,
+                                                                      15,
+                                                                      16),
+                                                            ),
+                                                            elevation: 2,
+                                                          ),
+                                                          child:
+                                                              _isSubmittingReview
+                                                                  ? const SizedBox(
+                                                                      height: 20,
+                                                                      width: 20,
+                                                                      child:
+                                                                          GlassLoader(),
+                                                                    )
+                                                                  : Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Icon(
+                                                                          Icons
+                                                                              .send,
+                                                                          size:
+                                                                              _responsiveValue(18, 19, 20),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                8),
+                                                                        Text(
+                                                                          'Submit Review',
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                _responsiveValue(14, 15, 16),
+                                                                            fontWeight:
+                                                                                FontWeight.w600,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                                padding: cardPadding,
+                                                radius: cardRadius,
+                                              ),
+
+                                              // Reviews List Section
+                                              _buildSectionCard(
+                                                title:
+                                                    'User Reviews (${_reviews.length})',
+                                                content: _isLoadingReviews
+                                                    ? const Center(
+                                                        child: Padding(
+                                                        padding:
+                                                            EdgeInsets.all(20),
+                                                        child: GlassLoader(),
+                                                      ))
+                                                    : _reviews.isEmpty
+                                                        ? Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(20),
+                                                            child: Center(
+                                                              child: Column(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .rate_review_outlined,
+                                                                    size: 48,
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        400],
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      height: 8),
+                                                                  Text(
+                                                                    'No reviews yet',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          600],
+                                                                      fontSize:
+                                                                          16,
+                                                                    ),
+                                                                  ),
+                                                                  if (_isLoggedIn &&
+                                                                      !_hasUserReviewed)
+                                                                    Padding(
+                                                                      padding:
+                                                                          const EdgeInsets.only(
+                                                                              top:
+                                                                                  8),
+                                                                      child: Text(
+                                                                        'Be the first to review!',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: Colors
+                                                                                  .grey[
+                                                                              500],
+                                                                          fontSize:
+                                                                              14,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          )
+                                                        : Column(
+                                                            children: _reviews
+                                                                .map((review) {
+                                                              return Container(
+                                                                margin: EdgeInsets.only(
+                                                                    bottom: _responsiveValue(
+                                                                        10,
+                                                                        12,
+                                                                        14)),
+                                                                padding: EdgeInsets
+                                                                    .all(
+                                                                        _responsiveValue(
+                                                                            12,
+                                                                            14,
+                                                                            16)),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: const Color(
+                                                                      0xFFF8FAFF),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              12),
+                                                                ),
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .spaceBetween,
+                                                                      children: [
+                                                                        Expanded(
+                                                                          child:
+                                                                              Text(
+                                                                            review['name'],
+                                                                            style:
+                                                                                TextStyle(
+                                                                              fontSize: _responsiveValue(14, 15, 16),
+                                                                              fontWeight: FontWeight.w700,
+                                                                              color: const Color(0xFF004780),
+                                                                            ),
+                                                                            overflow:
+                                                                                TextOverflow.ellipsis,
+                                                                          ),
+                                                                        ),
+                                                                        Row(
+                                                                          children:
+                                                                              List.generate(5, (index) {
+                                                                            return Icon(
+                                                                              index < review['rating'] ? Icons.star : Icons.star_outline,
+                                                                              color: const Color(0xFFFFD700),
+                                                                              size: _responsiveValue(14, 15, 16),
+                                                                            );
+                                                                          }),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        height:
+                                                                            6),
+                                                                    Text(
+                                                                      review[
+                                                                          'comment'],
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            _responsiveValue(13, 14, 15),
+                                                                        color:
+                                                                            const Color(0xFF5F6F81),
+                                                                        height:
+                                                                            1.5,
+                                                                      ),
+                                                                    ),
+                                                                    if (review[
+                                                                            'createdAt'] !=
+                                                                        null)
+                                                                      Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.only(top: 8),
+                                                                        child:
+                                                                            Text(
+                                                                          _formatDate(review['createdAt']),
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontSize:
+                                                                                11,
+                                                                            color:
+                                                                                Colors.grey[500],
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                  ],
+                                                                ),
+                                                              );
+                                                            }).toList(),
+                                                          ),
+                                                padding: cardPadding,
+                                                radius: cardRadius,
+                                              ),
+
+                                              // Call & WhatsApp Buttons
+                                              Container(
+                                                margin: EdgeInsets.only(
+                                                  top: _responsiveValue(
+                                                      16, 20, 24),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed: _handleCall,
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFFE51515),
+                                                          foregroundColor:
+                                                              Colors.white,
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        14),
+                                                          ),
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                            vertical:
+                                                                _responsiveValue(
+                                                                    14,
+                                                                    16,
+                                                                    18),
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.call,
+                                                              size:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Text(
+                                                              'Call',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    bodyFontSize,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                        width:
+                                                            _responsiveValue(
+                                                                8, 10, 12)),
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed:
+                                                            _handleWhatsApp,
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFF25D366),
+                                                          foregroundColor:
+                                                              Colors.white,
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        14),
+                                                          ),
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                            vertical:
+                                                                _responsiveValue(
+                                                                    14,
+                                                                    16,
+                                                                    18),
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.chat,
+                                                              size:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Text(
+                                                              'WhatsApp',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    bodyFontSize,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // ===== YOUTUBE VIDEO SECTION =====
+                                    if (_youtubeUrls.isNotEmpty)
+                                      Column(
+                                        children: [
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: horizontalPadding,
+                                              vertical: _responsiveValue(
+                                                  16, 20, 24),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                    Icons.play_circle_fill,
+                                                    color: Colors.red),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Video Tutorials',
+                                                  style: TextStyle(
+                                                    fontSize: _responsiveValue(
+                                                        18, 20, 22),
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(
+                                                        0xFF003366),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          ..._youtubeUrls.map((url) => Container(
+                                                width: screenWidth,
+                                                margin: EdgeInsets.only(),
+                                                child: CommonYoutubePlayer(
+                                                  youtubeUrl: url,
+                                                  height: isDesktop
+                                                      ? 360
+                                                      : (isTablet ? 320 : 220),
+                                                  placeholderThumbnail:
+                                                      _getYoutubeThumbnail(url),
+                                                  borderRadius: 0,
+                                                ),
+                                              )),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
+
+          // Loading overlay for ads
+          if (_isLoadingAds)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: GlassLoader(
+                  message: 'Loading...',
+                  size: 80,
+                ),
+              ),
+            ),
         ],
       ),
-      bottomNavigationBar: const Footer(),
     );
   }
 
