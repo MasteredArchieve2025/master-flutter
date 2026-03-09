@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../components/glass_loader.dart';
 import '../../api/baseurl.dart';
-import '../../Widgets/Footer.dart';
 import 'Course3.dart';
 
 class Course2Screen extends StatefulWidget {
@@ -22,7 +21,6 @@ class Course2Screen extends StatefulWidget {
 }
 
 class _Course2ScreenState extends State<Course2Screen> {
-  int _footerIndex = 0;
   int _activeAdIndex = 0;
   final PageController _adController = PageController();
   Timer? _adTimer;
@@ -32,10 +30,8 @@ class _Course2ScreenState extends State<Course2Screen> {
   bool _isAdsLoading = true;
   String? _errorMessage;
 
-  // Course items from API
+  // API Data
   List<Map<String, dynamic>> courseItems = [];
-
-  // Ads and Videos
   List<String> adImages = [];
   List<String> youtubeUrls = [];
 
@@ -85,7 +81,6 @@ class _Course2ScreenState extends State<Course2Screen> {
     }
   }
 
-  // Fetch course items by categoryId
   Future<void> _fetchCourseItems() async {
     debugPrint('🔄 Loading course items...');
 
@@ -110,14 +105,13 @@ class _Course2ScreenState extends State<Course2Screen> {
       debugPrint('📡 Course Items API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
         
         // Handle the response structure: { "success": true, "data": [...] }
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           final List<dynamic> data = jsonResponse['data'];
-          
           debugPrint('📦 Loaded ${data.length} course items');
-
+          
           setState(() {
             // Sort by sortOrder if available
             data.sort((a, b) => (a['sortOrder'] ?? 0).compareTo(b['sortOrder'] ?? 0));
@@ -126,15 +120,17 @@ class _Course2ScreenState extends State<Course2Screen> {
               // Fix image URL if needed
               String? imageUrl = item['image'];
               if (imageUrl != null && imageUrl.isNotEmpty) {
+                // Check if URL is valid
                 if (!imageUrl.startsWith('http')) {
                   imageUrl = '${BaseUrl.baseUrl}$imageUrl';
                 }
               }
 
               return {
-                'id': item['id'] ?? item['_id'] ?? DateTime.now().millisecondsSinceEpoch,
+                'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch,
                 'title': item['name'] ?? 'Unknown Course',
-                'description': item['description'] ?? 'No description available',
+                'description':
+                    item['description'] ?? 'Explore this professional course',
                 'image': imageUrl,
               };
             }).toList();
@@ -177,7 +173,6 @@ class _Course2ScreenState extends State<Course2Screen> {
       if (url.contains('embed/')) {
         videoId = url.split('embed/').last.split('?').first;
       } else if (url.contains('v=')) {
-        // FIXED: Changed 'v='' to 'v='
         videoId = url.split('v=').last.split('&').first;
       } else if (url.contains('youtu.be/')) {
         videoId = url.split('youtu.be/').last.split('?').first;
@@ -216,8 +211,8 @@ class _Course2ScreenState extends State<Course2Screen> {
   // Calculate grid columns
   int _getGridColumns() {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1024) return 3; // Desktop
-    if (screenWidth >= 768) return 2; // Tablet
+    if (screenWidth >= 1024) return 4; // Desktop
+    if (screenWidth >= 768) return 3; // Tablet
     return 2; // Mobile
   }
 
@@ -226,8 +221,9 @@ class _Course2ScreenState extends State<Course2Screen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Responsive breakpoints
-    final bool isDesktop = screenWidth >= 1024;
+    final bool isMobile = screenWidth < 768;
     final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
+    final bool isDesktop = screenWidth >= 1024;
 
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
@@ -241,6 +237,9 @@ class _Course2ScreenState extends State<Course2Screen> {
 
     // Calculate header height
     final double headerHeight = _responsiveValue(52, 58, 80);
+
+    // Get category name
+    final String categoryName = widget.categoryData['name']?.toString() ?? 'Courses';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FF),
@@ -264,7 +263,8 @@ class _Course2ScreenState extends State<Course2Screen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: headerHeight,
                     child: Row(
                       children: [
@@ -281,7 +281,7 @@ class _Course2ScreenState extends State<Course2Screen> {
                         Expanded(
                           child: Center(
                             child: Text(
-                              widget.categoryData['name']?.toString() ?? 'Courses',
+                              categoryName,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: _responsiveValue(20, 22, 24),
@@ -372,29 +372,40 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                       width: screenWidth,
                                                       height: adHeight,
                                                       child: PageView.builder(
-                                                        controller: _adController,
-                                                        itemCount: adImages.length,
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
                                                         onPageChanged: (index) {
                                                           setState(() {
-                                                            _activeAdIndex = index;
+                                                            _activeAdIndex =
+                                                                index;
                                                           });
                                                         },
-                                                        itemBuilder: (context, index) {
+                                                        itemBuilder:
+                                                            (context, index) {
                                                           return Image.network(
                                                             adImages[index],
                                                             width: screenWidth,
                                                             height: adHeight,
                                                             fit: BoxFit.cover,
                                                             errorBuilder:
-                                                                (context, error, stackTrace) {
+                                                                (context, error,
+                                                                    stackTrace) {
                                                               return Container(
-                                                                width: screenWidth,
-                                                                height: adHeight,
-                                                                color: Colors.black12,
-                                                                child: const Center(
+                                                                width:
+                                                                    screenWidth,
+                                                                height:
+                                                                    adHeight,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
                                                                   child: Icon(
-                                                                      Icons.broken_image,
-                                                                      color: Colors.grey),
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
                                                                 ),
                                                               );
                                                             },
@@ -408,7 +419,8 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                       height: adHeight,
                                                       color: Colors.grey[200],
                                                       child: const Center(
-                                                        child: CircularProgressIndicator(),
+                                                        child:
+                                                            CircularProgressIndicator(),
                                                       ),
                                                     )
                                                   else
@@ -418,113 +430,250 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                   if (adImages.length > 1)
                                                     Container(
                                                       color: Colors.white,
-                                                      padding: const EdgeInsets.symmetric(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
                                                           vertical: 8),
                                                       child: Row(
                                                         mainAxisAlignment:
-                                                            MainAxisAlignment.center,
+                                                            MainAxisAlignment
+                                                                .center,
                                                         children: List.generate(
-                                                            adImages.length, (index) {
+                                                            adImages.length,
+                                                            (index) {
                                                           return AnimatedContainer(
                                                             duration:
-                                                                const Duration(milliseconds: 300),
-                                                            width: _activeAdIndex == index
-                                                                ? _scale(20)
-                                                                : _scale(8),
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(20)
+                                                                    : _scale(8),
                                                             height: _scale(8),
-                                                            margin: EdgeInsets.symmetric(
-                                                                horizontal: _scale(4)),
-                                                            decoration: BoxDecoration(
-                                                              color: _activeAdIndex == index
-                                                                  ? const Color(0xFF0B5ED7)
-                                                                  : const Color(0xFFCCCCCC),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
                                                               borderRadius:
-                                                                  BorderRadius.circular(_scale(4)),
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
                                                             ),
                                                           );
                                                         }),
                                                       ),
                                                     ),
 
-                                                  // ===== CATEGORY DESCRIPTION =====
+                                                  // ===== CATEGORY DESCRIPTION SECTION =====
                                                   if (widget.categoryData['description'] != null)
                                                     Container(
                                                       width: double.infinity,
                                                       color: Colors.white,
-                                                      padding: EdgeInsets.fromLTRB(
+                                                      padding:
+                                                          EdgeInsets.fromLTRB(
                                                         horizontalPadding,
-                                                        _responsiveValue(16, 20, 24),
+                                                        _responsiveValue(
+                                                            24, 28, 32),
                                                         horizontalPadding,
-                                                        _responsiveValue(16, 20, 24),
+                                                        _responsiveValue(
+                                                            20, 24, 28),
                                                       ),
-                                                      child: Text(
-                                                        widget.categoryData['description'].toString(),
-                                                        style: TextStyle(
-                                                          fontSize: _responsiveValue(14, 15, 16),
-                                                          color: const Color(0xFF666666),
-                                                          height: 1.5,
-                                                        ),
-                                                        textAlign: TextAlign.center,
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          // Section Title
+                                                          Text(
+                                                            'About This Category',
+                                                            style: TextStyle(
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      20, 22, 24),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                              height:
+                                                                  _scale(8)),
+
+                                                          // Description
+                                                          Container(
+                                                            padding: EdgeInsets
+                                                                .all(_responsiveValue(
+                                                                    16,
+                                                                    18,
+                                                                    20)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: const Color(
+                                                                  0xFFF0F8FF),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12),
+                                                              border: Border.all(
+                                                                color: const Color(
+                                                                    0xFFE3F2FD),
+                                                                width: 1,
+                                                              ),
+                                                            ),
+                                                            child: Row(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Icon(
+                                                                  Icons
+                                                                      .info_outline,
+                                                                  size:
+                                                                      _responsiveValue(
+                                                                          20,
+                                                                          22,
+                                                                          24),
+                                                                  color:
+                                                                      const Color(
+                                                                          0xFF1976D2),
+                                                                ),
+                                                                SizedBox(
+                                                                    width:
+                                                                        _responsiveValue(
+                                                                            12,
+                                                                            14,
+                                                                            16)),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    widget
+                                                                        .categoryData[
+                                                                            'description']
+                                                                        .toString(),
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          _responsiveValue(
+                                                                              14,
+                                                                              15,
+                                                                              16),
+                                                                      color: const Color(
+                                                                          0xFF333333),
+                                                                      height:
+                                                                          1.5,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
 
-                                                  // ===== COURSE ITEMS SECTION =====
+                                                  // ===== COURSES SECTION =====
                                                   Container(
                                                     width: double.infinity,
                                                     color: Colors.white,
-                                                    padding: EdgeInsets.fromLTRB(
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
                                                       horizontalPadding,
-                                                      _responsiveValue(24, 28, 32),
+                                                      _responsiveValue(
+                                                          24, 28, 32),
                                                       horizontalPadding,
-                                                      _responsiveValue(20, 24, 28),
+                                                      _responsiveValue(
+                                                          20, 24, 28),
                                                     ),
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        // Section Title
-                                                        Text(
-                                                          'Available Courses',
-                                                          style: TextStyle(
-                                                            fontSize: _responsiveValue(20, 22, 24),
-                                                            fontWeight: FontWeight.w700,
-                                                            color: const Color(0xFF003366),
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: _scale(8)),
-
-                                                        // Section Subtitle with count
-                                                        Text(
-                                                          courseItems.isNotEmpty
-                                                              ? '${courseItems.length} course ${courseItems.length == 1 ? 'item' : 'items'} available'
-                                                              : 'Browse courses in this category',
-                                                          style: TextStyle(
-                                                            fontSize: _responsiveValue(14, 15, 16),
-                                                            color: const Color(0xFF666666),
-                                                            height: 1.5,
-                                                          ),
+                                                        // Section Title with count
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Text(
+                                                              'Available Courses',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    _responsiveValue(
+                                                                        20,
+                                                                        22,
+                                                                        24),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                color:
+                                                                    const Color(
+                                                                        0xFF003366),
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              '${courseItems.length} items',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    _responsiveValue(
+                                                                        14,
+                                                                        15,
+                                                                        16),
+                                                                color: Colors
+                                                                    .grey[600],
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                         SizedBox(
-                                                            height: _responsiveValue(20, 24, 28)),
+                                                            height:
+                                                                _responsiveValue(
+                                                                    20,
+                                                                    24,
+                                                                    28)),
 
                                                         // Grid View
-                                                        if (courseItems.isEmpty)
+                                                        if (courseItems
+                                                            .isEmpty)
                                                           const Center(
                                                             child: Padding(
-                                                              padding: EdgeInsets.all(20),
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(20),
                                                               child: Text(
                                                                   'No courses available in this category'),
                                                             ),
                                                           )
                                                         else
                                                           Wrap(
-                                                            spacing: _responsiveValue(12, 16, 20),
-                                                            runSpacing: _responsiveValue(12, 16, 20),
-                                                            children: courseItems
-                                                                .map((course) {
+                                                            spacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            runSpacing:
+                                                                _responsiveValue(
+                                                                    12, 16, 20),
+                                                            children:
+                                                                courseItems
+                                                                    .map(
+                                                                        (course) {
                                                               return _buildCourseCard(
                                                                 course: course,
-                                                                width: cardWidth,
+                                                                width:
+                                                                    cardWidth,
                                                               );
                                                             }).toList(),
                                                           ),
@@ -535,42 +684,59 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                   // ===== BANNER SECTION =====
                                                   Container(
                                                     width: screenWidth,
-                                                    margin: EdgeInsets.symmetric(
-                                                      horizontal: horizontalPadding,
-                                                      vertical: _responsiveValue(20, 24, 28),
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              20, 24, 28),
                                                     ),
                                                     padding: EdgeInsets.all(
-                                                        _responsiveValue(20, 24, 28)),
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFF4C73AC),
+                                                      color: const Color(
+                                                          0xFF4C73AC),
                                                       borderRadius:
-                                                          BorderRadius.circular(_scale(12)),
+                                                          BorderRadius.circular(
+                                                              _scale(12)),
                                                       boxShadow: [
                                                         BoxShadow(
-                                                          color: Colors.black.withOpacity(0.1),
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
                                                           blurRadius: _scale(6),
-                                                          offset: const Offset(0, 2),
+                                                          offset: const Offset(
+                                                              0, 2),
                                                         ),
                                                       ],
                                                     ),
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Text(
-                                                          'Enhance Your Learning',
+                                                          'Master Your Skills',
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(18, 20, 22),
-                                                            fontWeight: FontWeight.w700,
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
                                                             color: Colors.white,
                                                           ),
                                                         ),
-                                                        SizedBox(height: _scale(10)),
+                                                        SizedBox(
+                                                            height: _scale(10)),
                                                         Text(
-                                                          'Access complete course materials, video lectures, and practice exercises',
+                                                          'Get comprehensive learning materials and expert guidance',
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(14, 15, 16),
-                                                            color: const Color(0xFFDCE8FF),
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFFDCE8FF),
                                                             height: 1.5,
                                                           ),
                                                         ),
@@ -584,21 +750,36 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                 Column(
                                                   children: [
                                                     Padding(
-                                                      padding: EdgeInsets.symmetric(
-                                                        horizontal: horizontalPadding,
-                                                        vertical: _responsiveValue(16, 20, 24),
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                16, 20, 24),
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          const Icon(Icons.play_circle_fill,
-                                                              color: Colors.red),
-                                                          const SizedBox(width: 8),
+                                                          const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color:
+                                                                  Colors.red),
+                                                          const SizedBox(
+                                                              width: 8),
                                                           Text(
                                                             'Video Tutorials',
                                                             style: TextStyle(
-                                                              fontSize: _responsiveValue(18, 20, 22),
-                                                              fontWeight: FontWeight.w700,
-                                                              color: const Color(0xFF003366),
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
                                                             ),
                                                           ),
                                                         ],
@@ -606,15 +787,22 @@ class _Course2ScreenState extends State<Course2Screen> {
                                                     ),
                                                     ...youtubeUrls
                                                         .map((url) => Container(
-                                                              width: screenWidth,
-                                                              margin: EdgeInsets.only(),
-                                                              child: CommonYoutubePlayer(
+                                                              width:
+                                                                  screenWidth,
+                                                              margin:
+                                                                  EdgeInsets
+                                                                      .only(),
+                                                              child:
+                                                                  CommonYoutubePlayer(
                                                                 youtubeUrl: url,
                                                                 height: isDesktop
                                                                     ? 360
-                                                                    : (isTablet ? 320 : 220),
+                                                                    : (isTablet
+                                                                        ? 320
+                                                                        : 220),
                                                                 placeholderThumbnail:
-                                                                    _getYoutubeThumbnail(url),
+                                                                    _getYoutubeThumbnail(
+                                                                        url),
                                                                 borderRadius: 0,
                                                               ),
                                                             ))
@@ -631,16 +819,6 @@ class _Course2ScreenState extends State<Course2Screen> {
                               },
                             ),
                 ),
-
-                // ===== FOOTER =====
-                Footer(
-                  currentIndex: _footerIndex,
-                  onItemTapped: (index) {
-                    setState(() {
-                      _footerIndex = index;
-                    });
-                  },
-                ),
               ],
             ),
           ),
@@ -648,7 +826,7 @@ class _Course2ScreenState extends State<Course2Screen> {
           // Full screen loader for initial loading
           if (_isLoading && courseItems.isEmpty)
             const GlassLoader(
-              message: 'Loading course items...',
+              message: 'Loading courses...',
             ),
         ],
       ),
@@ -671,15 +849,17 @@ class _Course2ScreenState extends State<Course2Screen> {
           MaterialPageRoute(
             builder: (context) => Course3Screen(
               title: course['title'] as String,
-              courseData: course,
+              courseData: course, // Pass full course data
             ),
           ),
         );
       },
       child: Container(
         width: width * 0.9,
-        margin: EdgeInsets.symmetric(horizontal: width * 0.05), // Center the smaller card
-        padding: EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
+        margin: EdgeInsets.symmetric(
+            horizontal: width * 0.05), // Center the smaller card
+        padding:
+            EdgeInsets.all(_responsiveValue(14, 18, 22)), // Increased padding
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -696,10 +876,13 @@ class _Course2ScreenState extends State<Course2Screen> {
           children: [
             // Logo Container - Bigger size
             Container(
-              width: _responsiveValue(70, 80, 90), // Increased size
-              height: _responsiveValue(70, 80, 90), // Increased size
+              width: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
+              height: _responsiveValue(
+                  70, 80, 90), // Increased size for better visibility
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_scale(16)),
+                borderRadius: BorderRadius.circular(
+                    _scale(16)), // Slightly larger border radius
                 image: hasValidImage
                     ? DecorationImage(
                         image: NetworkImage(course['image']),
@@ -712,14 +895,15 @@ class _Course2ScreenState extends State<Course2Screen> {
               child: !hasValidImage
                   ? Center(
                       child: Icon(
-                        Icons.image,
-                        size: _responsiveValue(25, 30, 35),
+                        Icons.menu_book,
+                        size: _responsiveValue(
+                            25, 30, 35), // Icon size for fallback
                         color: const Color(0xFF0052A2).withOpacity(0.5),
                       ),
                     )
                   : null,
             ),
-            SizedBox(height: _scale(14)),
+            SizedBox(height: _scale(14)), // Slightly increased spacing
 
             // Title - Centered
             Text(

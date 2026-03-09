@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import '../../Widgets/CommonYoutubePlayer.dart';
 import '../../components/glass_loader.dart';
 import '../../api/baseurl.dart';
-import '../../Widgets/Footer.dart';
 import 'Course4.dart';
 
 class Course3Screen extends StatefulWidget {
@@ -24,7 +23,6 @@ class Course3Screen extends StatefulWidget {
 }
 
 class _Course3ScreenState extends State<Course3Screen> {
-  int _footerIndex = 0;
   int _activeAdIndex = 0;
   String _selectedMode = "All";
   String _searchQuery = "";
@@ -38,10 +36,8 @@ class _Course3ScreenState extends State<Course3Screen> {
   bool _isAdsLoading = true;
   String? _errorMessage;
 
-  // Course providers from API
+  // API Data
   List<Map<String, dynamic>> courseProviders = [];
-
-  // Ads and Videos
   List<String> adImages = [];
   List<String> youtubeUrls = [];
 
@@ -106,14 +102,8 @@ class _Course3ScreenState extends State<Course3Screen> {
     }
   }
 
-  // Fetch course providers by courseItemId
   Future<void> _fetchCourseProviders() async {
     debugPrint('🔄 Loading course providers...');
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
 
     // Get courseItemId from courseData
     final courseItemId = widget.courseData?['id'] ?? 
@@ -131,40 +121,15 @@ class _Course3ScreenState extends State<Course3Screen> {
       debugPrint('📡 Course Providers API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
         
         // Handle the response structure: { "success": true, "data": [...] }
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           final List<dynamic> data = jsonResponse['data'];
-          
           debugPrint('📦 Loaded ${data.length} course providers');
-
+          
           setState(() {
-            courseProviders = data.map((item) {
-              // Fix image URL if needed
-              String? imageUrl = item['image'];
-              if (imageUrl != null && imageUrl.isNotEmpty) {
-                if (!imageUrl.startsWith('http')) {
-                  imageUrl = '${BaseUrl.baseUrl}$imageUrl';
-                }
-              }
-
-              return {
-                'id': item['id'] ?? item['_id'] ?? DateTime.now().millisecondsSinceEpoch,
-                'name': item['name'] ?? 'Unknown Provider',
-                'description': item['description'] ?? 'No description available',
-                'image': imageUrl,
-                'area': item['area'] ?? '',
-                'district': item['district'] ?? '',
-                'state': item['state'] ?? '',
-                'rating': item['rating'] ?? 0.0,
-                'teachingMode': item['teachingMode'] ?? [],
-                'address': item['address'] ?? '',
-                'phone': item['phone'] ?? '',
-                'email': item['email'] ?? '',
-                'website': item['website'] ?? '',
-              };
-            }).toList();
+            courseProviders = List<Map<String, dynamic>>.from(data);
             _isLoading = false;
           });
         } else {
@@ -303,9 +268,9 @@ class _Course3ScreenState extends State<Course3Screen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Responsive breakpoints
-    final bool isDesktop = screenWidth >= 1024;
-    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
     final bool isMobile = screenWidth < 768;
+    final bool isTablet = screenWidth >= 768 && screenWidth < 1024;
+    final bool isDesktop = screenWidth >= 1024;
 
     // Responsive values
     final double horizontalPadding = _responsiveValue(16, 24, 32);
@@ -337,7 +302,8 @@ class _Course3ScreenState extends State<Course3Screen> {
                   ),
                   child: Container(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
                     height: headerHeight,
                     child: Row(
                       children: [
@@ -445,29 +411,40 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                       width: screenWidth,
                                                       height: adHeight,
                                                       child: PageView.builder(
-                                                        controller: _adController,
-                                                        itemCount: adImages.length,
+                                                        controller:
+                                                            _adController,
+                                                        itemCount:
+                                                            adImages.length,
                                                         onPageChanged: (index) {
                                                           setState(() {
-                                                            _activeAdIndex = index;
+                                                            _activeAdIndex =
+                                                                index;
                                                           });
                                                         },
-                                                        itemBuilder: (context, index) {
+                                                        itemBuilder:
+                                                            (context, index) {
                                                           return Image.network(
                                                             adImages[index],
                                                             width: screenWidth,
                                                             height: adHeight,
                                                             fit: BoxFit.cover,
                                                             errorBuilder:
-                                                                (context, error, stackTrace) {
+                                                                (context, error,
+                                                                    stackTrace) {
                                                               return Container(
-                                                                width: screenWidth,
-                                                                height: adHeight,
-                                                                color: Colors.black12,
-                                                                child: const Center(
+                                                                width:
+                                                                    screenWidth,
+                                                                height:
+                                                                    adHeight,
+                                                                color: Colors
+                                                                    .black12,
+                                                                child:
+                                                                    const Center(
                                                                   child: Icon(
-                                                                      Icons.broken_image,
-                                                                      color: Colors.grey),
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      color: Colors
+                                                                          .grey),
                                                                 ),
                                                               );
                                                             },
@@ -481,7 +458,8 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                       height: adHeight,
                                                       color: Colors.grey[200],
                                                       child: const Center(
-                                                        child: CircularProgressIndicator(),
+                                                        child:
+                                                            CircularProgressIndicator(),
                                                       ),
                                                     )
                                                   else
@@ -491,126 +469,354 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                   if (adImages.length > 1)
                                                     Container(
                                                       color: Colors.white,
-                                                      padding: const EdgeInsets.symmetric(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
                                                           vertical: 8),
                                                       child: Row(
                                                         mainAxisAlignment:
-                                                            MainAxisAlignment.center,
+                                                            MainAxisAlignment
+                                                                .center,
                                                         children: List.generate(
-                                                            adImages.length, (index) {
+                                                            adImages.length,
+                                                            (index) {
                                                           return AnimatedContainer(
                                                             duration:
-                                                                const Duration(milliseconds: 300),
-                                                            width: _activeAdIndex == index
-                                                                ? _scale(20)
-                                                                : _scale(8),
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        300),
+                                                            width:
+                                                                _activeAdIndex ==
+                                                                        index
+                                                                    ? _scale(20)
+                                                                    : _scale(8),
                                                             height: _scale(8),
-                                                            margin: EdgeInsets.symmetric(
-                                                                horizontal: _scale(4)),
-                                                            decoration: BoxDecoration(
-                                                              color: _activeAdIndex == index
-                                                                  ? const Color(0xFF0B5ED7)
-                                                                  : const Color(0xFFCCCCCC),
+                                                            margin: EdgeInsets
+                                                                .symmetric(
+                                                                    horizontal:
+                                                                        _scale(
+                                                                            4)),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: _activeAdIndex ==
+                                                                      index
+                                                                  ? const Color(
+                                                                      0xFF0B5ED7)
+                                                                  : const Color(
+                                                                      0xFFCCCCCC),
                                                               borderRadius:
-                                                                  BorderRadius.circular(_scale(4)),
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          _scale(
+                                                                              4)),
                                                             ),
                                                           );
                                                         }),
                                                       ),
                                                     ),
 
-                                                  // ===== SEARCH & FILTER ROW =====
+                                                  // ===== SEARCH & FILTER SECTION =====
                                                   Container(
-                                                    width: screenWidth,
+                                                    width: double.infinity,
                                                     color: Colors.white,
-                                                    padding: EdgeInsets.fromLTRB(
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
                                                       horizontalPadding,
-                                                      _responsiveValue(16, 20, 24),
+                                                      _responsiveValue(
+                                                          24, 28, 32),
                                                       horizontalPadding,
-                                                      _responsiveValue(8, 10, 12),
+                                                      _responsiveValue(
+                                                          20, 24, 28),
                                                     ),
-                                                    child: Row(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        // Search Container
-                                                        Expanded(
-                                                          child: Container(
-                                                            padding: EdgeInsets.symmetric(
-                                                              horizontal: _responsiveValue(12, 14, 16),
-                                                              vertical: _responsiveValue(8, 10, 12),
+                                                        // Search & Filter Row
+                                                        Row(
+                                                          children: [
+                                                            // Search Container
+                                                            Expanded(
+                                                              child: Container(
+                                                                margin: EdgeInsets.only(
+                                                                    right: _responsiveValue(
+                                                                        8,
+                                                                        12,
+                                                                        16)),
+                                                                padding: EdgeInsets.all(
+                                                                    _responsiveValue(
+                                                                        10,
+                                                                        14,
+                                                                        16)),
+                                                                decoration: BoxDecoration(
+                                                                  color: const Color(
+                                                                      0xFFF5F7FA),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              _scale(12)),
+                                                                  border: Border.all(
+                                                                    color: Colors
+                                                                        .grey
+                                                                        .shade200,
+                                                                    width: 1,
+                                                                  ),
+                                                                ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .search,
+                                                                      size:
+                                                                          _scale(16),
+                                                                      color:
+                                                                          const Color(
+                                                                              0xFF666666),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            12),
+                                                                    Expanded(
+                                                                      child:
+                                                                          TextField(
+                                                                        controller:
+                                                                            _searchController,
+                                                                        decoration:
+                                                                            const InputDecoration(
+                                                                          hintText:
+                                                                              'Search by name or location...',
+                                                                          hintStyle: TextStyle(
+                                                                              color: Color(0xFF666666)),
+                                                                          border:
+                                                                              InputBorder.none,
+                                                                          contentPadding:
+                                                                              EdgeInsets.zero,
+                                                                        ),
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              _scale(14),
+                                                                          color:
+                                                                              const Color(0xFF333333),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    if (_searchQuery
+                                                                        .isNotEmpty)
+                                                                      IconButton(
+                                                                        onPressed:
+                                                                            () {
+                                                                          _searchController
+                                                                              .clear();
+                                                                        },
+                                                                        icon: Icon(
+                                                                          Icons
+                                                                              .close,
+                                                                          size:
+                                                                              _scale(16),
+                                                                          color:
+                                                                              const Color(0xFF999999),
+                                                                        ),
+                                                                        padding:
+                                                                            EdgeInsets.zero,
+                                                                        constraints:
+                                                                            const BoxConstraints(),
+                                                                      ),
+                                                                  ],
+                                                                ),
+                                                              ),
                                                             ),
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFFF5F7FA),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(_scale(12)),
+
+                                                            // Filter Button
+                                                            GestureDetector(
+                                                              onTap: () {
+                                                                setState(() {
+                                                                  _showFilters =
+                                                                      !_showFilters;
+                                                                });
+                                                              },
+                                                              child: Container(
+                                                                padding: EdgeInsets.all(
+                                                                    _responsiveValue(
+                                                                        10,
+                                                                        14,
+                                                                        16)),
+                                                                decoration: BoxDecoration(
+                                                                  color: _showFilters
+                                                                      ? const Color(
+                                                                          0xFF0B5ED7)
+                                                                      : Colors
+                                                                          .white,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              _scale(12)),
+                                                                  border: Border.all(
+                                                                    color: _showFilters
+                                                                        ? const Color(
+                                                                            0xFF0B5ED7)
+                                                                        : Colors
+                                                                            .grey
+                                                                            .shade200,
+                                                                    width: 1,
+                                                                  ),
+                                                                ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .filter_alt,
+                                                                      size:
+                                                                          _scale(18),
+                                                                      color: _showFilters
+                                                                          ? Colors
+                                                                              .white
+                                                                          : const Color(
+                                                                              0xFF0B5ED7),
+                                                                    ),
+                                                                    if (_showFilters) ...[
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              8),
+                                                                      Text(
+                                                                        'Filters',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              _scale(13),
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                          color:
+                                                                              Colors.white,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ],
+                                                                ),
+                                                              ),
                                                             ),
-                                                            child: Row(
+                                                          ],
+                                                        ),
+
+                                                        // ===== FILTER OPTIONS =====
+                                                        if (_showFilters)
+                                                          Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                              top: _responsiveValue(
+                                                                  20, 24, 28),
+                                                            ),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
                                                               children: [
-                                                                Icon(
-                                                                  Icons.search,
-                                                                  size: _scale(16),
-                                                                  color: const Color(0xFF666666),
-                                                                ),
-                                                                const SizedBox(width: 12),
-                                                                Expanded(
-                                                                  child: TextField(
-                                                                    controller: _searchController,
-                                                                    decoration: const InputDecoration(
-                                                                      hintText:
-                                                                          'Search by name or location...',
-                                                                      hintStyle: TextStyle(
-                                                                          color: Color(0xFF666666)),
-                                                                      border: InputBorder.none,
-                                                                      contentPadding: EdgeInsets.zero,
-                                                                    ),
-                                                                    style: TextStyle(
-                                                                      fontSize: _scale(14),
-                                                                      color: const Color(0xFF333333),
-                                                                    ),
+                                                                Text(
+                                                                  'Teaching Mode',
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize:
+                                                                        _scale(16),
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    color: const Color(
+                                                                        0xFF333333),
                                                                   ),
                                                                 ),
-                                                                if (_searchQuery.isNotEmpty)
-                                                                  IconButton(
-                                                                    onPressed: () {
-                                                                      _searchController.clear();
-                                                                    },
-                                                                    icon: Icon(
-                                                                      Icons.close,
-                                                                      size: _scale(16),
-                                                                      color: const Color(0xFF999999),
-                                                                    ),
-                                                                    padding: EdgeInsets.zero,
-                                                                    constraints: const BoxConstraints(),
-                                                                  ),
+                                                                const SizedBox(
+                                                                    height: 16),
+                                                                Wrap(
+                                                                  spacing: 12,
+                                                                  runSpacing: 12,
+                                                                  children:
+                                                                      categories
+                                                                          .map((mode) {
+                                                                    return _buildFilterOption(
+                                                                        mode);
+                                                                  }).toList(),
+                                                                ),
                                                               ],
                                                             ),
                                                           ),
-                                                        ),
 
-                                                        // Filter Button
-                                                        SizedBox(width: _responsiveValue(8, 12, 16)),
-                                                        
-                                                        GestureDetector(
-                                                          onTap: () {
-                                                            setState(() {
-                                                              _showFilters = !_showFilters;
-                                                            });
-                                                          },
-                                                          child: Container(
-                                                            padding: EdgeInsets.all(
-                                                                _responsiveValue(10, 12, 14)),
-                                                            decoration: BoxDecoration(
-                                                              color: _showFilters
-                                                                  ? const Color(0xFF0B5ED7)
-                                                                  : const Color(0xFFF5F7FA),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(_scale(12)),
-                                                            ),
-                                                            child: Icon(
-                                                              Icons.filter_alt,
-                                                              size: _scale(18),
-                                                              color: _showFilters
-                                                                  ? Colors.white
-                                                                  : const Color(0xFF0B5ED7),
+                                                        // ===== QUICK FILTERS =====
+                                                        Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                            top: _responsiveValue(
+                                                                20, 24, 28),
+                                                          ),
+                                                          child: SizedBox(
+                                                            height: _scale(50),
+                                                            child: ListView
+                                                                .builder(
+                                                              scrollDirection:
+                                                                  Axis.horizontal,
+                                                              itemCount:
+                                                                  categories
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                      index) {
+                                                                final category =
+                                                                    categories[
+                                                                        index];
+                                                                return Container(
+                                                                  margin: EdgeInsets.only(
+                                                                    right: index <
+                                                                            categories.length -
+                                                                                1
+                                                                        ? _responsiveValue(
+                                                                            8,
+                                                                            12,
+                                                                            16)
+                                                                        : 0,
+                                                                  ),
+                                                                  child: ChoiceChip(
+                                                                    label: Text(
+                                                                      category,
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            _scale(13),
+                                                                        fontWeight:
+                                                                            FontWeight.w500,
+                                                                      ),
+                                                                    ),
+                                                                    selected:
+                                                                        _selectedMode ==
+                                                                            category,
+                                                                    selectedColor:
+                                                                        const Color(
+                                                                            0xFF0B5ED7),
+                                                                    backgroundColor:
+                                                                        const Color(
+                                                                            0xFFF1F3F6),
+                                                                    labelStyle:
+                                                                        TextStyle(
+                                                                      color: _selectedMode ==
+                                                                              category
+                                                                          ? Colors
+                                                                              .white
+                                                                          : const Color(
+                                                                              0xFF5F6F81),
+                                                                    ),
+                                                                    onSelected:
+                                                                        (selected) {
+                                                                      setState(
+                                                                          () {
+                                                                        _selectedMode =
+                                                                            category;
+                                                                      });
+                                                                    },
+                                                                    shape: RoundedRectangleBorder(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              _scale(18)),
+                                                                    ),
+                                                                  ),
+                                                                );
+                                                              },
                                                             ),
                                                           ),
                                                         ),
@@ -618,152 +824,131 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                     ),
                                                   ),
 
-                                                  // ===== FILTER OPTIONS =====
-                                                  if (_showFilters)
-                                                    Container(
-                                                      width: screenWidth,
-                                                      color: Colors.white,
-                                                      padding: EdgeInsets.fromLTRB(
-                                                        horizontalPadding,
-                                                        _responsiveValue(8, 10, 12),
-                                                        horizontalPadding,
-                                                        _responsiveValue(16, 20, 24),
-                                                      ),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            'Teaching Mode',
-                                                            style: TextStyle(
-                                                              fontSize: _scale(16),
-                                                              fontWeight: FontWeight.w600,
-                                                              color: const Color(0xFF333333),
-                                                            ),
-                                                          ),
-                                                          SizedBox(height: _scale(16)),
-                                                          // Responsive filter options
-                                                          Wrap(
-                                                            spacing: 8,
-                                                            runSpacing: 8,
-                                                            children: categories.map((mode) {
-                                                              return _buildResponsiveFilterOption(mode, isMobile);
-                                                            }).toList(),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-
-                                                  // ===== CATEGORIES (Quick Filters) =====
-                                                  Container(
-                                                    width: screenWidth,
-                                                    color: Colors.white,
-                                                    padding: EdgeInsets.fromLTRB(
-                                                      horizontalPadding,
-                                                      _showFilters ? 0 : _responsiveValue(16, 20, 24),
-                                                      horizontalPadding,
-                                                      _responsiveValue(16, 20, 24),
-                                                    ),
-                                                    height: _scale(50),
-                                                    child: ListView.builder(
-                                                      scrollDirection: Axis.horizontal,
-                                                      itemCount: categories.length,
-                                                      itemBuilder: (context, index) {
-                                                        final category = categories[index];
-                                                        return Container(
-                                                          margin: EdgeInsets.only(
-                                                            right: index < categories.length - 1
-                                                                ? _responsiveValue(8, 12, 16)
-                                                                : 0,
-                                                          ),
-                                                          child: _buildResponsiveChoiceChip(
-                                                            category: category,
-                                                            isSelected: _selectedMode == category,
-                                                            isMobile: isMobile,
-                                                            onSelected: (selected) {
-                                                              setState(() {
-                                                                _selectedMode = category;
-                                                              });
-                                                            },
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-
                                                   // ===== PROVIDERS LIST SECTION =====
                                                   Container(
                                                     width: double.infinity,
                                                     color: Colors.white,
-                                                    padding: EdgeInsets.fromLTRB(
+                                                    padding:
+                                                        EdgeInsets.fromLTRB(
                                                       horizontalPadding,
-                                                      _responsiveValue(24, 28, 32),
+                                                      _responsiveValue(
+                                                          24, 28, 32),
                                                       horizontalPadding,
-                                                      _responsiveValue(20, 24, 28),
+                                                      _responsiveValue(
+                                                          20, 24, 28),
                                                     ),
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         // Section Title with count
                                                         Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
                                                           children: [
                                                             Text(
                                                               'Available Providers',
                                                               style: TextStyle(
-                                                                fontSize: _responsiveValue(20, 22, 24),
-                                                                fontWeight: FontWeight.w700,
-                                                                color: const Color(0xFF003366),
+                                                                fontSize:
+                                                                    _responsiveValue(
+                                                                        20,
+                                                                        22,
+                                                                        24),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                color:
+                                                                    const Color(
+                                                                        0xFF003366),
                                                               ),
                                                             ),
-                                                            if (!_isLoading)
-                                                              Container(
-                                                                padding: EdgeInsets.symmetric(
-                                                                  horizontal: _responsiveValue(10, 12, 14),
-                                                                  vertical: _responsiveValue(4, 5, 6),
-                                                                ),
-                                                                decoration: BoxDecoration(
-                                                                  color: const Color(0xFFE8F0FF),
-                                                                  borderRadius: BorderRadius.circular(_scale(20)),
-                                                                ),
-                                                                child: Text(
-                                                                  '${filteredProviders.length} found',
-                                                                  style: TextStyle(
-                                                                    fontSize: _responsiveValue(12, 13, 14),
-                                                                    color: const Color(0xFF0B5ED7),
-                                                                    fontWeight: FontWeight.w600,
-                                                                  ),
-                                                                ),
+                                                            Text(
+                                                              '${filteredProviders.length} providers found',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    _responsiveValue(
+                                                                        14,
+                                                                        15,
+                                                                        16),
+                                                                color: Colors
+                                                                    .grey[600],
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
                                                               ),
+                                                            ),
                                                           ],
                                                         ),
-                                                        SizedBox(height: _scale(8)),
-
-                                                        // Section Subtitle
-                                                        Text(
-                                                          'Browse through our trusted course providers',
-                                                          style: TextStyle(
-                                                            fontSize: _responsiveValue(14, 15, 16),
-                                                            color: const Color(0xFF666666),
-                                                            height: 1.5,
-                                                          ),
-                                                        ),
                                                         SizedBox(
-                                                            height: _responsiveValue(20, 24, 28)),
+                                                            height:
+                                                                _responsiveValue(
+                                                                    20,
+                                                                    24,
+                                                                    28)),
 
                                                         // Providers List
-                                                        if (filteredProviders.isEmpty)
-                                                          _buildEmptyState()
+                                                        if (filteredProviders
+                                                            .isEmpty)
+                                                          Center(
+                                                            child: Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(32),
+                                                              child: Column(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .business_center_outlined,
+                                                                    size: 64,
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        400],
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          16),
+                                                                  Text(
+                                                                    'No providers found',
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          18,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          700],
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      height: 8),
+                                                                  Text(
+                                                                    'Try changing your search or filter criteria',
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          14,
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          500],
+                                                                    ),
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          )
                                                         else
                                                           Column(
-                                                            children: filteredProviders.map((provider) {
-                                                              return Padding(
-                                                                padding: EdgeInsets.only(
-                                                                  bottom: _responsiveValue(14, 18, 22),
-                                                                ),
-                                                                child: _buildProviderCard(
-                                                                  provider: provider,
-                                                                ),
+                                                            children:
+                                                                filteredProviders
+                                                                    .map((provider) {
+                                                              return _buildProviderCard(
+                                                                provider:
+                                                                    provider,
                                                               );
                                                             }).toList(),
                                                           ),
@@ -774,42 +959,59 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                   // ===== BANNER SECTION =====
                                                   Container(
                                                     width: screenWidth,
-                                                    margin: EdgeInsets.symmetric(
-                                                      horizontal: horizontalPadding,
-                                                      vertical: _responsiveValue(20, 24, 28),
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          horizontalPadding,
+                                                      vertical:
+                                                          _responsiveValue(
+                                                              20, 24, 28),
                                                     ),
                                                     padding: EdgeInsets.all(
-                                                        _responsiveValue(20, 24, 28)),
+                                                        _responsiveValue(
+                                                            20, 24, 28)),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFF4C73AC),
+                                                      color: const Color(
+                                                          0xFF4C73AC),
                                                       borderRadius:
-                                                          BorderRadius.circular(_scale(12)),
+                                                          BorderRadius.circular(
+                                                              _scale(12)),
                                                       boxShadow: [
                                                         BoxShadow(
-                                                          color: Colors.black.withOpacity(0.1),
+                                                          color: Colors.black
+                                                              .withOpacity(0.1),
                                                           blurRadius: _scale(6),
-                                                          offset: const Offset(0, 2),
+                                                          offset: const Offset(
+                                                              0, 2),
                                                         ),
                                                       ],
                                                     ),
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Text(
-                                                          'Expert Course Providers',
+                                                          'Expert Training Providers',
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(18, 20, 22),
-                                                            fontWeight: FontWeight.w700,
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    18, 20, 22),
+                                                            fontWeight:
+                                                                FontWeight.w700,
                                                             color: Colors.white,
                                                           ),
                                                         ),
-                                                        SizedBox(height: _scale(10)),
+                                                        SizedBox(
+                                                            height: _scale(10)),
                                                         Text(
-                                                          'Connect with experienced instructors and training centers',
+                                                          'Get trained by certified professionals and achieve your goals',
                                                           style: TextStyle(
-                                                            fontSize: _responsiveValue(14, 15, 16),
-                                                            color: const Color(0xFFDCE8FF),
+                                                            fontSize:
+                                                                _responsiveValue(
+                                                                    14, 15, 16),
+                                                            color: const Color(
+                                                                0xFFDCE8FF),
                                                             height: 1.5,
                                                           ),
                                                         ),
@@ -823,21 +1025,36 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                 Column(
                                                   children: [
                                                     Padding(
-                                                      padding: EdgeInsets.symmetric(
-                                                        horizontal: horizontalPadding,
-                                                        vertical: _responsiveValue(16, 20, 24),
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            horizontalPadding,
+                                                        vertical:
+                                                            _responsiveValue(
+                                                                16, 20, 24),
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          const Icon(Icons.play_circle_fill,
-                                                              color: Colors.red),
-                                                          const SizedBox(width: 8),
+                                                          const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color:
+                                                                  Colors.red),
+                                                          const SizedBox(
+                                                              width: 8),
                                                           Text(
-                                                            'Provider Videos',
+                                                            'Video Tutorials',
                                                             style: TextStyle(
-                                                              fontSize: _responsiveValue(18, 20, 22),
-                                                              fontWeight: FontWeight.w700,
-                                                              color: const Color(0xFF003366),
+                                                              fontSize:
+                                                                  _responsiveValue(
+                                                                      18,
+                                                                      20,
+                                                                      22),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: const Color(
+                                                                  0xFF003366),
                                                             ),
                                                           ),
                                                         ],
@@ -845,15 +1062,22 @@ class _Course3ScreenState extends State<Course3Screen> {
                                                     ),
                                                     ...youtubeUrls
                                                         .map((url) => Container(
-                                                              width: screenWidth,
-                                                              margin: EdgeInsets.only(),
-                                                              child: CommonYoutubePlayer(
+                                                              width:
+                                                                  screenWidth,
+                                                              margin:
+                                                                  EdgeInsets
+                                                                      .only(),
+                                                              child:
+                                                                  CommonYoutubePlayer(
                                                                 youtubeUrl: url,
                                                                 height: isDesktop
                                                                     ? 360
-                                                                    : (isTablet ? 320 : 220),
+                                                                    : (isTablet
+                                                                        ? 320
+                                                                        : 220),
                                                                 placeholderThumbnail:
-                                                                    _getYoutubeThumbnail(url),
+                                                                    _getYoutubeThumbnail(
+                                                                        url),
                                                                 borderRadius: 0,
                                                               ),
                                                             ))
@@ -870,16 +1094,6 @@ class _Course3ScreenState extends State<Course3Screen> {
                               },
                             ),
                 ),
-
-                // ===== FOOTER =====
-                Footer(
-                  currentIndex: _footerIndex,
-                  onItemTapped: (index) {
-                    setState(() {
-                      _footerIndex = index;
-                    });
-                  },
-                ),
               ],
             ),
           ),
@@ -894,8 +1108,7 @@ class _Course3ScreenState extends State<Course3Screen> {
     );
   }
 
-  // Responsive filter option for the expanded filter section
-  Widget _buildResponsiveFilterOption(String mode, bool isMobile) {
+  Widget _buildFilterOption(String mode) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -904,93 +1117,30 @@ class _Course3ScreenState extends State<Course3Screen> {
       },
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : 16,
-          vertical: isMobile ? 8 : 12,
+          horizontal: _responsiveValue(16, 20, 24),
+          vertical: _responsiveValue(10, 12, 14),
         ),
         decoration: BoxDecoration(
           color: _selectedMode == mode
               ? const Color(0xFF0B5ED7)
               : const Color(0xFFF5F7FA),
-          borderRadius: BorderRadius.circular(_scale(8)),
-          border: _selectedMode == mode
-              ? null
-              : Border.all(color: const Color(0xFFE0E0E0), width: 0.5),
+          borderRadius: BorderRadius.circular(_scale(10)),
+          border: Border.all(
+            color: _selectedMode == mode
+                ? const Color(0xFF0B5ED7)
+                : Colors.grey.shade200,
+            width: 1,
+          ),
         ),
         child: Text(
           mode,
           style: TextStyle(
-            fontSize: isMobile ? 11 : 12,
+            fontSize: _scale(12),
             fontWeight: FontWeight.w500,
-            color: _selectedMode == mode ? Colors.white : const Color(0xFF666666),
+            color:
+                _selectedMode == mode ? Colors.white : const Color(0xFF666666),
           ),
         ),
-      ),
-    );
-  }
-
-  // Responsive choice chip for quick filters
-  Widget _buildResponsiveChoiceChip({
-    required String category,
-    required bool isSelected,
-    required bool isMobile,
-    required Function(bool) onSelected,
-  }) {
-    return ChoiceChip(
-      label: Text(
-        category,
-        style: TextStyle(
-          fontSize: isMobile ? 11 : 13,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      selected: isSelected,
-      selectedColor: const Color(0xFF0B5ED7),
-      backgroundColor: const Color(0xFFF1F3F6),
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : const Color(0xFF5F6F81),
-        fontSize: isMobile ? 11 : 13,
-      ),
-      onSelected: onSelected,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(isMobile ? 14 : 18),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 8 : 12,
-        vertical: isMobile ? 4 : 8,
-      ),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(_responsiveValue(32, 40, 48)),
-      child: Column(
-        children: [
-          Icon(
-            Icons.business_center_outlined,
-            size: _scale(48),
-            color: const Color(0xFFCCCCCC),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No providers found',
-            style: TextStyle(
-              fontSize: _scale(16),
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF333333),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Try changing your search or filter criteria',
-            style: TextStyle(
-              fontSize: _scale(12),
-              color: const Color(0xFF666666),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -998,15 +1148,10 @@ class _Course3ScreenState extends State<Course3Screen> {
   Widget _buildProviderCard({
     required Map<String, dynamic> provider,
   }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 768;
-    
     final String providerName = provider['name']?.toString() ?? 'Unknown Institute';
     final String imageUrl = provider['image']?.toString() ?? '';
     final String location = _formatLocation(provider);
-    final double rating = (provider['rating'] is num) 
-        ? (provider['rating'] as num).toDouble() 
-        : double.tryParse(provider['rating']?.toString() ?? '0') ?? 0.0;
+    final double rating = double.tryParse(provider['rating']?.toString() ?? '0') ?? 0.0;
     final List teachingModes = provider['teachingMode'] as List? ?? [];
     final String modesText = _formatTeachingModes(teachingModes);
 
@@ -1017,38 +1162,38 @@ class _Course3ScreenState extends State<Course3Screen> {
           context,
           MaterialPageRoute(
             builder: (context) => Course4Screen(
-              provider: provider,
+              provider: provider, // Pass the full provider data
             ),
           ),
         );
       },
       child: Container(
-        width: double.infinity,
+        margin: EdgeInsets.only(bottom: _responsiveValue(14, 18, 22)),
         padding: EdgeInsets.all(_responsiveValue(14, 18, 22)),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(_scale(16)),
-          border: Border.all(
-            color: const Color(0xFFE0E0E0),
-            width: 1,
-          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6,
               offset: const Offset(0, 2),
             ),
           ],
+          border: Border.all(
+            color: Colors.grey.shade200,
+            width: 0.5,
+          ),
         ),
         child: Row(
           children: [
-            // Provider Image - Responsive sizing
+            // Provider Image
             Container(
-              width: isMobile ? 50 : _scale(70),
-              height: isMobile ? 50 : _scale(70),
+              width: _scale(80),
+              height: _scale(80),
               decoration: BoxDecoration(
                 color: const Color(0xFF0175D3),
-                borderRadius: BorderRadius.circular(isMobile ? 8 : _scale(12)),
+                borderRadius: BorderRadius.circular(_scale(12)),
                 image: imageUrl.isNotEmpty
                     ? DecorationImage(
                         image: NetworkImage(imageUrl),
@@ -1062,7 +1207,7 @@ class _Course3ScreenState extends State<Course3Screen> {
                         providerName.isNotEmpty ? providerName[0] : '?',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: isMobile ? 18 : _scale(24),
+                          fontSize: _scale(24),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1070,7 +1215,7 @@ class _Course3ScreenState extends State<Course3Screen> {
                   : null,
             ),
 
-            SizedBox(width: isMobile ? 10 : _responsiveValue(14, 18, 22)),
+            SizedBox(width: _responsiveValue(14, 18, 22)),
 
             // Provider Details
             Expanded(
@@ -1078,12 +1223,13 @@ class _Course3ScreenState extends State<Course3Screen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
                           providerName,
                           style: TextStyle(
-                            fontSize: isMobile ? 14 : _scale(16),
+                            fontSize: _scale(16),
                             fontWeight: FontWeight.w700,
                             color: Colors.black,
                           ),
@@ -1092,30 +1238,29 @@ class _Course3ScreenState extends State<Course3Screen> {
                         ),
                       ),
 
-                      // Rating - Responsive
+                      // Rating
                       if (rating > 0)
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 6 : _responsiveValue(8, 10, 12),
-                            vertical: isMobile ? 3 : _responsiveValue(4, 5, 6),
+                            horizontal: _responsiveValue(8, 10, 12),
+                            vertical: _responsiveValue(4, 5, 6),
                           ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF9E6),
-                            borderRadius: BorderRadius.circular(isMobile ? 8 : _scale(12)),
+                            borderRadius: BorderRadius.circular(_scale(12)),
                           ),
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.star,
-                                size: isMobile ? 12 : 14,
-                                color: const Color(0xFFFFB703),
+                                size: 14,
+                                color: Color(0xFFFFB703),
                               ),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: 4),
                               Text(
                                 rating.toStringAsFixed(1),
                                 style: TextStyle(
-                                  fontSize: isMobile ? 10 : _scale(12),
+                                  fontSize: _scale(12),
                                   fontWeight: FontWeight.w600,
                                   color: Colors.black,
                                 ),
@@ -1126,22 +1271,22 @@ class _Course3ScreenState extends State<Course3Screen> {
                     ],
                   ),
 
-                  SizedBox(height: isMobile ? 4 : 6),
+                  const SizedBox(height: 4),
 
                   // Location
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.location_on,
-                        size: isMobile ? 12 : _scale(14),
-                        color: const Color(0xFF5F6F81),
+                        size: 14,
+                        color: Color(0xFF5F6F81),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           location,
                           style: TextStyle(
-                            fontSize: isMobile ? 11 : _scale(12),
+                            fontSize: _scale(12),
                             color: const Color(0xFF5F6F81),
                           ),
                           maxLines: 1,
@@ -1151,23 +1296,23 @@ class _Course3ScreenState extends State<Course3Screen> {
                     ],
                   ),
 
-                  SizedBox(height: isMobile ? 6 : 8),
+                  const SizedBox(height: 8),
 
-                  // Teaching Mode Tag - Responsive
+                  // Teaching Mode Tag
                   if (modesText != 'Mode not specified')
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 8 : _responsiveValue(10, 12, 14),
-                        vertical: isMobile ? 4 : _responsiveValue(5, 6, 7),
+                        horizontal: _responsiveValue(10, 12, 14),
+                        vertical: _responsiveValue(5, 6, 7),
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8F1FF),
-                        borderRadius: BorderRadius.circular(isMobile ? 6 : _scale(8)),
+                        borderRadius: BorderRadius.circular(_scale(8)),
                       ),
                       child: Text(
                         modesText,
                         style: TextStyle(
-                          fontSize: isMobile ? 10 : _scale(11),
+                          fontSize: _scale(11),
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF0B5ED7),
                         ),
@@ -1177,13 +1322,13 @@ class _Course3ScreenState extends State<Course3Screen> {
               ),
             ),
 
-            SizedBox(width: isMobile ? 8 : _responsiveValue(12, 16, 20)),
+            SizedBox(width: _responsiveValue(12, 16, 20)),
 
-            // Chevron Icon - Responsive
-            Icon(
+            // Chevron Icon
+            const Icon(
               Icons.chevron_right,
-              size: isMobile ? 18 : _scale(24),
-              color: const Color(0xFF0B5ED7),
+              size: 24,
+              color: Color(0xFF0B5ED7),
             ),
           ],
         ),
